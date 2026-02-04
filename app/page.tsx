@@ -53,6 +53,9 @@ import { useViewModeOptional } from "@/src/lib/stores/view-mode-store"
 import { weatherForecast, weatherLimits } from "@/lib/weather/weather-service"
 import { buildWeatherDelayPreview } from "@/lib/weather/weather-delay-preview"
 import { propagateWeatherDelays } from "@/lib/weather/weather-reflow-chain"
+import type { Activity, ActivityState, OptionC } from "@/src/types/ssot"
+import { calculateCurrentActivityForTR, calculateCurrentLocationForTR } from "@/src/lib/derived-calc"
+import { checkEvidenceGate } from "@/src/lib/state-machine/evidence-gate"
 import type {
   ImpactReport,
   ScheduleActivity,
@@ -133,6 +136,12 @@ function matchTripIdForVoyage(
   return matched?.trip_id ?? null
 }
 
+function getEvidenceTargetState(state: ActivityState): ActivityState {
+  if (state === "in_progress") return "completed"
+  if (state === "planned" || state === "ready" || state === "blocked") return "in_progress"
+  return state
+}
+
 export default function Page() {
   const [activities, setActivities] = useState(scheduleActivities)
   const [activeSection, setActiveSection] = useState("overview")
@@ -148,6 +157,7 @@ export default function Page() {
   const [selectedCollision, setSelectedCollision] = useState<ScheduleConflict | null>(null)
   const [selectedActivityId, setSelectedActivityId] = useState<string | null>(null)
   const [focusedActivityId, setFocusedActivityId] = useState<string | null>(null)
+  const [selectedTrId, setSelectedTrId] = useState<string | null>(null)
   const conflicts = useMemo(() => detectResourceConflicts(activities), [activities])
   const baselineConflicts = useMemo(
     () => detectResourceConflicts(scheduleActivities).length,
@@ -165,6 +175,7 @@ export default function Page() {
   const evidenceRef = useRef<HTMLElement>(null)
   const [trips, setTrips] = useState<{ trip_id: string; name: string }[]>([])
   const [trs, setTrs] = useState<{ tr_id: string; name: string }[]>([])
+  const [ssot, setSsot] = useState<OptionC | null>(null)
   const [reflowPreview, setReflowPreview] = useState<{
     changes: ImpactReport["changes"]
     conflicts: ImpactReport["conflicts"]
@@ -177,32 +188,97 @@ export default function Page() {
   useEffect(() => {
     fetch("/api/ssot")
       .then((r) => r.ok ? r.json() : null)
-      .then((data) => {
+      .then((data: OptionC | null) => {
+        if (data) {
+          setSsot(data)
+        }
         if (data?.entities?.trips) {
           setTrips(
-            Object.values(data.entities.trips).map((t: unknown) => {
-              const trip = t as { trip_id: string; name: string }
-              return {
-                trip_id: trip.trip_id,
-                name: trip.name,
-              }
-            })
+            Object.values(data.entities.trips).map((t: { trip_id: string; name: string }) => ({
+              trip_id: t.trip_id,
+              name: t.name,
+            }))
           )
         }
         if (data?.entities?.trs) {
           setTrs(
-            Object.values(data.entities.trs).map((t: unknown) => {
-              const tr = t as { tr_id: string; name: string }
-              return {
-                tr_id: tr.tr_id,
-                name: tr.name,
-              }
-            })
+            Object.values(data.entities.trs).map((t: { tr_id: string; name: string }) => ({
+              tr_id: t.tr_id,
+              name: t.name,
+            }))
           )
         }
       })
       .catch(() => {})
   }, [])
+
+  const findTrIdForActivity = (activityId: string): string | null => {
+    if (!ssot?.entities?.activities) return null
+    const activity = ssot.entities.activities[activityId]
+    return activity?.tr_ids?.[0] ?? null
+  }
+
+  const storyHeaderActivity = useMemo<Activity | null>(() => {
+    if (!ssot) return null
+    if (selectedActivityId) {
+      return ssot.entities.activities[selectedActivityId] ?? null
+    }
+    if (selectedTrId) {
+      const activityId = calculateCurrentActivityForTR(ssot, selectedTrId)
+      if (activityId) return ssot.entities.activities[activityId] ?? null
+    }
+    return null
+  }, [ssot, selectedActivityId, selectedTrId])
+
+  const storyHeaderTrId = useMemo(() => {
+    return selectedTrId ?? storyHeaderActivity?.tr_ids?.[0] ?? null
+  }, [selectedTrId, storyHeaderActivity])
+
+  const storyHeaderData = useMemo(() => {
+    if (!ssot || !storyHeaderTrId) {
+      return {
+        trId: storyHeaderTrId,
+        where: undefined,
+        whenWhat: undefined,
+        evidence: undefined,
+      }
+    }
+
+    const locationId = calculateCurrentLocationForTR(ssot, storyHeaderTrId)
+    const locationName = locationId
+      ? ssot.entities.locations[locationId]?.name ?? locationId
+      : null
+    const where = locationName ? `Now @ ${locationName}` : "Location —"
+
+    const activity = storyHeaderActivity
+    const activityTitle = activity?.title ?? activity?.activity_id ?? "—"
+    const activityState = activity?.state ?? "—"
+    const blockerCode =
+      activity?.blocker_code && activity.blocker_code !== "none"
+        ? activity.blocker_code
+        : "none"
+    const whenWhat = activity
+      ? `${activityTitle} • ${activityState} • Blocker: ${blockerCode}`
+      : "Schedule —"
+
+    let evidence = "Evidence —"
+    if (activity) {
+      const targetState = getEvidenceTargetState(activity.state)
+      const gateResult = checkEvidenceGate(activity, targetState, activity.state, ssot)
+      const missingTypes = Array.from(
+        new Set(gateResult.missing.map((missing) => missing.evidence_type))
+      )
+      const typesLabel = missingTypes.length > 0 ? missingTypes.join(", ") : "—"
+      evidence = `Missing: ${gateResult.missing.length} | Types: ${typesLabel}`
+    }
+
+    return {
+      trId: storyHeaderTrId,
+      where,
+      whenWhat,
+      evidence,
+    }
+  }, [ssot, storyHeaderTrId, storyHeaderActivity])
 
   const handleApplyPreview = (
     nextActivities: ScheduleActivity[],
@@ -266,20 +342,14 @@ export default function Page() {
     setReflowPreview(null)
     setSelectedActivityId(activityId)
     setFocusedActivityId(activityId)
+    const trId = findTrIdForActivity(activityId)
+    if (trId) setSelectedTrId(trId)
     const v = findVoyageByActivityDate(start, voyages)
     if (v) setSelectedVoyage(v)
     // Enable What-If panel when activity is selected
     const activity = activities.find(a => a.activity_id === activityId)
     setShowWhatIfPanel(Boolean(activity))
   }
-
-  const nextActivityName = useMemo(() => {
-    if (!selectedVoyage) return "—"
-    const activityId = findFirstActivityInVoyageRange(activities, selectedVoyage)
-    if (!activityId) return "—"
-    const activity = activities.find((a) => a.activity_id === activityId)
-    return activity?.activity_name ?? "—"
-  }, [selectedVoyage, activities])
 
   const handleOpsCommand = (cmd: Parameters<typeof runAgiOpsPipeline>[0]["command"]) => {
     const { nextActivities, nextOps } = runAgiOpsPipeline({
@@ -458,22 +528,10 @@ export default function Page() {
               }
             />
                 <StoryHeader
-              trId={selectedVoyage ? String(selectedVoyage.voyage) : null}
-              where={
-                selectedVoyage
-                  ? `Now @ Load-out ${selectedVoyage.loadOut} | ETA Sail ${selectedVoyage.sailDate}`
-                  : undefined
-              }
-              whenWhat={
-                selectedVoyage
-                  ? `Next: ${nextActivityName} | Blockers: —`
-                  : undefined
-              }
-              evidence={
-                selectedVoyage
-                  ? `Last: — | Missing: 0 | PTW: —`
-                  : undefined
-              }
+              trId={storyHeaderData.trId}
+              where={storyHeaderData.where}
+              whenWhat={storyHeaderData.whenWhat}
+              evidence={storyHeaderData.evidence}
             />
                 <OverviewSection
               activities={activities}
@@ -491,12 +549,12 @@ export default function Page() {
                   <div className="space-y-3">
                     <MapPanelWrapper
                       selectedActivityId={selectedActivityId ?? selectedCollision?.activity_id ?? focusedActivityId ?? null}
-                      onTrClick={() => {
-                        // Phase 5: TR click → onActivitySelect fires with current activity
-                      }}
+                      onTrClick={(trId) => setSelectedTrId(trId)}
                       onActivitySelect={(activityId) => {
                         setSelectedActivityId(activityId)
                         setFocusedActivityId(activityId)
+                        const trId = findTrIdForActivity(activityId)
+                        if (trId) setSelectedTrId(trId)
                         ganttRef.current?.scrollToActivity?.(activityId)
                         const ganttSection = document.getElementById("gantt")
                         ganttSection?.scrollIntoView({ behavior: "smooth", block: "start" })
@@ -651,7 +709,7 @@ export default function Page() {
                     selectedActivityId ?? selectedCollision?.activity_id ?? null
                   }
                 />
-                <ReadinessPanel tripId={readinessTripId} />
+                <ReadinessPanel ssot={ssot} tripId={readinessTripId} />
                 <NotesDecisions />
               </section>
             </div>
