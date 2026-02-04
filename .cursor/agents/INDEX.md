@@ -19,6 +19,7 @@
 | [tr-planner](./tr-planner.md) | Contract 기반 실행 계획 수립 | readonly | "계획", "plan" |
 | [tr-implementer](./tr-implementer.md) | 코드/데이터 구현 | write | "구현", "implement" |
 | [tr-verifier](./tr-verifier.md) | Contract 준수 + E2E 검증 | readonly | "검증", "verify" |
+| [verifier](./verifier.md) | 범용 간단 검증자 | readonly | "검증", "체크" |
 
 ---
 
@@ -55,6 +56,15 @@
 | 에이전트 | 설명 | 모드 | 트리거 |
 |----------|------|------|--------|
 | [innovation-scout](./innovation-scout.md) | 프로젝트 현황 분석 + 외부 리서치 + 아이디어 검증 | readonly | "아이디어", "트렌드" |
+
+---
+
+## Quality & Security Auditors
+
+| 에이전트 | 설명 | 모드 | 트리거 |
+|----------|------|------|--------|
+| [ux-auditor](./ux-auditor.md) | Deep Insight 기준 UX 감사 | readonly | "UX 감사", "사용성" |
+| [security-auditor](./security-auditor.md) | env/secret/배포 설정 보안 감사 | readonly | "보안 감사", "env 체크" |
 
 ---
 
