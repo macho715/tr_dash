@@ -673,7 +673,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
         <div ref={visContainerRef} className="relative flex-1 min-h-[400px]">
           {weatherOverlayEnabled && weatherForecast && weatherLimits && (
             <WeatherOverlay
-              containerRef={visContainerRef}
+              containerRef={visContainerRef as React.RefObject<HTMLDivElement>}
               forecast={weatherForecast}
               limits={weatherLimits}
               viewStart={visRange.start}
@@ -684,7 +684,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
             />
           )}
           <DependencyArrowsOverlay
-            containerRef={visContainerRef}
+            containerRef={visContainerRef as React.RefObject<HTMLDivElement>}
             edges={dependencyEdges}
             renderKey={visRenderTick}
             className="pointer-events-none absolute inset-0 z-10"

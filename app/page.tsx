@@ -180,18 +180,24 @@ export default function Page() {
       .then((data) => {
         if (data?.entities?.trips) {
           setTrips(
-            Object.values(data.entities.trips).map((t: { trip_id: string; name: string }) => ({
-              trip_id: t.trip_id,
-              name: t.name,
-            }))
+            Object.values(data.entities.trips).map((t: unknown) => {
+              const trip = t as { trip_id: string; name: string }
+              return {
+                trip_id: trip.trip_id,
+                name: trip.name,
+              }
+            })
           )
         }
         if (data?.entities?.trs) {
           setTrs(
-            Object.values(data.entities.trs).map((t: { tr_id: string; name: string }) => ({
-              tr_id: t.tr_id,
-              name: t.name,
-            }))
+            Object.values(data.entities.trs).map((t: unknown) => {
+              const tr = t as { tr_id: string; name: string }
+              return {
+                tr_id: tr.tr_id,
+                name: tr.name,
+              }
+            })
           )
         }
       })
@@ -230,10 +236,10 @@ export default function Page() {
       { id: "kpi", label: "KPI", count: 6 },
       { id: "alerts", label: "Alerts", count: conflicts.length },
       { id: "voyages", label: "Voyages", count: voyages.length },
-      { id: "schedule", label: "Schedule", count: scheduleActivities.length },
+      { id: "schedule", label: "Schedule", count: activities.length },
       { id: "gantt", label: "Gantt" },
     ],
-    [conflicts.length]
+    [activities.length, conflicts.length]
   )
 
   const sectionIds = useMemo(() => sections.map((s) => s.id), [sections])
