@@ -151,6 +151,11 @@ export function HistoryTab({
                     <div className="mt-0.5 text-muted-foreground">
                       {e.actor} · {e.entity_ref?.entity_type}:{e.entity_ref?.entity_id}
                     </div>
+                    {e.details?.message && (
+                      <div className="mt-1 text-foreground/90" data-testid="history-event-message">
+                        {String(e.details.message)}
+                      </div>
+                    )}
                   </li>
                 ))
               )}

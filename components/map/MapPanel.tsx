@@ -12,6 +12,12 @@ const MapContent = dynamic(
   () => import('./MapContent').then((m) => m.MapContent),
   { ssr: false }
 )
+const MapLegend = dynamic(
+  () => import('./MapLegend').then((m) => m.MapLegend),
+  { ssr: false }
+)
+
+export type ViewMode = 'live' | 'history' | 'approval' | 'compare'
 
 export type MapPanelProps = {
   ssot: OptionC | null
@@ -20,20 +26,22 @@ export type MapPanelProps = {
   selectedActivityId?: string | null
   highlightedRouteId?: string | null
   riskOverlay?: 'none' | 'all' | 'wx' | 'resource' | 'permit'
+  viewMode?: ViewMode
   onTrClick?: (trId: string) => void
   onActivitySelect?: (activityId: string) => void
 }
 
+/** Verified coordinates: Mina Zayed (vesselfinder/AEMZD), Al Ghallan Island (Upper Zakum) */
 const LOCATION_OVERRIDES: Record<string, Location> = {
   LOC_MZP: {
     location_id: 'LOC_MZP',
     name: 'Mina Zayed Port',
-    lat: 24.52489,
-    lon: 54.37798,
+    lat: 24.5327093,
+    lon: 54.3781822,
   },
   LOC_AGI: {
     location_id: 'LOC_AGI',
-    name: 'AGI Jetty',
+    name: 'AGI Jetty (Al Ghallan Island)',
     lat: 24.841096,
     lon: 53.658619,
   },
@@ -60,6 +68,7 @@ export function MapPanel({
   selectedActivityId = null,
   highlightedRouteId = null,
   riskOverlay = 'none',
+  viewMode = 'live',
   onTrClick,
   onActivitySelect,
 }: MapPanelProps) {
@@ -76,6 +85,16 @@ export function MapPanel({
     }),
     [ssot]
   )
+
+  /** Heat points for Mina Port and AGI (lat, lon, intensity) */
+  const heatPoints = useMemo(
+    () => [
+      [LOCATION_OVERRIDES.LOC_MZP.lat, LOCATION_OVERRIDES.LOC_MZP.lon, 1.0] as [number, number, number],
+      [LOCATION_OVERRIDES.LOC_AGI.lat, LOCATION_OVERRIDES.LOC_AGI.lon, 1.0] as [number, number, number],
+    ],
+    []
+  )
+
   const trs = ssot?.entities?.trs ?? {}
   const activities = ssot?.entities?.activities ?? {}
   const collisions = ssot?.collisions ?? {}
@@ -170,15 +189,17 @@ export function MapPanel({
     return result
   }, [activities, locations, highlightedRouteId, selectedActivityId])
 
+  const isReadOnly = viewMode === 'history' || viewMode === 'approval'
   const handleTrMarkerClick = useCallback(
     (trId: string) => {
+      if (isReadOnly) return
       onTrClick?.(trId)
       const currentActivityId = ssot ? calculateCurrentActivityForTR(ssot, trId) : null
       if (currentActivityId) {
         onActivitySelect?.(currentActivityId)
       }
     },
-    [onTrClick, onActivitySelect, ssot]
+    [onTrClick, onActivitySelect, ssot, isReadOnly]
   )
 
   if (!ssot) {
@@ -193,15 +214,19 @@ export function MapPanel({
   }
 
   return (
-    <div className="h-[280px] w-full overflow-hidden rounded-lg" data-testid="map-panel">
+    <div className="relative h-[280px] w-full overflow-hidden rounded-lg" data-testid="map-panel">
       {mounted ? (
-        <MapContent
-          locations={locations}
-          routeSegments={routeSegments}
-          trMarkers={trMarkers}
-          onTrMarkerClick={handleTrMarkerClick}
-          mapStatusHex={MAP_STATUS_HEX}
-        />
+        <>
+          <MapContent
+            heatPoints={heatPoints}
+            locations={locations}
+            routeSegments={routeSegments}
+            trMarkers={trMarkers}
+            onTrMarkerClick={handleTrMarkerClick}
+            mapStatusHex={MAP_STATUS_HEX}
+          />
+          <MapLegend />
+        </>
       ) : (
         <div className="flex h-full w-full items-center justify-center rounded-lg bg-muted/20 text-sm text-muted-foreground">
           Loading map…

@@ -1,8 +1,10 @@
 'use client'
 
-import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet'
+import { useEffect } from 'react'
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import 'leaflet.heat'
 
 // Fix default marker icon in Next.js
 const DefaultIcon = L.icon({
@@ -14,10 +16,14 @@ const DefaultIcon = L.icon({
 })
 L.Marker.prototype.options.icon = DefaultIcon
 
-const DEFAULT_CENTER: [number, number] = [25.07, 55.15]
-const DEFAULT_ZOOM = 12
+/** Center between Mina Zayed (24.53, 54.38) and AGI (24.84, 53.66) for accurate display */
+const DEFAULT_CENTER: [number, number] = [24.69, 54.02]
+const DEFAULT_ZOOM = 8
+
+export type HeatPoint = [number, number, number]
 
 export type MapContentProps = {
+  heatPoints?: HeatPoint[]
   locations: Record<string, { location_id: string; name: string; lat: number; lon: number }>
   routeSegments: Array<{
     routeId: string
@@ -38,7 +44,24 @@ export type MapContentProps = {
   mapStatusHex: Record<string, string>
 }
 
+function HeatLayer({ heatPoints }: { heatPoints: HeatPoint[] }) {
+  const map = useMap()
+  useEffect(() => {
+    if (!heatPoints?.length) return
+    const heat = (L as any).heatLayer(heatPoints, {
+      radius: 35,
+      blur: 20,
+      maxZoom: 12,
+      minOpacity: 0.4,
+    })
+    heat.addTo(map)
+    return () => map.removeLayer(heat)
+  }, [map, heatPoints])
+  return null
+}
+
 export function MapContent({
+  heatPoints = [],
   locations,
   routeSegments,
   trMarkers,
@@ -56,6 +79,7 @@ export function MapContent({
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
+      {heatPoints.length > 0 && <HeatLayer heatPoints={heatPoints} />}
 
       {/* Route polylines (background layer) */}
       {routeSegments.map((seg) => (
@@ -71,11 +95,28 @@ export function MapContent({
       ))}
 
       {/* Location markers (nodes: Yard, Jetty, etc.) */}
-      {Object.entries(locations).map(([locId, loc]) => (
-        <Marker key={locId} position={[loc.lat, loc.lon]}>
-          <Popup>{loc.name}</Popup>
-        </Marker>
-      ))}
+      {Object.entries(locations).map(([locId, loc]) => {
+        const isMinaPort = locId === 'LOC_MZP'
+        const isAGI = locId === 'LOC_AGI'
+        const isKeyLocation = isMinaPort || isAGI
+        const icon = isKeyLocation
+          ? L.divIcon({
+              className: 'location-marker-key',
+              html: `<div style="width:28px;height:28px;border-radius:50%;background:${isMinaPort ? '#0891b2' : '#06b6d4'};border:3px solid #22d3ee;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.4);color:white;font-size:9px;font-weight:bold;">${isMinaPort ? 'MZ' : 'AG'}</div>`,
+              iconSize: [28, 28],
+              iconAnchor: [14, 14],
+            })
+          : undefined
+        return (
+          <Marker
+            key={locId}
+            position={[loc.lat, loc.lon]}
+            {...(icon != null ? { icon } : {})}
+          >
+            <Popup>{loc.name}</Popup>
+          </Marker>
+        )
+      })}
 
       {/* TR markers with state styling (patch §4.1) */}
       {trMarkers.map((m) => {

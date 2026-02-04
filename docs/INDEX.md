@@ -1,7 +1,7 @@
 ---
 doc_id: docs-index
-refs: [../patch.md, ../AGENTS.md, LAYOUT.md, SYSTEM_ARCHITECTURE.md]
-updated: 2026-02-03
+refs: [../patch.md, ../AGENTS.md, LAYOUT.md, SYSTEM_ARCHITECTURE.md, WORK_LOG_20260202.md, BUGFIX_APPLIED_20260202.md]
+updated: 2026-02-04
 ---
 
 # Docs Index
@@ -50,6 +50,7 @@ graph LR
 
 | 문서 | 설명 |
 |------|------|
+| [plan_patchmain_14.md](plan/plan_patchmain_14.md) | patchmain 14-item (Tidy First, 2026-02-04) |
 | [tr-dashboard-plan.md](plan/tr-dashboard-plan.md) | 대시보드 계획 |
 | [tr-dashboard-plan-patch4.md](plan/tr-dashboard-plan-patch4.md) | 패치4 계획 |
 | [tr-dashboard-verification-report.md](plan/tr-dashboard-verification-report.md) | 검증 리포트 |

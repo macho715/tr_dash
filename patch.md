@@ -1,7 +1,7 @@
 ---
 doc_id: patch
-refs: [AGENTS.md, docs/LAYOUT.md, docs/SYSTEM_ARCHITECTURE.md]
-updated: 2026-02-03
+refs: [AGENTS.md, docs/LAYOUT.md, docs/SYSTEM_ARCHITECTURE.md, docs/WORK_LOG_20260202.md, docs/BUGFIX_APPLIED_20260202.md]
+updated: 2026-02-04
 ---
 
 ## 1) 요약

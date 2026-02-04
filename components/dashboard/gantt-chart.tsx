@@ -57,6 +57,8 @@ import {
 import type { ScheduleConflict } from "@/lib/ssot/schedule"
 import type { CompareResult } from "@/lib/compare/types"
 import { calculateSlack } from "@/lib/utils/slack-calc"
+import { getLegendDefinition, type LegendDefinition } from "@/lib/gantt-legend-guide"
+import { GanttLegendDrawer } from "@/components/dashboard/GanttLegendDrawer"
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24
 const DAYS_PER_WEEK = 7
@@ -170,6 +172,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
   ref
 ) {
   const { selectedDate, setSelectedDate } = useDate()
+  const [legendDrawerItem, setLegendDrawerItem] = useState<LegendDefinition | null>(null)
   const [collisionPopover, setCollisionPopover] = useState<{
     x: number
     y: number
@@ -390,38 +393,82 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
         }
       />
 
-      {/* Legend */}
+      {/* Legend — P1-4: 클릭 시 Drawer(태그 정의·의사결정 영향) */}
       <div className="flex flex-wrap gap-5 p-4 bg-glass rounded-xl mb-5 border border-accent/15">
-        {legendItems.map((item) => (
-          <div
-            key={item.type}
-            className="flex items-center gap-2.5 text-xs font-medium text-slate-400"
-          >
-            <div
-              className={cn("w-7 h-3.5 rounded shadow-md", legendColors[item.type])}
-            />
-            {item.label}
-          </div>
-        ))}
+        {legendItems.map((item) => {
+          const def = getLegendDefinition(item.type)
+          return (
+            <button
+              key={item.type}
+              type="button"
+              onClick={() => def && setLegendDrawerItem(def)}
+              className="flex items-center gap-2.5 text-xs font-medium text-slate-400 hover:text-cyan-300 hover:underline focus:outline-none focus:ring-2 focus:ring-cyan-500/50 rounded min-h-[24px] min-w-[24px]"
+              title="클릭하면 설명 보기"
+            >
+              <div
+                className={cn("w-7 h-3.5 rounded shadow-md", legendColors[item.type])}
+              />
+              {item.label}
+            </button>
+          )
+        })}
         <span className="text-slate-500">|</span>
         <div className="flex flex-wrap gap-2 text-xs font-medium text-slate-500">
-          <span title="Weather">[W]</span>
-          <span title="Permit">[PTW]</span>
-          <span title="Certificate">[CERT]</span>
-          <span title="Linkspan">[LNK]</span>
-          <span title="Barge">[BRG]</span>
-          <span title="Resource">[RES]</span>
-          <span className="text-red-400" title="Collision">[COL]</span>
-          <span className="text-red-400">[COL-LOC]</span>
-          <span className="text-red-400">[COL-DEP]</span>
-          <span className="text-emerald-400" title="Slack">+Xd</span>
-          <span className="text-emerald-400" title="Critical path">CP</span>
+          {(["W", "PTW", "CERT", "LNK", "BRG", "RES"] as const).map((key) => {
+            const def = getLegendDefinition(key)
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => def && setLegendDrawerItem(def)}
+                className="hover:text-cyan-300 hover:underline focus:outline-none focus:ring-2 focus:ring-cyan-500/50 rounded min-h-[24px] min-w-[24px]"
+                title="클릭하면 설명 보기"
+              >
+                [{key}]
+              </button>
+            )
+          })}
+          {(["COL", "COL-LOC", "COL-DEP"] as const).map((key) => {
+            const def = getLegendDefinition(key)
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => def && setLegendDrawerItem(def)}
+                className="text-red-400 hover:text-red-300 hover:underline focus:outline-none focus:ring-2 focus:ring-cyan-500/50 rounded min-h-[24px] min-w-[24px]"
+                title="클릭하면 설명 보기"
+              >
+                {key === "COL" ? "[COL]" : key === "COL-LOC" ? "[COL-LOC]" : "[COL-DEP]"}
+              </button>
+            )
+          })}
+          <button
+            type="button"
+            onClick={() => getLegendDefinition("slack") && setLegendDrawerItem(getLegendDefinition("slack")!)}
+            className="text-emerald-400 hover:text-emerald-300 hover:underline focus:outline-none focus:ring-2 focus:ring-cyan-500/50 rounded min-h-[24px] min-w-[24px]"
+            title="클릭하면 설명 보기"
+          >
+            +Xd
+          </button>
+          <button
+            type="button"
+            onClick={() => getLegendDefinition("CP") && setLegendDrawerItem(getLegendDefinition("CP")!)}
+            className="text-emerald-400 hover:text-emerald-300 hover:underline focus:outline-none focus:ring-2 focus:ring-cyan-500/50 rounded min-h-[24px] min-w-[24px]"
+            title="클릭하면 설명 보기"
+          >
+            CP
+          </button>
           {compareDelta && compareDelta.changed.length > 0 && (
             <>
               <span className="text-slate-500">|</span>
-              <span className="text-amber-400" title="Compare: shifted">
+              <button
+                type="button"
+                onClick={() => getLegendDefinition("Compare") && setLegendDrawerItem(getLegendDefinition("Compare")!)}
+                className="text-amber-400 hover:underline focus:outline-none focus:ring-2 focus:ring-cyan-500/50 rounded min-h-[24px] min-w-[24px]"
+                title="클릭하면 설명 보기"
+              >
                 [Compare]
-              </span>
+              </button>
             </>
           )}
           <span className="text-slate-500">|</span>
@@ -430,6 +477,12 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
           </span>
         </div>
       </div>
+      {legendDrawerItem && (
+        <GanttLegendDrawer
+          item={legendDrawerItem}
+          onClose={() => setLegendDrawerItem(null)}
+        />
+      )}
 
       {/* Gantt Container: flexible height so detail + Gantt grow together */}
       <div className="flex min-h-[400px] flex-1 flex-col">

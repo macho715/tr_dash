@@ -1,5 +1,55 @@
 import { parseUTCDate, toUtcNoon } from "@/lib/ssot/schedule"
 
+const MONTH_SHORT: Record<string, number> = {
+  Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5,
+  Jul: 6, Aug: 7, Sep: 8, Oct: 9, Nov: 10, Dec: 11,
+}
+
+/** Parse "Jan 29" style (voyage loadOut/jackDown) to UTC noon, year from PROJECT. */
+export function parseVoyageShortDate(short: string, year = 2026): Date {
+  const parts = short.trim().split(/\s+/)
+  const month = MONTH_SHORT[parts[0]]
+  const day = parseInt(parts[1], 10)
+  if (month === undefined || Number.isNaN(day)) return new Date(NaN)
+  return new Date(Date.UTC(year, month, day, 12, 0, 0))
+}
+
+export interface VoyageWindow {
+  start: Date
+  end: Date
+  voyage: number
+}
+
+export function getVoyageWindows(): VoyageWindow[] {
+  return voyages.map((v) => ({
+    start: parseVoyageShortDate(v.loadOut),
+    end: parseVoyageShortDate(v.jackDown),
+    voyage: v.voyage,
+  }))
+}
+
+/** P1-1: 초기 선택일. 오늘이 어떤 Voyage window에 포함되면 오늘, 아니면 가장 가까운(미래/현재) Voyage 시작일. */
+export function getSmartInitialDate(): Date {
+  const windows = getVoyageWindows()
+  const today = toUtcNoon(new Date())
+  for (const w of windows) {
+    if (today.getTime() >= w.start.getTime() && today.getTime() <= w.end.getTime()) {
+      return today
+    }
+  }
+  if (windows.length === 0) return today
+  if (today.getTime() < windows[0].start.getTime()) return windows[0].start
+  for (const w of windows) {
+    if (w.start.getTime() >= today.getTime()) return w.start
+  }
+  return windows[windows.length - 1].start
+}
+
+/** Nearest voyage start for "Jump to Active Voyage" (same logic as getSmartInitialDate). */
+export function getNearestVoyageStart(): Date {
+  return getSmartInitialDate()
+}
+
 /** Noon UTC for consistency with parseDateInput (Bug #1: date range validation at boundaries) */
 export const PROJECT_START = toUtcNoon(parseUTCDate("2026-01-26"))
 export const PROJECT_END = toUtcNoon(parseUTCDate("2026-03-22"))

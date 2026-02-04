@@ -36,7 +36,7 @@ HVDC TR Transport Dashboard는 **Al Ghallan Island (AGI) Site**의 7개 Transfor
 ### 핵심 특징
 
 - **레이아웃**: patch.md §2.1 권장은 3열(Map | Timeline | Detail). **현재 구현은 2열** — 좌: Map+Detail(세로 배치), 우: Timeline (`lg:grid-cols-[1fr_2fr]`). 3열은 향후 옵션.
-- **단일 시선 흐름**: Location → Schedule → Verification (3초 내 읽기). Phase 6에서 UI 가이드 문구 제거 완료 — StoryHeader 라벨은 Location/Schedule/Verification. TrThreeColumnLayout 슬롯 라벨은 "WHERE (Map)", "DETAIL", "WHEN/WHAT (Timeline)".
+- **단일 시선 흐름**: Location → Schedule → Verification (3초 내 읽기). Phase 6에서 UI 가이드 문구 제거 완료 — StoryHeader 라벨은 Location/Schedule/Verification. TrThreeColumnLayout 슬롯 라벨은 "Map", "Timeline" (Phase 6 Bug #4).
 - **2-click Collision UX**: 배지 → Why 패널 → Root cause + Evidence
 - **Compare Mode** (patch.md §2.2): baseline vs compare delta overlay, Gantt ghost bars
 - **Sticky Navigation**: 섹션 간 빠른 이동
@@ -229,16 +229,16 @@ graph TB
 
 ### 7. TrThreeColumnLayout (`components/dashboard/layouts/tr-three-column-layout.tsx`)
 
-**역할**: **현재 2열 레이아웃** (patch.md §2.1 권장 3열 대비) — 좌: Map+Detail(세로 배치), 우: Timeline. UI 라벨: "WHERE (Map)", "DETAIL", "WHEN/WHAT (Timeline)".
+**역할**: **현재 2열 레이아웃** (patch.md §2.1 권장 3열 대비) — 좌: Map+Detail(세로 배치), 우: Timeline. UI 라벨: "Map", "Timeline" (Phase 6 Bug #4).
 
 **실제 레이아웃 구조** (2열):
 ```tsx
 <div className="grid flex-1 min-h-0 gap-4 lg:grid-cols-[1fr_2fr] lg:min-h-[480px]">
   <div aria-label="WHERE and DETAIL">
-    <aside aria-label="WHERE (Map)">{mapSlot}</aside>
+    <aside aria-label="Map">{mapSlot}</aside>
     <aside aria-label="DETAIL">{detailSlot}</aside>
   </div>
-  <main aria-label="WHEN/WHAT (Timeline)">{timelineSlot}</main>
+  <main aria-label="Timeline">{timelineSlot}</main>
 </div>
 ```
 

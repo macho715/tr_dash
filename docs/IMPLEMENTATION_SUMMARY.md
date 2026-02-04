@@ -1,6 +1,6 @@
 # TR Dashboard Implementation - Summary
-**Date**: 2026-02-02 (Updated)  
-**Status**: Phase 1-11 + Phase 6 Bugfix Complete ✅  
+**Date**: 2026-02-04 (Updated)  
+**Status**: Phase 1-11 + Phase 6 Bugfix + patchmain 14-item Complete ✅  
 **Build**: PASS ✅  
 **Tests**: 124 passed ✅  
 **Deployment**: Vercel Auto-Deploy Active ✅
@@ -18,6 +18,7 @@ Successfully implemented TR 이동 대시보드 complete system with UI/UX/layou
 - ✅ Phase 10: Compare Mode (baseline vs delta overlay)
 - ✅ Phase 11: E2E tests (cycle detection, evidence gates)
 - ✅ Phase 6: Bugfix (WHERE/WHEN/WHAT 제거, Trip/TR 7개, Selected Date UTC, View 버튼, Compare Diff 표시)
+- ✅ 2026-02-04: [plan_patchmain_14](plan/plan_patchmain_14.md) 14-item (Structural #1–4,#13 + Behavioral #5–9,#11,#12,#14), Vercel vis-timeline Gantt 환경변수 trim/toLowerCase 적용
 
 **운영 규모**: 1 Trip당 1 TR 운송, 총 7 Trip, SPMT 1기 운영  
 **테스트**: 124 tests passed (12 test files)  

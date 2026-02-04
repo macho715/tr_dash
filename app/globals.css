@@ -118,6 +118,10 @@
     background: linear-gradient(145deg, #0a0f1a 0%, #0c1929 40%, #0f172a 100%);
     min-height: 100vh;
   }
+  /* M2-PR4: Focus not obscured — skip link / main focus 시 스티키 헤더에 가리지 않도록 */
+  #main {
+    scroll-margin-top: 6rem;
+  }
 }
 
 /* Grid pattern overlay */

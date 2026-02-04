@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react'
 import dynamic from 'next/dynamic'
 import type { OptionC } from '@/src/types/ssot'
+import { useViewModeOptional } from '@/src/lib/stores/view-mode-store'
+import type { RiskOverlay, ViewMode } from '@/src/lib/stores/view-mode-store'
 
 // Leaflet uses window - must load only on client
 const MapPanel = dynamic(() => import('./MapPanel').then((m) => m.MapPanel), {
@@ -36,6 +38,9 @@ export function MapPanelWrapper({
 }: MapPanelWrapperProps) {
   const [ssot, setSsot] = useState<OptionC | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const viewModeCtx = useViewModeOptional()
+  const riskOverlay: RiskOverlay = viewModeCtx?.state.riskOverlay ?? 'none'
+  const viewMode: ViewMode = viewModeCtx?.state.mode ?? 'live'
 
   useEffect(() => {
     fetch('/api/ssot')
@@ -65,6 +70,8 @@ export function MapPanelWrapper({
       selectedTrIds={selectedTrIds}
       selectedActivityId={selectedActivityId}
       highlightedRouteId={highlightedRouteId}
+      riskOverlay={riskOverlay}
+      viewMode={viewMode}
       onTrClick={onTrClick}
       onActivitySelect={onActivitySelect}
     />

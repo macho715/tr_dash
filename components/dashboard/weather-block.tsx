@@ -13,10 +13,10 @@ export function WeatherBlock() {
       <AlertTriangle className="w-7 h-7 text-amber-400 flex-shrink-0 mt-0.5" />
       <div className="flex-1 min-w-0">
         <h4 className="text-amber-400 text-sm font-bold mb-2 tracking-tight">
-          Weather & Marine Risk Update (Mina Zayed Port)
+          기상·해상 리스크 (미나 자예드 항)
         </h4>
         <p className="text-slate-500 text-xs mb-2">
-          Last Updated: {weatherLastUpdated} | Update Frequency: Weekly
+          최종 갱신: {weatherLastUpdated} · 갱신 주기: 주간
         </p>
         <div className="text-slate-400 text-xs leading-relaxed space-y-2">
           {weatherForecast.map((day) => (
@@ -30,7 +30,7 @@ export function WeatherBlock() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={weatherHeatmapUrl}
-              alt="4-day weather heatmap"
+              alt="4일 기상 히트맵"
               className="w-full h-auto object-contain"
             />
           </div>

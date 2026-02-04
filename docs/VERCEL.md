@@ -34,6 +34,8 @@ git push origin main
 - Vercel 대시보드: https://vercel.com/chas-projects-08028e73/tr_dash
 - 또는 `vercel ls` 명령어로 최근 배포 목록 확인
 
+**단일 규칙:** main 브랜치 = production 배포. 다른 브랜치 push는 Preview 배포로만 사용.
+
 **장점:**
 - ✅ 간단: push만 하면 자동 배포
 - ✅ 이력 관리: Git에 모든 변경사항 기록

@@ -13,6 +13,8 @@ dist
 .env.local
 .env.*.local
 .env.vercel
+.env.vercel.production
+.env.vercel.*
 
 # Debug / IDE
 *.log

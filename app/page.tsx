@@ -47,6 +47,7 @@ import { runPipelineCheck } from "@/lib/ops/agi-schedule/pipeline-check"
 import { detectResourceConflicts } from "@/lib/utils/detect-resource-conflicts"
 import { calculateDelta } from "@/lib/compare/compare-loader"
 import { reflowSchedule } from "@/lib/utils/schedule-reflow"
+import { appendHistoryEvent } from "@/lib/store/trip-store"
 import { useViewModeOptional } from "@/src/lib/stores/view-mode-store"
 import type {
   ImpactReport,
@@ -289,10 +290,33 @@ export default function Page() {
     }
   }
 
-  const handleApplyPreviewFromWhy = () => {
+  const MAX_UNDO = 20
+  const undoStackRef = useRef<ScheduleActivity[][]>([])
+  const [undoCount, setUndoCount] = useState(0)
+
+  const handleApplyPreviewFromWhy = (reason: string) => {
     if (!reflowPreview) return
+    const stack = undoStackRef.current
+    if (stack.length < MAX_UNDO) stack.push([...activities])
+    setUndoCount(stack.length)
     setActivities(reflowPreview.nextActivities)
     setReflowPreview(null)
+    // M2-PR3: audit trail — store reason for reflow apply in History
+    appendHistoryEvent({
+      event_type: "reflow_applied",
+      message: reason,
+      trip_id: trips[0]?.trip_id,
+    })
+  }
+
+  const handleUndoLastApply = () => {
+    const stack = undoStackRef.current
+    if (stack.length === 0) return
+    const previous = stack.pop()
+    if (previous) {
+      setActivities(previous)
+      setUndoCount(stack.length)
+    }
   }
 
   return (
@@ -445,13 +469,25 @@ export default function Page() {
                         canApply={canApplyReflow}
                       />
                     )}
+                    {undoCount > 0 && (
+                      <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200 flex items-center justify-between gap-2">
+                        <span>일정 적용됨.{undoCount > 1 ? ` 실행 취소 ${undoCount}회 가능.` : ""}</span>
+                        <button
+                          type="button"
+                          onClick={handleUndoLastApply}
+                          className="font-semibold text-cyan-300 hover:text-cyan-200 underline"
+                        >
+                          실행 취소{undoCount > 1 ? ` (${undoCount})` : ""}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 }
               />
               <section
                 id="evidence"
                 ref={evidenceRef}
-                aria-label="EVIDENCE"
+                aria-label="Verification"
                 className="space-y-3"
               >
                 <HistoryEvidencePanel

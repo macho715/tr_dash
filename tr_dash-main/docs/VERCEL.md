@@ -1,5 +1,7 @@
 # Vercel 배포 설정
 
+**최종 검토/업데이트**: 2026-02-04
+
 **운영 규모**: 1 Trip당 1 TR 운송, 총 7 Trip, SPMT 1기 운영
 
 **프로덕션 URL**: https://trdash.vercel.app
@@ -14,9 +16,10 @@ Next.js 앱이 **루트**에 있습니다. Root Directory를 **반드시 비워�
 
 ```bash
 # 1. 로컬에서 변경사항 확인
-pnpm dev  # localhost:3000에서 테스트
+pnpm dev  # localhost:3000에서 테스트 (다른 포트: pnpm dev -- -p 3001 또는 PORT=3001 pnpm dev)
 
-# 2. 빌드 테스트 (선택사항, 권장)
+# 2. 빌드·테스트 (권장)
+pnpm test:run
 pnpm build
 
 # 3. Git commit & push
@@ -30,6 +33,8 @@ git push origin main
 **배포 확인:**
 - Vercel 대시보드: https://vercel.com/chas-projects-08028e73/tr_dash
 - 또는 `vercel ls` 명령어로 최근 배포 목록 확인
+
+**단일 규칙:** main 브랜치 = production 배포. 다른 브랜치 push는 Preview 배포로만 사용.
 
 **장점:**
 - ✅ 간단: push만 하면 자동 배포
@@ -63,6 +68,26 @@ vercel --prod --force --yes
 pnpm build
 pnpm start  # localhost:3000에서 프로덕션 빌드 확인
 ```
+
+**참고:** 프로덕션 빌드에는 Gantt(vis-timeline, `VisTimelineGantt`) 및 전체 대시보드 UI가 포함됩니다.
+
+### Gantt 엔진 (vis-timeline)
+
+vis-timeline Gantt(VisTimelineGantt)를 사용하려면 `NEXT_PUBLIC_GANTT_ENGINE=vis` 환경 변수가 **필수**입니다.
+
+| 설정 위치 | 내용 |
+|-----------|------|
+| **로컬** | `.env.local`에 `NEXT_PUBLIC_GANTT_ENGINE=vis` 추가 |
+| **Vercel** | Settings → Environment Variables에서 `NEXT_PUBLIC_GANTT_ENGINE` = `vis` 추가 |
+
+**Vercel 설정 절차:**
+1. [vercel.com/dashboard](https://vercel.com/dashboard) → **tr_dash** 프로젝트 선택
+2. **Settings** → **Environment Variables**
+3. **Name**: `NEXT_PUBLIC_GANTT_ENGINE`, **Value**: `vis`
+4. **환경**: Production, Preview, Development 모두 체크
+5. **Save** → 기존 배포가 있으면 **Redeploy** 실행
+
+미설정 시 프로덕션은 커스텀 CSS/SVG Gantt를 사용합니다.
 
 **다른 PC/클론에서 배포할 때:** `.vercel`은 저장소에 없으므로, 새 환경에서는 `npx vercel link` 실행 후 **tr_dash** 프로젝트를 선택해야 같은 프로덕션(trdash.vercel.app)에 배포됩니다.
 
@@ -99,6 +124,17 @@ F12 → Application → Clear storage → Clear site data
 - Vercel은 `pnpm build`로 최적화된 프로덕션 빌드
 - 해결: 로컬에서도 `pnpm build && pnpm start`로 프로덕션 빌드 확인
 
+### "vis Gantt가 Vercel에서 표시되지 않는 경우" (Gantt: custom으로 나옴)
+
+**원인**: `NEXT_PUBLIC_GANTT_ENGINE`이 빌드 시점에 적용되지 않거나, 값에 공백·대소문자 차이가 있는 경우
+
+**해결 (2026-02-04 적용)**:
+- `gantt-chart.tsx`에서 `trim().toLowerCase()` 유연 비교 적용 — `vis`, `VIS`, ` vis ` 등 모두 인식
+- **추가 조치**:
+  1. Vercel Environment Variables에서 `NEXT_PUBLIC_GANTT_ENGINE` 삭제 후 재추가 (Value: `vis` 직접 입력)
+  2. Redeploy 시 **"Use existing Build Cache"** 체크 해제
+  3. Redeploy 실행
+
 ### 진단 체크리스트
 
 ```bash
@@ -109,7 +145,8 @@ git log origin/main..HEAD --oneline
 # 2. 최근 배포 확인
 vercel ls | Select-Object -First 5
 
-# 3. 로컬 프로덕션 빌드 테스트
+# 3. 테스트 실행 후 로컬 프로덕션 빌드 테스트
+pnpm test:run
 pnpm build
 pnpm start  # localhost:3000에서 확인
 
@@ -161,6 +198,7 @@ vercel ls | Select-Object -First 1
 | Settings → Repository | (새 저장소 연결 후 설정) |
 | Production Branch | `main` |
 | Settings → Build and Deployment → Root Directory | **비움** (앱이 루트에 있음) |
+| Settings → Environment Variables | `NEXT_PUBLIC_GANTT_ENGINE=vis` (vis Gantt 사용 시) |
 | Deployments | 최신 배포 후 **Redeploy** 실행 |
 
 ## Phase 5 (patchm1~m5) 호환
@@ -168,3 +206,4 @@ vercel ls | Select-Object -First 1
 - **localStorage**: History/Evidence는 클라이언트 저장 — 서버 파일 쓰기 불필요
 - **option_c.json**: `/api/ssot` route로 읽기 전용 제공
 - **빌드**: `pnpm build` 통과 필수
+- **patchmain #14**: CI에서 `pnpm lint && pnpm test:run && pnpm build` 권장 (Vitest 파이프라인 반영). 로컬 개발 시 포트 변경은 `pnpm dev -- -p 3001` 또는 `PORT=3001 pnpm dev` 참고.

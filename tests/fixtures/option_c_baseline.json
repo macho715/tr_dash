@@ -313,7 +313,9 @@
       "LOC_YARD_A": { "location_id": "LOC_YARD_A", "name": "Yard A", "lat": 25.0501, "lon": 55.1202 },
       "LOC_JETTY_A": { "location_id": "LOC_JETTY_A", "name": "Jetty A", "lat": 25.0611, "lon": 55.1404 },
       "LOC_ISLAND_PORT": { "location_id": "LOC_ISLAND_PORT", "name": "Island Port", "lat": 25.0902, "lon": 55.2109 },
-      "LOC_SUBSTATION_1": { "location_id": "LOC_SUBSTATION_1", "name": "Substation 1", "lat": 25.1020, "lon": 55.2501 }
+      "LOC_SUBSTATION_1": { "location_id": "LOC_SUBSTATION_1", "name": "Substation 1", "lat": 25.1020, "lon": 55.2501 },
+      "LOC_MZP": { "location_id": "LOC_MZP", "name": "Mina Zayed Port", "lat": 24.5327093, "lon": 54.3781822 },
+      "LOC_AGI": { "location_id": "LOC_AGI", "name": "AGI Jetty (Al Ghallan Island)", "lat": 24.841096, "lon": 53.658619 }
     },
 
     "resource_pools": {
@@ -450,8 +452,8 @@
           "dimensions_mm": { "l": 8200, "w": 3200, "h": 3800 }
         },
         "calc": {
-          "current_activity_id": "A1120",
-          "current_location_id": "LOC_JETTY_A",
+          "current_activity_id": "A1135",
+          "current_location_id": "LOC_AGI",
           "risk_score": 0.42
         }
       },
@@ -482,6 +484,30 @@
           "current_location_id": "LOC_YARD_A",
           "risk_score": 0.50
         }
+      },
+      "TR_004": {
+        "tr_id": "TR_004",
+        "name": "Transformer TR-004",
+        "spec": { "weight_t": 300.0, "cog_mm": { "x": 0, "y": 0, "z": 2000 }, "dimensions_mm": { "l": 8000, "w": 3200, "h": 3800 } },
+        "calc": { "current_activity_id": null, "current_location_id": "LOC_MZP", "risk_score": 0.0 }
+      },
+      "TR_005": {
+        "tr_id": "TR_005",
+        "name": "Transformer TR-005",
+        "spec": { "weight_t": 300.0, "cog_mm": { "x": 0, "y": 0, "z": 2000 }, "dimensions_mm": { "l": 8000, "w": 3200, "h": 3800 } },
+        "calc": { "current_activity_id": null, "current_location_id": "LOC_MZP", "risk_score": 0.0 }
+      },
+      "TR_006": {
+        "tr_id": "TR_006",
+        "name": "Transformer TR-006",
+        "spec": { "weight_t": 300.0, "cog_mm": { "x": 0, "y": 0, "z": 2000 }, "dimensions_mm": { "l": 8000, "w": 3200, "h": 3800 } },
+        "calc": { "current_activity_id": null, "current_location_id": "LOC_YARD_A", "risk_score": 0.0 }
+      },
+      "TR_007": {
+        "tr_id": "TR_007",
+        "name": "Transformer TR-007",
+        "spec": { "weight_t": 300.0, "cog_mm": { "x": 0, "y": 0, "z": 2000 }, "dimensions_mm": { "l": 8000, "w": 3200, "h": 3800 } },
+        "calc": { "current_activity_id": null, "current_location_id": "LOC_YARD_A", "risk_score": 0.0 }
       }
     },
 
@@ -1021,6 +1047,58 @@
           "risk_score": 0.70,
           "predicted_end_ts": "2026-02-05T18:00:00+04:00",
           "reflow": { "last_preview_run_id": "RUN_001", "last_apply_run_id": null }
+        }
+      },
+
+      "A1135": {
+        "activity_id": "A1135",
+        "type_id": "crane_lift",
+        "trip_id": "TRIP_2026_02A",
+        "tr_ids": ["TR_001"],
+        "title": "Load-in TR_001 at AGI",
+        "state": "completed",
+        "lock_level": "none",
+        "blocker_code": null,
+        "blocker_detail": {},
+        "evidence_required": [],
+        "evidence_ids": [],
+        "reflow_pins": [],
+        "plan": {
+          "start_ts": "2026-02-05T14:00:00+04:00",
+          "end_ts": "2026-02-05T18:00:00+04:00",
+          "duration_min": 240,
+          "duration_mode": "work",
+          "location": {
+            "from_location_id": "LOC_ISLAND_PORT",
+            "to_location_id": "LOC_AGI",
+            "route_id": null,
+            "geo_fence_ids": []
+          },
+          "dependencies": [{ "pred_activity_id": "A1130", "type": "fs", "lag_min": 0 }],
+          "resources": [],
+          "constraints": [],
+          "notes": "AGI movement complete"
+        },
+        "actual": {
+          "start_ts": "2026-02-05T14:00:00+04:00",
+          "end_ts": "2026-02-05T18:00:00+04:00",
+          "progress_pct": 100,
+          "location_override": null,
+          "resource_assignments": [],
+          "notes": ""
+        },
+        "calc": {
+          "es_ts": "2026-02-05T14:00:00+04:00",
+          "ef_ts": "2026-02-05T18:00:00+04:00",
+          "ls_ts": "2026-02-05T14:00:00+04:00",
+          "lf_ts": "2026-02-05T18:00:00+04:00",
+          "slack_min": 0,
+          "critical_path": true,
+          "collision_ids": [],
+          "collision_severity_max": null,
+          "risk_score": 0.0,
+          "predicted_end_ts": null,
+          "reflow": { "last_preview_run_id": null, "last_apply_run_id": null }
         }
       },
 

@@ -3,6 +3,8 @@
 import { ChevronLeft, ChevronRight, Filter, Maximize2, ZoomIn, ZoomOut } from "lucide-react"
 
 const views = ["Day", "Week"] as const
+/** P1-3: 표시만 한글, 내부 값은 Day/Week 유지 (Gantt 로직 호환) */
+const viewLabels: Record<(typeof views)[number], string> = { Day: "일", Week: "주" }
 
 export type TimelineView = (typeof views)[number]
 
@@ -111,16 +113,16 @@ export function TimelineControls({
               type="button"
               onClick={z.onToday}
               className="rounded px-2 py-1 text-xs font-semibold text-slate-400 hover:bg-cyan-500/20 hover:text-cyan-300"
-              title="Move to Selected Date"
+              title="선택일로 이동"
             >
-              Today
+              오늘
             </button>
           )}
         </div>
       )}
       <div className="flex items-center gap-2 text-slate-400">
         <ZoomIn className="h-4 w-4" />
-        View
+        보기
       </div>
       <div className="flex items-center gap-2">
         {views.map((item) => (
@@ -135,20 +137,20 @@ export function TimelineControls({
                 : "border border-slate-700/60 text-slate-400 hover:border-cyan-500/50")
             }
           >
-            {item}
+            {viewLabels[item]}
           </button>
         ))}
       </div>
       <div className="flex items-center gap-2 text-slate-400">
         <Filter className="h-4 w-4" />
-        Highlights
+        하이라이트
       </div>
       <div className="flex flex-wrap gap-2">
         {(
           [
-            { key: "delay", label: "Delay" },
-            { key: "lock", label: "Lock" },
-            { key: "constraint", label: "Constraint" },
+            { key: "delay", label: "지연" },
+            { key: "lock", label: "잠금" },
+            { key: "constraint", label: "제약" },
           ] as const
         ).map((item) => (
           <button
@@ -171,14 +173,14 @@ export function TimelineControls({
           value={jumpDate}
           onChange={(event) => onJumpDateChange(event.target.value)}
           className="rounded-lg border border-slate-700/60 bg-slate-900/60 px-3 py-1 text-xs text-slate-300"
-          placeholder="Jump to YYYY-MM-DD"
+          placeholder="YYYY-MM-DD로 이동"
         />
         <button
           type="button"
           onClick={() => onJumpRequest?.()}
           className="rounded-lg bg-cyan-500 px-3 py-1 text-xs font-semibold text-slate-900"
         >
-          Go
+          이동
         </button>
       </div>
     </div>

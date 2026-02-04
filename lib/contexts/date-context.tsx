@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
 import { PROJECT_START } from "@/lib/dashboard-data"
 
-// Fixed initial date for SSR hydration (noon UTC avoids timezone boundary issues)
+// Fallback for SSR hydration; client syncs to smart initial via SyncInitialDate
 const INITIAL_DATE = new Date("2026-01-26T12:00:00.000Z")
 
 interface DateContextType {

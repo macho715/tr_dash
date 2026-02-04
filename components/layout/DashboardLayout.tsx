@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react'
 import { ViewModeProvider } from '@/src/lib/stores/view-mode-store'
 import { GlobalControlBar } from '@/components/control-bar/GlobalControlBar'
+import { SyncInitialDate } from '@/components/dashboard/SyncInitialDate'
 
 type DashboardLayoutProps = {
   children: ReactNode
@@ -25,6 +26,7 @@ export function DashboardLayout({
 }: DashboardLayoutProps) {
   return (
     <ViewModeProvider>
+      <SyncInitialDate />
       <div className="flex flex-1 flex-col min-h-0 space-y-4" data-testid="dashboard-layout">
         <GlobalControlBar
           trips={trips}

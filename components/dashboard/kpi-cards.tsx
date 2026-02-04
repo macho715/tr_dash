@@ -25,8 +25,8 @@ export function KPICards() {
   const { dayNumber, formattedDate } = useDate()
   const displayKpiData = [
     ...kpiData.slice(0, 4),
-    { icon: "calendar", value: String(Math.round(dayNumber)), label: "Day Number" },
-    { icon: "flag", value: formattedDate.split(" ").slice(0, 2).join(" "), label: "Selected Date" },
+    { icon: "calendar", value: String(Math.round(dayNumber)), label: "일차 (Day No.)" },
+    { icon: "flag", value: formattedDate.split(" ").slice(0, 2).join(" "), label: "선택일 (Selected Date)" },
   ]
 
   return (

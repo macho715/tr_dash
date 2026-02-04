@@ -39,7 +39,7 @@ export function GoNoGoBadge() {
     >
       <Icon className="w-6 h-6 flex-shrink-0" />
       <div>
-        <div className="font-bold text-sm">Decision: {config.label}</div>
+        <div className="font-bold text-sm">결정: {config.label}</div>
         {goNoGoReasonCodes.length > 0 && (
           <div className="text-xs opacity-90 mt-0.5">
             {goNoGoReasonCodes.join(", ")}
@@ -47,7 +47,7 @@ export function GoNoGoBadge() {
         )}
         {goNoGoUpdatedAt && (
           <div className="text-xs opacity-75 mt-1">
-            Updated: {new Date(goNoGoUpdatedAt).toISOString().split("T")[0]}
+            갱신: {new Date(goNoGoUpdatedAt).toISOString().split("T")[0]}
           </div>
         )}
       </div>

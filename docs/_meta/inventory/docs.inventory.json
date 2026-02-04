@@ -1,4 +1,8 @@
 {
+  "_meta": {
+    "scanned_at": "2026-02-04",
+    "doc_count": 157
+  },
   ".cursor\\agents\\agi-schedule-updater.md": {
     "path": ".cursor\\agents\\agi-schedule-updater.md",
     "doc_id": null,
