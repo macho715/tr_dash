@@ -7,6 +7,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- **vis-timeline Gantt Vercel 미표시**: `NEXT_PUBLIC_GANTT_ENGINE` trim/toLowerCase 유연 비교 적용. `vis`, `VIS`, ` vis ` 등 모두 vis-timeline 엔진으로 인식 (gantt-chart.tsx).
+
 ### Added
 
 - **vis-timeline Gantt Vercel 배포 안내**: config/env.example, docs/VERCEL.md에 `NEXT_PUBLIC_GANTT_ENGINE=vis` 환경 변수 설정 안내 추가. Vercel 배포 시 Environment Variables에 설정 필수.

@@ -58,7 +58,7 @@ HVDC TR Transport Dashboard는 **7개의 Transformer Unit**을 **LCT BUSHRA**로
 | **Phase 10** | Compare Mode: compare-loader, CompareModeBanner, Gantt ghost bars (compareDelta). |
 | **Phase 11** | T11.2 Cycle detection, T11.3 Evidence gate, T11.4 E2E workflow 테스트 완료. |
 | **2026-02-04 patchmain** | sections/sectionIds 단일 소스, ScrollSpy·SectionNav 일원화. pipeline-check 순수 함수·null/empty 안전 (patchmain #13). Day Number 정수, Schedule 기본 표시, SectionNav a11y·sticky, Vitest pipeline-check. |
-| **Vis Gantt 패치·UX** | [visganttpatch.md](../visganttpatch.md) 참조. `gantt-chart.tsx`의 `useVisEngine`(= `NEXT_PUBLIC_GANTT_ENGINE=== "vis"`)으로 vis-timeline(VisTimelineGantt) vs 자체 렌더 전환. `.env.local` 예: `NEXT_PUBLIC_GANTT_ENGINE=vis`, `PORT=3001`. `lib/gantt/visTimelineMapper.ts`: GanttRow → Vis groups/items, 동일일 막대 보정(min 1-day). VisTimelineGantt: DataSet, customTime(Selected Date), editable/draggable. 액티비티 클릭 → scrollToActivity + #gantt scrollIntoView. |
+| **Vis Gantt 패치·UX** | [visganttpatch.md](../visganttpatch.md) 참조. `gantt-chart.tsx`의 `useVisEngine`(= `NEXT_PUBLIC_GANTT_ENGINE` trim/toLowerCase `"vis"`)으로 vis-timeline(VisTimelineGantt) vs 자체 렌더 전환. `.env.local` 예: `NEXT_PUBLIC_GANTT_ENGINE=vis`, `PORT=3001`. `lib/gantt/visTimelineMapper.ts`: GanttRow → Vis groups/items, 동일일 막대 보정(min 1-day). VisTimelineGantt: DataSet, customTime(Selected Date), editable/draggable. 액티비티 클릭 → scrollToActivity + #gantt scrollIntoView. |
 
 ---
 
@@ -298,7 +298,7 @@ interface ReflowResult {
 
 **책임**: 스케줄 데이터의 시각적 표현
 
-**엔진 전환**: `useVisEngine`(= `process.env.NEXT_PUBLIC_GANTT_ENGINE === "vis"`)이 true이면 **vis-timeline** 기반 `components/gantt/VisTimelineGantt.tsx` 사용(DataSet, customTime으로 Selected Date 커서, Day/Week 뷰). false이면 자체 막대 렌더. Gantt 엔진 전환은 `.env.local` 또는 Vercel 환경 변수 `NEXT_PUBLIC_GANTT_ENGINE=vis`로 제어. 데이터 매핑은 `lib/gantt/visTimelineMapper.ts`(GanttRow → groups/items, 동일일 막대 최소 1일 보정).
+**엔진 전환**: `useVisEngine`(= `(process.env.NEXT_PUBLIC_GANTT_ENGINE || "").trim().toLowerCase() === "vis"`)이 true이면 **vis-timeline** 기반 `components/gantt/VisTimelineGantt.tsx` 사용(DataSet, customTime으로 Selected Date 커서, Day/Week 뷰). false이면 자체 막대 렌더. Gantt 엔진 전환은 `.env.local` 또는 Vercel 환경 변수 `NEXT_PUBLIC_GANTT_ENGINE=vis`로 제어. 데이터 매핑은 `lib/gantt/visTimelineMapper.ts`(GanttRow → groups/items, 동일일 막대 최소 1일 보정).
 
 **주요 기능**:
 - **동적 데이터 렌더링**: `currentActivities` 상태 기반

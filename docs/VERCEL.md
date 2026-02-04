@@ -122,6 +122,17 @@ F12 → Application → Clear storage → Clear site data
 - Vercel은 `pnpm build`로 최적화된 프로덕션 빌드
 - 해결: 로컬에서도 `pnpm build && pnpm start`로 프로덕션 빌드 확인
 
+### "vis Gantt가 Vercel에서 표시되지 않는 경우" (Gantt: custom으로 나옴)
+
+**원인**: `NEXT_PUBLIC_GANTT_ENGINE`이 빌드 시점에 적용되지 않거나, 값에 공백·대소문자 차이가 있는 경우
+
+**해결 (2026-02-04 적용)**:
+- `gantt-chart.tsx`에서 `trim().toLowerCase()` 유연 비교 적용 — `vis`, `VIS`, ` vis ` 등 모두 인식
+- **추가 조치**:
+  1. Vercel Environment Variables에서 `NEXT_PUBLIC_GANTT_ENGINE` 삭제 후 재추가 (Value: `vis` 직접 입력)
+  2. Redeploy 시 **"Use existing Build Cache"** 체크 해제
+  3. Redeploy 실행
+
 ### 진단 체크리스트
 
 ```bash
