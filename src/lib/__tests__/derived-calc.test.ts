@@ -37,11 +37,13 @@ describe('Derived Calculation Engine', () => {
       expect(currentLocation).toBe('LOC_JETTY_A');
     });
     
-    it('should return null for TR with no activities', () => {
+    it('should return first activity as fallback when TR has only draft activities', () => {
       const ssot = loadSSOTSync('tests/fixtures/option_c_minimal.json');
       const currentActivity = calculateCurrentActivityForTR(ssot, 'TR_TEST');
       
-      expect(currentActivity).toBeNull();
+      // TR_TEST has ACT_TEST (state: draft, no actual data)
+      // Should return first activity as fallback
+      expect(currentActivity).toBe('ACT_TEST');
     });
     
     it('should calculate full TR calc object', () => {
@@ -51,6 +53,147 @@ describe('Derived Calculation Engine', () => {
       expect(calc).toHaveProperty('current_activity_id');
       expect(calc).toHaveProperty('current_location_id');
       expect(calc).toHaveProperty('risk_score');
+    });
+    
+    // NEW: Test planned state fallback
+    describe('planned state fallback', () => {
+      it('should return earliest planned activity when no actual data', () => {
+        const mockSSOT: any = {
+          entities: {
+            activities: {
+              ACT_1: {
+                activity_id: 'ACT_1',
+                tr_ids: ['TR_TEST'],
+                state: 'planned',
+                plan: {
+                  start_ts: '2026-02-10T08:00:00Z',
+                  location: {
+                    from_location_id: 'LOC_A',
+                    to_location_id: 'LOC_B'
+                  }
+                },
+                actual: { start_ts: null, end_ts: null },
+                calc: { collision_ids: [], risk_score: 0 }
+              },
+              ACT_2: {
+                activity_id: 'ACT_2',
+                tr_ids: ['TR_TEST'],
+                state: 'planned',
+                plan: {
+                  start_ts: '2026-02-11T08:00:00Z',
+                  location: {
+                    from_location_id: 'LOC_B',
+                    to_location_id: 'LOC_C'
+                  }
+                },
+                actual: { start_ts: null, end_ts: null },
+                calc: { collision_ids: [], risk_score: 0 }
+              }
+            },
+            trs: {
+              TR_TEST: { tr_id: 'TR_TEST', name: 'Test TR', calc: {} }
+            }
+          }
+        };
+        
+        const currentActivity = calculateCurrentActivityForTR(mockSSOT, 'TR_TEST');
+        expect(currentActivity).toBe('ACT_1'); // Earliest planned (2026-02-10)
+        
+        const currentLocation = calculateCurrentLocationForTR(mockSSOT, 'TR_TEST');
+        expect(currentLocation).toBe('LOC_A'); // from_location_id of planned activity
+      });
+      
+      it('should return ready activity over planned', () => {
+        const mockSSOT: any = {
+          entities: {
+            activities: {
+              ACT_PLANNED: {
+                activity_id: 'ACT_PLANNED',
+                tr_ids: ['TR_TEST'],
+                state: 'planned',
+                plan: {
+                  start_ts: '2026-02-10T08:00:00Z',
+                  location: {
+                    from_location_id: 'LOC_A',
+                    to_location_id: 'LOC_B'
+                  }
+                },
+                actual: { start_ts: null, end_ts: null },
+                calc: { collision_ids: [], risk_score: 0 }
+              },
+              ACT_READY: {
+                activity_id: 'ACT_READY',
+                tr_ids: ['TR_TEST'],
+                state: 'ready',
+                plan: {
+                  start_ts: '2026-02-11T08:00:00Z',
+                  location: {
+                    from_location_id: 'LOC_B',
+                    to_location_id: 'LOC_C'
+                  }
+                },
+                actual: { start_ts: null, end_ts: null },
+                calc: { collision_ids: [], risk_score: 0 }
+              }
+            },
+            trs: {
+              TR_TEST: { tr_id: 'TR_TEST', name: 'Test TR', calc: {} }
+            }
+          }
+        };
+        
+        const currentActivity = calculateCurrentActivityForTR(mockSSOT, 'TR_TEST');
+        expect(currentActivity).toBe('ACT_READY'); // ready > planned
+        
+        const currentLocation = calculateCurrentLocationForTR(mockSSOT, 'TR_TEST');
+        expect(currentLocation).toBe('LOC_B'); // from_location_id of ready activity
+      });
+      
+      it('should return in_progress activity over ready/planned', () => {
+        const mockSSOT: any = {
+          entities: {
+            activities: {
+              ACT_PLANNED: {
+                activity_id: 'ACT_PLANNED',
+                tr_ids: ['TR_TEST'],
+                state: 'planned',
+                plan: {
+                  start_ts: '2026-02-10T08:00:00Z',
+                  location: {
+                    from_location_id: 'LOC_A',
+                    to_location_id: 'LOC_B'
+                  }
+                },
+                actual: { start_ts: null, end_ts: null },
+                calc: { collision_ids: [], risk_score: 0 }
+              },
+              ACT_IN_PROGRESS: {
+                activity_id: 'ACT_IN_PROGRESS',
+                tr_ids: ['TR_TEST'],
+                state: 'in_progress',
+                plan: {
+                  start_ts: '2026-02-09T08:00:00Z',
+                  location: {
+                    from_location_id: 'LOC_X',
+                    to_location_id: 'LOC_Y'
+                  }
+                },
+                actual: { start_ts: '2026-02-09T08:15:00Z', end_ts: null },
+                calc: { collision_ids: [], risk_score: 0 }
+              }
+            },
+            trs: {
+              TR_TEST: { tr_id: 'TR_TEST', name: 'Test TR', calc: {} }
+            }
+          }
+        };
+        
+        const currentActivity = calculateCurrentActivityForTR(mockSSOT, 'TR_TEST');
+        expect(currentActivity).toBe('ACT_IN_PROGRESS'); // in_progress > planned
+        
+        const currentLocation = calculateCurrentLocationForTR(mockSSOT, 'TR_TEST');
+        expect(currentLocation).toBe('LOC_Y'); // to_location_id for in_progress
+      });
     });
   });
   

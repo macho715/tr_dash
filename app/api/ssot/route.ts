@@ -5,11 +5,12 @@ import path from 'path'
 
 /**
  * API route to serve option_c.json for client-side MapPanel
- * Reads from tests/fixtures/option_c_baseline.json or option_c.json at root
+ * Reads from data/schedule/option_c_v0.8.0.json (Contract v0.8.0 format)
  */
 export async function GET() {
   const root = process.cwd()
   const candidates = [
+    path.join(root, 'data', 'schedule', 'option_c_v0.8.0.json'),
     path.join(root, 'tests', 'fixtures', 'option_c_baseline.json'),
     path.join(root, 'option_c.json'),
     path.join(root, 'data', 'schedule', 'option_c.json'),

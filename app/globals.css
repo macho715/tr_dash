@@ -187,6 +187,67 @@ body::before {
   opacity: 0.9;
 }
 
+/* Ghost Bars - Multiple Types */
+
+/* Live Reflow preview ghost bars */
+.vis-timeline .vis-item.ghost-bar-reflow {
+  border: 2px dashed rgba(34, 211, 238, 0.7) !important;
+  background: rgba(6, 182, 212, 0.18) !important;
+  opacity: 0.9;
+}
+
+/* What-If Simulation ghost bars */
+.vis-timeline .vis-item.ghost-bar-what-if {
+  border: 2px dashed rgba(255, 165, 0, 0.7) !important;
+  background: rgba(251, 146, 60, 0.18) !important;
+  opacity: 0.9;
+}
+
+/* Baseline Comparison ghost bars */
+.vis-timeline .vis-item.ghost-bar-baseline {
+  border: 2px dashed rgba(34, 197, 94, 0.7) !important;
+  background: rgba(34, 197, 94, 0.12) !important;
+  opacity: 0.85;
+}
+
+/* Weather Delay preview ghost bars */
+.vis-timeline .vis-item.ghost-bar-weather {
+  border: 2px dashed rgba(239, 68, 68, 0.8) !important;
+  background: rgba(248, 113, 113, 0.18) !important;
+  opacity: 0.9;
+}
+
+/* Weather propagated ghost bars */
+.vis-timeline .vis-item.ghost-bar-weather-propagated {
+  border: 2px dashed rgba(249, 115, 22, 0.8) !important;
+  background: rgba(251, 146, 60, 0.18) !important;
+  opacity: 0.9;
+}
+
+/* Activity highlighting for What-If */
+.vis-timeline .vis-item.what-if-highlight {
+  box-shadow: 0 0 0 3px rgba(255, 165, 0, 0.5) !important;
+  animation: pulse-orange 2s ease-in-out infinite;
+}
+
+@keyframes pulse-orange {
+  0%, 100% { 
+    box-shadow: 0 0 0 3px rgba(255, 165, 0, 0.5); 
+  }
+  50% { 
+    box-shadow: 0 0 0 6px rgba(255, 165, 0, 0.3); 
+  }
+}
+
+/* Baseline status indicators */
+.vis-timeline .vis-item.baseline-delayed {
+  border-left: 4px solid rgba(239, 68, 68, 0.8) !important;
+}
+
+.vis-timeline .vis-item.baseline-advanced {
+  border-left: 4px solid rgba(34, 197, 94, 0.8) !important;
+}
+
 /* Task 10: vis-timeline Deep Ocean Theme overrides */
 .gantt-vis-wrapper .vis-timeline {
   border-color: rgba(6, 182, 212, 0.2) !important;
@@ -280,4 +341,63 @@ body::before {
 .gantt-vis-wrapper .vis-item .vis-item-content {
   color: #0f172a !important;
   font-weight: 600;
+}
+
+/* TR Marker Pulsing Animation (Location Map Improvement) */
+@keyframes pulse-marker {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.6);
+  }
+  50% {
+    transform: scale(1.1);
+    box-shadow: 0 0 16px rgba(59, 130, 246, 0.9);
+  }
+}
+
+.tr-marker-pulse {
+  animation: pulse-marker 2s ease-in-out infinite;
+}
+
+/* TR Marker Tooltip Styles (Location Map Improvement) */
+.leaflet-popup-content {
+  margin: 8px 12px !important;
+  min-width: 200px;
+}
+
+.tr-marker-tooltip .badge {
+  padding: 2px 8px;
+  font-size: 10px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.tr-marker-tooltip .badge-blue {
+  background: rgba(59, 130, 246, 0.2);
+  color: rgb(147, 197, 253);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.tr-marker-tooltip .badge-gray {
+  background: rgba(156, 163, 175, 0.2);
+  color: rgb(209, 213, 219);
+  border: 1px solid rgba(156, 163, 175, 0.3);
+}
+
+.tr-marker-tooltip .badge-red {
+  background: rgba(239, 68, 68, 0.2);
+  color: rgb(252, 165, 165);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.tr-marker-tooltip .badge-green {
+  background: rgba(34, 197, 94, 0.2);
+  color: rgb(134, 239, 172);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.tr-marker-tooltip .badge-yellow {
+  background: rgba(234, 179, 8, 0.2);
+  color: rgb(253, 224, 71);
+  border: 1px solid rgba(234, 179, 8, 0.3);
 }

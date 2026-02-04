@@ -281,6 +281,61 @@
           "A2930",
           "A2940"
         ]
+      },
+      "TRIP_03": {
+        "trip_id": "TRIP_03",
+        "name": "Trip 03",
+        "sequence": 3,
+        "tr_ids": [
+          "TR_03"
+        ],
+        "activity_ids": [
+          "TR_03_PREP_MZP"
+        ]
+      },
+      "TRIP_04": {
+        "trip_id": "TRIP_04",
+        "name": "Trip 04",
+        "sequence": 4,
+        "tr_ids": [
+          "TR_04"
+        ],
+        "activity_ids": [
+          "TR_04_PREP_MZP"
+        ]
+      },
+      "TRIP_05": {
+        "trip_id": "TRIP_05",
+        "name": "Trip 05",
+        "sequence": 5,
+        "tr_ids": [
+          "TR_05"
+        ],
+        "activity_ids": [
+          "TR_05_PREP_MZP"
+        ]
+      },
+      "TRIP_06": {
+        "trip_id": "TRIP_06",
+        "name": "Trip 06",
+        "sequence": 6,
+        "tr_ids": [
+          "TR_06"
+        ],
+        "activity_ids": [
+          "TR_06_PREP_MZP"
+        ]
+      },
+      "TRIP_07": {
+        "trip_id": "TRIP_07",
+        "name": "Trip 07",
+        "sequence": 7,
+        "tr_ids": [
+          "TR_07"
+        ],
+        "activity_ids": [
+          "TR_07_PREP_MZP"
+        ]
       }
     },
     "trs": {
@@ -413,6 +468,76 @@
           "A2930",
           "A2940"
         ]
+      },
+      "TR_03": {
+        "tr_id": "TR_03",
+        "trip_id": "TRIP_03",
+        "name": "TR 03",
+        "sequence": 3,
+        "activity_ids": [
+          "TR_03_PREP_MZP"
+        ],
+        "calc": {
+          "current_activity_id": null,
+          "current_location_id": null,
+          "risk_score": 0
+        }
+      },
+      "TR_04": {
+        "tr_id": "TR_04",
+        "trip_id": "TRIP_04",
+        "name": "TR 04",
+        "sequence": 4,
+        "activity_ids": [
+          "TR_04_PREP_MZP"
+        ],
+        "calc": {
+          "current_activity_id": null,
+          "current_location_id": null,
+          "risk_score": 0
+        }
+      },
+      "TR_05": {
+        "tr_id": "TR_05",
+        "trip_id": "TRIP_05",
+        "name": "TR 05",
+        "sequence": 5,
+        "activity_ids": [
+          "TR_05_PREP_MZP"
+        ],
+        "calc": {
+          "current_activity_id": null,
+          "current_location_id": null,
+          "risk_score": 0
+        }
+      },
+      "TR_06": {
+        "tr_id": "TR_06",
+        "trip_id": "TRIP_06",
+        "name": "TR 06",
+        "sequence": 6,
+        "activity_ids": [
+          "TR_06_PREP_MZP"
+        ],
+        "calc": {
+          "current_activity_id": null,
+          "current_location_id": null,
+          "risk_score": 0
+        }
+      },
+      "TR_07": {
+        "tr_id": "TR_07",
+        "trip_id": "TRIP_07",
+        "name": "TR 07",
+        "sequence": 7,
+        "activity_ids": [
+          "TR_07_PREP_MZP"
+        ],
+        "calc": {
+          "current_activity_id": null,
+          "current_location_id": null,
+          "risk_score": 0
+        }
       }
     },
     "activities": {
@@ -531,8 +656,8 @@
         "tr_ids": [
           "TR_01"
         ],
-        "title": "Deck Preparations (D-ring cutting; marking, steel sets installation) - One 5t forklift and Crane required",
-        "state": "planned",
+        "title": "TR-01 Transit: MZP → AGI",
+        "state": "completed",
         "lock_level": "none",
         "blocker_code": null,
         "blocker_detail": {},
@@ -545,9 +670,9 @@
           "duration_min": 1440,
           "duration_mode": "work",
           "location": {
-            "from_location_id": null,
-            "to_location_id": null,
-            "route_id": null,
+            "from_location_id": "LOC_MZP",
+            "to_location_id": "LOC_AGI",
+            "route_id": "ROUTE_MZP_AGI",
             "geo_fence_ids": []
           },
           "dependencies": [],
@@ -556,9 +681,9 @@
           "notes": ""
         },
         "actual": {
-          "start_ts": null,
-          "end_ts": null,
-          "progress_pct": null,
+          "start_ts": "2026-01-28T08:00:00+04:00",
+          "end_ts": "2026-01-28T18:00:00+04:00",
+          "progress_pct": 100,
           "location_override": null,
           "resource_assignments": [],
           "notes": ""
@@ -2431,8 +2556,8 @@
           "duration_min": 1440,
           "duration_mode": "work",
           "location": {
-            "from_location_id": null,
-            "to_location_id": null,
+            "from_location_id": "LOC_MZP",
+            "to_location_id": "LOC_MZP",
             "route_id": null,
             "geo_fence_ids": []
           },
@@ -7393,6 +7518,304 @@
             "last_apply_run_id": null
           }
         }
+      },
+      "TR_03_PREP_MZP": {
+        "activity_id": "TR_03_PREP_MZP",
+        "type_id": "preparation",
+        "trip_id": "TRIP_03",
+        "tr_ids": [
+          "TR_03"
+        ],
+        "title": "TR 03 Preparation at MZP",
+        "state": "planned",
+        "lock_level": "none",
+        "blocker_code": null,
+        "blocker_detail": {},
+        "evidence_required": [],
+        "evidence_ids": [],
+        "reflow_pins": [],
+        "plan": {
+          "start_ts": "2026-02-10T00:00:00+04:00",
+          "end_ts": "2026-02-10T23:59:59+04:00",
+          "duration_min": 1440,
+          "duration_mode": "work",
+          "location": {
+            "from_location_id": "LOC_MZP",
+            "to_location_id": "LOC_MZP",
+            "route_id": null,
+            "geo_fence_ids": []
+          },
+          "dependencies": [],
+          "resources": [],
+          "constraints": [],
+          "notes": "Placeholder activity for TR 03 at Mina Zayed Port"
+        },
+        "actual": {
+          "start_ts": null,
+          "end_ts": null,
+          "progress_pct": null,
+          "location_override": null,
+          "resource_assignments": [],
+          "notes": ""
+        },
+        "calc": {
+          "es_ts": "2026-02-10T00:00:00+04:00",
+          "ef_ts": "2026-02-10T23:59:59+04:00",
+          "ls_ts": "2026-02-10T00:00:00+04:00",
+          "lf_ts": "2026-02-10T23:59:59+04:00",
+          "slack_min": 0,
+          "critical_path": false,
+          "collision_ids": [],
+          "collision_severity_max": null,
+          "risk_score": null,
+          "predicted_end_ts": null,
+          "reflow": {
+            "last_preview_run_id": null,
+            "last_apply_run_id": null
+          }
+        }
+      },
+      "TR_04_PREP_MZP": {
+        "activity_id": "TR_04_PREP_MZP",
+        "type_id": "preparation",
+        "trip_id": "TRIP_04",
+        "tr_ids": [
+          "TR_04"
+        ],
+        "title": "TR 04 Preparation at MZP",
+        "state": "planned",
+        "lock_level": "none",
+        "blocker_code": null,
+        "blocker_detail": {},
+        "evidence_required": [],
+        "evidence_ids": [],
+        "reflow_pins": [],
+        "plan": {
+          "start_ts": "2026-02-10T00:00:00+04:00",
+          "end_ts": "2026-02-10T23:59:59+04:00",
+          "duration_min": 1440,
+          "duration_mode": "work",
+          "location": {
+            "from_location_id": "LOC_MZP",
+            "to_location_id": "LOC_MZP",
+            "route_id": null,
+            "geo_fence_ids": []
+          },
+          "dependencies": [],
+          "resources": [],
+          "constraints": [],
+          "notes": "Placeholder activity for TR 04 at Mina Zayed Port"
+        },
+        "actual": {
+          "start_ts": null,
+          "end_ts": null,
+          "progress_pct": null,
+          "location_override": null,
+          "resource_assignments": [],
+          "notes": ""
+        },
+        "calc": {
+          "es_ts": "2026-02-10T00:00:00+04:00",
+          "ef_ts": "2026-02-10T23:59:59+04:00",
+          "ls_ts": "2026-02-10T00:00:00+04:00",
+          "lf_ts": "2026-02-10T23:59:59+04:00",
+          "slack_min": 0,
+          "critical_path": false,
+          "collision_ids": [],
+          "collision_severity_max": null,
+          "risk_score": null,
+          "predicted_end_ts": null,
+          "reflow": {
+            "last_preview_run_id": null,
+            "last_apply_run_id": null
+          }
+        }
+      },
+      "TR_05_PREP_MZP": {
+        "activity_id": "TR_05_PREP_MZP",
+        "type_id": "preparation",
+        "trip_id": "TRIP_05",
+        "tr_ids": [
+          "TR_05"
+        ],
+        "title": "TR 05 Preparation at MZP",
+        "state": "planned",
+        "lock_level": "none",
+        "blocker_code": null,
+        "blocker_detail": {},
+        "evidence_required": [],
+        "evidence_ids": [],
+        "reflow_pins": [],
+        "plan": {
+          "start_ts": "2026-02-10T00:00:00+04:00",
+          "end_ts": "2026-02-10T23:59:59+04:00",
+          "duration_min": 1440,
+          "duration_mode": "work",
+          "location": {
+            "from_location_id": "LOC_MZP",
+            "to_location_id": "LOC_MZP",
+            "route_id": null,
+            "geo_fence_ids": []
+          },
+          "dependencies": [],
+          "resources": [],
+          "constraints": [],
+          "notes": "Placeholder activity for TR 05 at Mina Zayed Port"
+        },
+        "actual": {
+          "start_ts": null,
+          "end_ts": null,
+          "progress_pct": null,
+          "location_override": null,
+          "resource_assignments": [],
+          "notes": ""
+        },
+        "calc": {
+          "es_ts": "2026-02-10T00:00:00+04:00",
+          "ef_ts": "2026-02-10T23:59:59+04:00",
+          "ls_ts": "2026-02-10T00:00:00+04:00",
+          "lf_ts": "2026-02-10T23:59:59+04:00",
+          "slack_min": 0,
+          "critical_path": false,
+          "collision_ids": [],
+          "collision_severity_max": null,
+          "risk_score": null,
+          "predicted_end_ts": null,
+          "reflow": {
+            "last_preview_run_id": null,
+            "last_apply_run_id": null
+          }
+        }
+      },
+      "TR_06_PREP_MZP": {
+        "activity_id": "TR_06_PREP_MZP",
+        "type_id": "preparation",
+        "trip_id": "TRIP_06",
+        "tr_ids": [
+          "TR_06"
+        ],
+        "title": "TR 06 Preparation at MZP",
+        "state": "planned",
+        "lock_level": "none",
+        "blocker_code": null,
+        "blocker_detail": {},
+        "evidence_required": [],
+        "evidence_ids": [],
+        "reflow_pins": [],
+        "plan": {
+          "start_ts": "2026-02-10T00:00:00+04:00",
+          "end_ts": "2026-02-10T23:59:59+04:00",
+          "duration_min": 1440,
+          "duration_mode": "work",
+          "location": {
+            "from_location_id": "LOC_MZP",
+            "to_location_id": "LOC_MZP",
+            "route_id": null,
+            "geo_fence_ids": []
+          },
+          "dependencies": [],
+          "resources": [],
+          "constraints": [],
+          "notes": "Placeholder activity for TR 06 at Mina Zayed Port"
+        },
+        "actual": {
+          "start_ts": null,
+          "end_ts": null,
+          "progress_pct": null,
+          "location_override": null,
+          "resource_assignments": [],
+          "notes": ""
+        },
+        "calc": {
+          "es_ts": "2026-02-10T00:00:00+04:00",
+          "ef_ts": "2026-02-10T23:59:59+04:00",
+          "ls_ts": "2026-02-10T00:00:00+04:00",
+          "lf_ts": "2026-02-10T23:59:59+04:00",
+          "slack_min": 0,
+          "critical_path": false,
+          "collision_ids": [],
+          "collision_severity_max": null,
+          "risk_score": null,
+          "predicted_end_ts": null,
+          "reflow": {
+            "last_preview_run_id": null,
+            "last_apply_run_id": null
+          }
+        }
+      },
+      "TR_07_PREP_MZP": {
+        "activity_id": "TR_07_PREP_MZP",
+        "type_id": "preparation",
+        "trip_id": "TRIP_07",
+        "tr_ids": [
+          "TR_07"
+        ],
+        "title": "TR 07 Preparation at MZP",
+        "state": "planned",
+        "lock_level": "none",
+        "blocker_code": null,
+        "blocker_detail": {},
+        "evidence_required": [],
+        "evidence_ids": [],
+        "reflow_pins": [],
+        "plan": {
+          "start_ts": "2026-02-10T00:00:00+04:00",
+          "end_ts": "2026-02-10T23:59:59+04:00",
+          "duration_min": 1440,
+          "duration_mode": "work",
+          "location": {
+            "from_location_id": "LOC_MZP",
+            "to_location_id": "LOC_MZP",
+            "route_id": null,
+            "geo_fence_ids": []
+          },
+          "dependencies": [],
+          "resources": [],
+          "constraints": [],
+          "notes": "Placeholder activity for TR 07 at Mina Zayed Port"
+        },
+        "actual": {
+          "start_ts": null,
+          "end_ts": null,
+          "progress_pct": null,
+          "location_override": null,
+          "resource_assignments": [],
+          "notes": ""
+        },
+        "calc": {
+          "es_ts": "2026-02-10T00:00:00+04:00",
+          "ef_ts": "2026-02-10T23:59:59+04:00",
+          "ls_ts": "2026-02-10T00:00:00+04:00",
+          "lf_ts": "2026-02-10T23:59:59+04:00",
+          "slack_min": 0,
+          "critical_path": false,
+          "collision_ids": [],
+          "collision_severity_max": null,
+          "risk_score": null,
+          "predicted_end_ts": null,
+          "reflow": {
+            "last_preview_run_id": null,
+            "last_apply_run_id": null
+          }
+        }
+      }
+    },
+    "locations": {
+      "LOC_MZP": {
+        "location_id": "LOC_MZP",
+        "name": "Mina Zayed Port",
+        "lat": 24.524890,
+        "lon": 54.377980,
+        "zone": "port",
+        "notes": "Main port facility - Corrected coordinates"
+      },
+      "LOC_AGI": {
+        "location_id": "LOC_AGI",
+        "name": "AGI Jetty (Al Ghallan Island)",
+        "lat": 24.841096,
+        "lon": 53.658619,
+        "zone": "offshore",
+        "notes": "Al Ghallan Island destination"
       }
     }
   },
@@ -7402,5 +7825,91 @@
     "current_baseline_id": null,
     "items": {}
   },
-  "history_events": []
+  "history_events": [
+    {
+      "event_id": "EVT_1770232731268_LOC_INIT",
+      "timestamp": "2026-02-04T19:18:51+04:00",
+      "event_type": "location_data_initialization",
+      "actor": "tr-implementer",
+      "activity_id": null,
+      "delta": {
+        "entities.locations": {
+          "old": {},
+          "new": {
+            "LOC_MZP": "added",
+            "LOC_AGI": "added"
+          }
+        }
+      }
+    },
+    {
+      "event_id": "EVT_1770232731268_TR_CREATED",
+      "timestamp": "2026-02-04T19:18:51+04:00",
+      "event_type": "tr_entities_created",
+      "actor": "tr-implementer",
+      "activity_id": null,
+      "delta": {
+        "entities.trs": {
+          "old": [
+            "TR_01",
+            "TR_02"
+          ],
+          "new": [
+            "TR_01",
+            "TR_02",
+            "TR_03",
+            "TR_04",
+            "TR_05",
+            "TR_06",
+            "TR_07"
+          ]
+        }
+      }
+    },
+    {
+      "event_id": "EVT_1770232731268_TR01_AGI",
+      "timestamp": "2026-02-04T19:18:51+04:00",
+      "event_type": "actual_completed",
+      "actor": "tr-implementer",
+      "activity_id": "A1004",
+      "delta": {
+        "state": {
+          "old": "planned",
+          "new": "done"
+        },
+        "actual.start_ts": {
+          "old": null,
+          "new": "2026-01-28T08:00:00+04:00"
+        },
+        "actual.end_ts": {
+          "old": null,
+          "new": "2026-01-28T18:00:00+04:00"
+        },
+        "plan.location.to_location_id": {
+          "old": null,
+          "new": "LOC_AGI"
+        }
+      }
+    },
+    {
+      "event_id": "EVT_1770237900000_LOC_MZP_COORD_FIX",
+      "timestamp": "2026-02-04T20:45:00+04:00",
+      "event_type": "location_coordinates_corrected",
+      "actor": "system",
+      "metadata": {
+        "location_id": "LOC_MZP",
+        "location_name": "Mina Zayed Port",
+        "old_coordinates": {
+          "lat": 24.5327093,
+          "lon": 54.3781822
+        },
+        "new_coordinates": {
+          "lat": 24.524890,
+          "lon": 54.377980
+        },
+        "reason": "Corrected to accurate Mina Zayed Port coordinates",
+        "offset_meters": "~870m correction (north to south)"
+      }
+    }
+  ]
 }

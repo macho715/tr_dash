@@ -29,9 +29,12 @@ import { getActivitiesArray, getActivitiesForTrip, getActivitiesForTR } from './
 /**
  * Calculate TR.calc.current_activity_id
  * 
- * Logic: Find activity with this TR where actual.start_ts exists and actual.end_ts is null
- * (in progress). If multiple in-progress, return the one with latest start_ts.
- * If none in-progress, return the most recent completed activity.
+ * Logic (fallback chain):
+ * 1. in_progress: activity with actual.start_ts and no actual.end_ts (latest start)
+ * 2. completed: most recent completed activity (latest end)
+ * 3. ready/committed: earliest ready/committed activity (by plan.start_ts)
+ * 4. planned: earliest planned activity (by plan.start_ts)
+ * 5. fallback: first activity in array
  */
 export function calculateCurrentActivityForTR(
   ssot: OptionC,
@@ -39,7 +42,11 @@ export function calculateCurrentActivityForTR(
 ): string | null {
   const activities = getActivitiesForTR(ssot, trId);
   
-  // Find in-progress activities (multiple possible if shared activities)
+  if (activities.length === 0) {
+    return null;
+  }
+  
+  // 1. Find in-progress activities (multiple possible if shared activities)
   const inProgress = activities.filter(a =>
     a.actual.start_ts !== null && a.actual.end_ts === null
   );
@@ -55,7 +62,7 @@ export function calculateCurrentActivityForTR(
     return sorted[0].activity_id;
   }
   
-  // Find most recent completed activity
+  // 2. Find most recent completed activity
   const completed = activities
     .filter(a => a.actual.end_ts !== null)
     .sort((a, b) => {
@@ -64,7 +71,45 @@ export function calculateCurrentActivityForTR(
       return bEnd - aEnd; // Descending (most recent first)
     });
   
-  return completed[0]?.activity_id || null;
+  if (completed.length > 0) {
+    return completed[0].activity_id;
+  }
+  
+  // 3. Find ready/committed activities (not yet started)
+  const ready = activities.filter(a =>
+    (a.state === 'ready' || a.state === 'committed') &&
+    a.actual.start_ts === null
+  );
+  
+  if (ready.length > 0) {
+    // Return earliest (by plan.start_ts)
+    const sorted = ready.sort((a, b) => {
+      const aStart = new Date(a.plan.start_ts).getTime();
+      const bStart = new Date(b.plan.start_ts).getTime();
+      return aStart - bStart; // Ascending (earliest first)
+    });
+    
+    return sorted[0].activity_id;
+  }
+  
+  // 4. Find planned activities (not yet started)
+  const planned = activities.filter(a =>
+    a.state === 'planned' && a.actual.start_ts === null
+  );
+  
+  if (planned.length > 0) {
+    // Return earliest (by plan.start_ts)
+    const sorted = planned.sort((a, b) => {
+      const aStart = new Date(a.plan.start_ts).getTime();
+      const bStart = new Date(b.plan.start_ts).getTime();
+      return aStart - bStart; // Ascending (earliest first)
+    });
+    
+    return sorted[0].activity_id;
+  }
+  
+  // 5. Fallback: return first activity
+  return activities[0].activity_id;
 }
 
 /**
