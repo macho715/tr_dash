@@ -1,9 +1,14 @@
 "use client"
 
-import { Megaphone } from "lucide-react"
+import { useMemo } from "react"
+import { AlertTriangle, Megaphone } from "lucide-react"
 import { WeatherBlock } from "@/components/dashboard/weather-block"
 import { GoNoGoBadge } from "@/components/dashboard/go-nogo-badge"
 import { useDate } from "@/lib/contexts/date-context"
+import { weatherForecast, weatherLimits } from "@/lib/weather/weather-service"
+import { buildWeatherDelayPreview } from "@/lib/weather/weather-delay-preview"
+import { evaluateWeatherPoint } from "@/lib/weather/weather-validator"
+import type { ScheduleActivity } from "@/lib/ssot/schedule"
 
 export function OperationalNotice() {
   const { formattedDate, dayNumber } = useDate()
@@ -29,7 +34,37 @@ export function OperationalNotice() {
 }
 
 
-export function AlertsTriage() {
+type AlertsTriageProps = {
+  activities: ScheduleActivity[]
+}
+
+function formatNoGoDays(days: string[]) {
+  return days.length > 0 ? days.join(", ") : "—"
+}
+
+export function AlertsTriage({ activities }: AlertsTriageProps) {
+  const weatherDelayChanges = useMemo(
+    () => buildWeatherDelayPreview(activities, weatherForecast, weatherLimits),
+    [activities]
+  )
+  const noGoDays = useMemo(() => {
+    return Array.from(
+      new Set(
+        weatherForecast.series
+          .map((point) => {
+            const result = evaluateWeatherPoint(point, weatherLimits)
+            if (result.status !== "NO_GO") return null
+            const ts = point.ts
+            if (!ts) return null
+            const date = new Date(ts)
+            if (Number.isNaN(date.getTime())) return null
+            return date.toISOString().slice(0, 10)
+          })
+          .filter((value): value is string => Boolean(value))
+      )
+    )
+  }, [])
+
   return (
     <section className="rounded-2xl border border-accent/15 bg-card/80 p-6 backdrop-blur-lg">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -52,6 +87,31 @@ export function AlertsTriage() {
           </div>
           <GoNoGoBadge />
         </div>
+        {weatherDelayChanges.length > 0 && (
+          <div className="rounded-xl border border-red-500/50 bg-red-950/30 p-4">
+            <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-red-300">
+              <AlertTriangle className="h-4 w-4 text-red-300" />
+              Weather Delay Predicted
+            </div>
+            <div className="grid gap-3 text-xs text-slate-300 sm:grid-cols-2">
+              <div>
+                <div className="text-slate-400">NO_GO Days (UTC)</div>
+                <div className="font-mono text-red-300">
+                  {formatNoGoDays(noGoDays)}
+                </div>
+              </div>
+              <div>
+                <div className="text-slate-400">Affected Activities</div>
+                <div className="text-lg font-bold text-red-300">
+                  {weatherDelayChanges.length}
+                </div>
+              </div>
+            </div>
+            <div className="mt-2 text-[11px] text-slate-400">
+              Check Gantt ghost bars (red/orange dashed) for details.
+            </div>
+          </div>
+        )}
         <div className="grid gap-4 lg:grid-cols-2">
           <div>
             <div className="mb-2 text-xs font-semibold uppercase tracking-widest text-rose-300">

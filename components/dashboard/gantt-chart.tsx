@@ -15,8 +15,10 @@ import {
   activityTypeNames,
 } from "@/lib/dashboard-data"
 import { scheduleActivitiesToGanttRows } from "@/lib/data/schedule-data"
-import { ganttRowsToVisData } from "@/lib/gantt/visTimelineMapper"
+import { ganttRowsToVisDataCached } from "@/lib/gantt/visTimelineMapper"
 import type { VisTimelineGanttHandle } from "@/components/gantt/VisTimelineGantt"
+import { DependencyArrowsOverlay } from "@/components/gantt/DependencyArrowsOverlay"
+import { WeatherOverlay } from "@/components/gantt/WeatherOverlay"
 
 const VisTimelineGantt = dynamic(
   () =>
@@ -33,7 +35,14 @@ const VisTimelineGantt = dynamic(
   }
 )
 import type { GanttEventBase } from "@/lib/gantt/gantt-contract"
-import type { ScheduleActivity } from "@/lib/ssot/schedule"
+import type {
+  DateChange,
+  ScheduleActivity,
+  ScheduleConflict,
+  ScheduleDependency,
+} from "@/lib/ssot/schedule"
+import type { WeatherDelayChange } from "@/lib/weather/weather-delay-preview"
+import type { WeatherForecastData, WeatherLimits } from "@/lib/weather/weather-service"
 import {
   parseDateInput,
   parseDateToNoonUtc,
@@ -54,7 +63,6 @@ import {
   CONSTRAINT_BADGES,
   COLLISION_BADGES,
 } from "@/lib/ssot/timeline-badges"
-import type { ScheduleConflict } from "@/lib/ssot/schedule"
 import type { CompareResult } from "@/lib/compare/types"
 import { calculateSlack } from "@/lib/utils/slack-calc"
 import { getLegendDefinition, type LegendDefinition } from "@/lib/gantt-legend-guide"
@@ -79,6 +87,36 @@ const legendColors: Record<string, string> = {
   loadin: "bg-gradient-to-r from-emerald-300 to-emerald-500",
   turning: "bg-gradient-to-r from-pink-400 to-pink-500",
   jackdown: "bg-gradient-to-r from-blue-400 to-blue-500",
+}
+
+const DEPENDENCY_STYLES: Record<
+  ScheduleDependency["type"],
+  { stroke: string; dash: string | undefined; width: number; marker: string }
+> = {
+  FS: {
+    stroke: "rgb(34 211 238)",
+    dash: undefined,
+    width: 0.45,
+    marker: "arrow-fs",
+  },
+  SS: {
+    stroke: "rgb(34 211 238)",
+    dash: "4 2",
+    width: 0.45,
+    marker: "arrow-ss",
+  },
+  FF: {
+    stroke: "rgb(6 182 212)",
+    dash: undefined,
+    width: 0.7,
+    marker: "arrow-ff",
+  },
+  SF: {
+    stroke: "rgb(251 146 60)",
+    dash: "8 4",
+    width: 0.45,
+    marker: "arrow-sf",
+  },
 }
 
 function calcPosition(
@@ -143,6 +181,20 @@ interface GanttChartProps {
   focusedActivityId?: string | null
   /** Phase 10: Compare mode delta for ghost bars */
   compareDelta?: CompareResult | null
+  /** Live mode: reflow preview ghost bars (supports metadata) */
+  reflowPreview?: {
+    changes: DateChange[]
+    metadata?: import("@/lib/gantt/visTimelineMapper").GhostBarMetadata
+  } | DateChange[] | null
+  /** Live mode: weather delay preview ghost bars */
+  weatherPreview?: WeatherDelayChange[] | null
+  /** Live mode: weather delay propagated ghost bars */
+  weatherPropagated?: WeatherDelayChange[] | null
+  /** Weather overlay data */
+  weatherForecast?: WeatherForecastData
+  weatherLimits?: WeatherLimits
+  weatherOverlayVisible?: boolean
+  weatherOverlayOpacity?: number
   /** Project end date for slack calculation (must match page.tsx for consistent DetailPanel/Gantt values) */
   projectEndDate: string
   /** GANTTPATCH2: Event stream (ITEM_SELECTED, GANTT_READY) */
@@ -166,6 +218,13 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
     onCollisionClick,
     focusedActivityId,
     compareDelta,
+    reflowPreview,
+    weatherPreview,
+    weatherPropagated,
+    weatherForecast,
+    weatherLimits,
+    weatherOverlayVisible = false,
+    weatherOverlayOpacity = 0.15,
     projectEndDate,
     onGanttEvent,
   },
@@ -185,8 +244,23 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
     activity: null,
   })
   const ganttContainerRef = useRef<HTMLDivElement>(null)
+  const visContainerRef = useRef<HTMLDivElement>(null)
   const activityRefs = useRef<Map<string, HTMLDivElement>>(new Map())
   const visTimelineRef = useRef<VisTimelineGanttHandle>(null)
+  const visRenderRaf = useRef<number | null>(null)
+  const visRangeRaf = useRef<number | null>(null)
+  const [visRenderTick, setVisRenderTick] = useState(0)
+  const visRangeRef = useRef<{ start: Date; end: Date }>({
+    start: PROJECT_START,
+    end: PROJECT_END,
+  })
+  const [visRange, setVisRange] = useState(visRangeRef.current)
+  const [weatherOverlayEnabled, setWeatherOverlayEnabled] = useState(
+    weatherOverlayVisible
+  )
+  const [weatherOverlayOpacityValue, setWeatherOverlayOpacityValue] = useState(
+    weatherOverlayOpacity
+  )
   // AGENTS.md §5.1: VisTimelineGantt 필수 사용 (vis-timeline 기반)
   const raw = (process.env.NEXT_PUBLIC_GANTT_ENGINE || "vis").trim().toLowerCase()
   const useVisEngine = raw === "vis"
@@ -219,7 +293,12 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
       string,
       { rowIndex: number; left: number; width: number }
     >()
-    const edges: { predId: string; succId: string }[] = []
+    const edges: {
+      predId: string
+      succId: string
+      type: ScheduleDependency["type"]
+      lagDays: number
+    }[] = []
     ganttRows.forEach((row, rowIndex) => {
       row.activities?.forEach((activity) => {
         const refKey = activity.label.split(":")[0].trim()
@@ -228,7 +307,12 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
         const meta = activityMeta.get(refKey)
         if (meta?.depends_on) {
           for (const d of meta.depends_on) {
-            edges.push({ predId: d.predecessorId, succId: refKey })
+            edges.push({
+              predId: d.predecessorId,
+              succId: refKey,
+              type: d.type,
+              lagDays: d.lagDays ?? 0,
+            })
           }
         }
       })
@@ -263,8 +347,13 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
   }
 
   const visData = useMemo(
-    () => ganttRowsToVisData(ganttRows, compareDelta),
-    [ganttRows, compareDelta]
+    () =>
+      ganttRowsToVisDataCached(ganttRows, compareDelta, {
+        reflowPreview,
+        weatherPreview,
+        weatherPropagated,
+      }),
+    [ganttRows, compareDelta, reflowPreview, weatherPreview, weatherPropagated]
   )
 
   const scrollToActivity = (activityId: string) => {
@@ -294,6 +383,49 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
   useEffect(() => {
     activityRefs.current.clear()
   }, [ganttRows])
+
+  useEffect(() => {
+    return () => {
+      if (visRenderRaf.current !== null) {
+        cancelAnimationFrame(visRenderRaf.current)
+        visRenderRaf.current = null
+      }
+      if (visRangeRaf.current !== null) {
+        cancelAnimationFrame(visRangeRaf.current)
+        visRangeRaf.current = null
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    setWeatherOverlayEnabled(weatherOverlayVisible)
+  }, [weatherOverlayVisible])
+
+  useEffect(() => {
+    setWeatherOverlayOpacityValue(weatherOverlayOpacity)
+  }, [weatherOverlayOpacity])
+
+  const scheduleVisRenderTick = () => {
+    if (visRenderRaf.current !== null) return
+    visRenderRaf.current = requestAnimationFrame(() => {
+      visRenderRaf.current = null
+      setVisRenderTick((prev) => prev + 1)
+    })
+  }
+
+  const scheduleVisRangeUpdate = () => {
+    if (visRangeRaf.current !== null) return
+    visRangeRaf.current = requestAnimationFrame(() => {
+      visRangeRaf.current = null
+      setVisRange({ ...visRangeRef.current })
+    })
+  }
+
+  const handleVisRangeChange = (range: { start: Date; end: Date }) => {
+    visRangeRef.current = range
+    scheduleVisRangeUpdate()
+    scheduleVisRenderTick()
+  }
 
   useEffect(() => {
     if (jumpTrigger === 0) return
@@ -477,6 +609,56 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
             Gantt: {useVisEngine ? "vis-timeline" : "custom"}
           </span>
         </div>
+        {useVisEngine && weatherForecast && weatherLimits && (
+          <>
+            <span className="text-slate-500">|</span>
+            <div className="flex items-center gap-3 text-xs text-slate-400">
+              <button
+                type="button"
+                onClick={() => setWeatherOverlayEnabled((prev) => !prev)}
+                className="flex items-center gap-2 text-xs font-medium text-slate-400 hover:text-cyan-300 hover:underline focus:outline-none focus:ring-2 focus:ring-cyan-500/50 rounded min-h-[24px] min-w-[24px]"
+                title="Toggle Weather Overlay"
+              >
+                <span>{weatherOverlayEnabled ? "🌦️" : "🌤️"}</span>
+                <span>Weather Overlay</span>
+              </button>
+              {weatherOverlayEnabled && (
+                <div className="hidden items-center gap-3 md:flex">
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
+                      <span className="inline-block h-3 w-5 rounded border border-red-500/30 bg-red-500/15" />
+                      <span>NO_GO</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="inline-block h-3 w-5 rounded border border-amber-400/30 bg-amber-400/10" />
+                      <span>NEAR_LIMIT</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label htmlFor="weather-opacity" className="text-xs text-slate-400">
+                      Opacity
+                    </label>
+                    <input
+                      id="weather-opacity"
+                      type="range"
+                      min={10}
+                      max={30}
+                      step={5}
+                      value={Math.round(weatherOverlayOpacityValue * 100)}
+                      onChange={(e) =>
+                        setWeatherOverlayOpacityValue(Number(e.target.value) / 100)
+                      }
+                      className="h-1 w-20 accent-cyan-400"
+                    />
+                    <span className="text-[11px] text-slate-500">
+                      {Math.round(weatherOverlayOpacityValue * 100)}%
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </div>
       {legendDrawerItem && (
         <GanttLegendDrawer
@@ -488,23 +670,53 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
       {/* Gantt Container: flexible height so detail + Gantt grow together */}
       <div className="flex min-h-[400px] flex-1 flex-col">
       {useVisEngine ? (
-        <VisTimelineGantt
-          ref={visTimelineRef}
-          groups={visData.groups}
-          items={visData.items}
-          selectedDate={selectedDate}
-          view={view}
-          onEvent={onGanttEvent}
-          onItemClick={(id) => {
-            const activityId = id.startsWith("ghost_") ? id.slice(6) : id
-            onActivityClick?.(activityId, activities.find((a) => a.activity_id === activityId)?.planned_start ?? "")
-            scrollToActivity(activityId)
-            const ganttSection = document.getElementById("gantt")
-            ganttSection?.scrollIntoView({ behavior: "smooth", block: "start" })
-          }}
-          onDeselect={onActivityDeselect}
-          focusedActivityId={focusedActivityId}
-        />
+        <div ref={visContainerRef} className="relative flex-1 min-h-[400px]">
+          {weatherOverlayEnabled && weatherForecast && weatherLimits && (
+            <WeatherOverlay
+              containerRef={visContainerRef}
+              forecast={weatherForecast}
+              limits={weatherLimits}
+              viewStart={visRange.start}
+              viewEnd={visRange.end}
+              opacity={weatherOverlayOpacityValue}
+              renderKey={visRenderTick}
+              className="pointer-events-none absolute z-0"
+            />
+          )}
+          <DependencyArrowsOverlay
+            containerRef={visContainerRef}
+            edges={dependencyEdges}
+            renderKey={visRenderTick}
+            className="pointer-events-none absolute inset-0 z-10"
+          />
+          <VisTimelineGantt
+            ref={visTimelineRef}
+            groups={visData.groups}
+            items={visData.items}
+            selectedDate={selectedDate}
+            view={view}
+            onEvent={onGanttEvent}
+            onRangeChange={handleVisRangeChange}
+            onRender={scheduleVisRenderTick}
+            onItemClick={(id) => {
+              const activityId = id.startsWith("ghost_")
+                ? id.slice(6)
+                : id.startsWith("reflow_ghost_")
+                  ? id.slice(13)
+                  : id.startsWith("weather_ghost_")
+                    ? id.slice(14)
+                    : id.startsWith("weather_prop_ghost_")
+                      ? id.slice(20)
+                    : id
+              onActivityClick?.(activityId, activities.find((a) => a.activity_id === activityId)?.planned_start ?? "")
+              scrollToActivity(activityId)
+              const ganttSection = document.getElementById("gantt")
+              ganttSection?.scrollIntoView({ behavior: "smooth", block: "start" })
+            }}
+            onDeselect={onActivityDeselect}
+            focusedActivityId={focusedActivityId}
+          />
+        </div>
       ) : (
       <div className="overflow-x-auto flex-1 min-h-0" ref={ganttContainerRef}>
         <div className="relative" style={{ minWidth: `${chartWidth}px` }}>
@@ -532,7 +744,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
             </div>
           )}
 
-          {/* Dependency arrows (FS) */}
+          {/* Dependency arrows (FS/SS/FF/SF) */}
           {dependencyEdges.length > 0 && (
             <div
               className="pointer-events-none absolute left-[200px] top-[52px] z-10 lg:left-[220px]"
@@ -547,44 +759,76 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
                 className="h-full w-full"
               >
                 <defs>
-                  <marker
-                    id="arrowhead"
-                    markerWidth="4"
-                    markerHeight="4"
-                    refX="3"
-                    refY="2"
-                    orient="auto"
-                  >
-                    <polygon
-                      points="0 0, 4 2, 0 4"
-                      fill="rgb(34 211 238)"
-                      fillOpacity="0.8"
-                    />
-                  </marker>
+                  {(["FS", "SS", "FF", "SF"] as const).map((type) => (
+                    <marker
+                      key={type}
+                      id={`arrow-${type.toLowerCase()}`}
+                      markerWidth="4"
+                      markerHeight="4"
+                      refX="3"
+                      refY="2"
+                      orient="auto"
+                    >
+                      <polygon
+                        points="0 0, 4 2, 0 4"
+                        fill={DEPENDENCY_STYLES[type].stroke}
+                        fillOpacity="0.8"
+                      />
+                    </marker>
+                  ))}
                 </defs>
-                {dependencyEdges.map(({ predId, succId }, i) => {
+                {dependencyEdges.map(({ predId, succId, type, lagDays }, i) => {
                   const pred = barPositions.get(predId)
                   const succ = barPositions.get(succId)
                   if (!pred || !succ) return null
-                  const x1 = pred.left + pred.width
+                  const predStart = pred.left
+                  const predEnd = pred.left + pred.width
+                  const succStart = succ.left
+                  const succEnd = succ.left + succ.width
+                  let x1 = predEnd
+                  let x2 = succStart
+                  if (type === "SS") {
+                    x1 = predStart
+                    x2 = succStart
+                  } else if (type === "FF") {
+                    x1 = predEnd
+                    x2 = succEnd
+                  } else if (type === "SF") {
+                    x1 = predStart
+                    x2 = succEnd
+                  }
                   const y1 = ((pred.rowIndex + 0.5) / ganttRows.length) * 100
-                  const x2 = succ.left
                   const y2 = ((succ.rowIndex + 0.5) / ganttRows.length) * 100
                   const midX = (x1 + x2) / 2
                   const path =
                     pred.rowIndex === succ.rowIndex
                       ? `M ${x1} ${y1} L ${x2} ${y2}`
                       : `M ${x1} ${y1} L ${midX} ${y1} L ${midX} ${y2} L ${x2} ${y2}`
+                  const style = DEPENDENCY_STYLES[type] ?? DEPENDENCY_STYLES.FS
                   return (
-                    <path
-                      key={`${predId}-${succId}-${i}`}
-                      d={path}
-                      fill="none"
-                      stroke="rgb(34 211 238)"
-                      strokeOpacity="0.6"
-                      strokeWidth="0.4"
-                      markerEnd="url(#arrowhead)"
-                    />
+                    <g key={`${predId}-${succId}-${i}`}>
+                      <path
+                        d={path}
+                        fill="none"
+                        stroke={style.stroke}
+                        strokeOpacity="0.6"
+                        strokeWidth={style.width}
+                        strokeDasharray={style.dash}
+                        markerEnd={`url(#${style.marker})`}
+                      />
+                      {lagDays !== 0 && (
+                        <text
+                          x={midX}
+                          y={(y1 + y2) / 2 - 2}
+                          fontSize="6"
+                          fill={lagDays > 0 ? "rgb(34 211 238)" : "rgb(239 68 68)"}
+                          textAnchor="middle"
+                        >
+                          {lagDays > 0 ? "+" : ""}
+                          {lagDays}d
+                        </text>
+                      )}
+                    </g>
                   )
                 })}
               </svg>

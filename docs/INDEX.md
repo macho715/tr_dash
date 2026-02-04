@@ -55,6 +55,8 @@ graph LR
 | [tr-dashboard-plan-patch4.md](plan/tr-dashboard-plan-patch4.md) | 패치4 계획 |
 | [tr-dashboard-verification-report.md](plan/tr-dashboard-verification-report.md) | 검증 리포트 |
 | [vis-timeline-gantt-integration-plan.md](plan/vis-timeline-gantt-integration-plan.md) | Gantt 연동 계획 |
+| [vis-timeline-phase1-implementation.md](plan/vis-timeline-phase1-implementation.md) | VisTimeline Phase 1 구현 (A3 Mapper Caching, B5 Dependency Type) |
+| [weather-overlay-implementation-plan.md](plan/weather-overlay-implementation-plan.md) | Weather Overlay 상세 구현 계획 (Canvas 배경 레이어) |
 
 ## 4. 가이드 (docs/guides)
 

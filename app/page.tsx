@@ -25,6 +25,7 @@ const MapPanelWrapper = dynamic(
 )
 import { WhyPanel } from "@/components/dashboard/WhyPanel"
 import { ReflowPreviewPanel } from "@/components/dashboard/ReflowPreviewPanel"
+import { WhatIfPanel, type WhatIfScenario, type WhatIfMetrics } from "@/components/ops/WhatIfPanel"
 import { DetailPanel } from "@/components/detail/DetailPanel"
 import { ApprovalModeBanner } from "@/components/approval/ApprovalModeBanner"
 import { CompareModeBanner } from "@/components/compare/CompareModeBanner"
@@ -49,6 +50,9 @@ import { calculateDelta } from "@/lib/compare/compare-loader"
 import { reflowSchedule } from "@/lib/utils/schedule-reflow"
 import { appendHistoryEvent } from "@/lib/store/trip-store"
 import { useViewModeOptional } from "@/src/lib/stores/view-mode-store"
+import { weatherForecast, weatherLimits } from "@/lib/weather/weather-service"
+import { buildWeatherDelayPreview } from "@/lib/weather/weather-delay-preview"
+import { propagateWeatherDelays } from "@/lib/weather/weather-reflow-chain"
 import type {
   ImpactReport,
   ScheduleActivity,
@@ -140,7 +144,10 @@ export default function Page() {
     changes: ImpactReport["changes"]
     conflicts: ImpactReport["conflicts"]
     nextActivities: ScheduleActivity[]
+    scenario?: WhatIfScenario
   } | null>(null)
+  const [whatIfMetrics, setWhatIfMetrics] = useState<WhatIfMetrics | null>(null)
+  const [showWhatIfPanel, setShowWhatIfPanel] = useState(false)
 
   useEffect(() => {
     fetch("/api/ssot")
@@ -228,6 +235,11 @@ export default function Page() {
     setFocusedActivityId(activityId)
     const v = findVoyageByActivityDate(start, voyages)
     if (v) setSelectedVoyage(v)
+    // Enable What-If panel when activity is selected
+    const activity = activities.find(a => a.activity_id === activityId)
+    if (activity) {
+      setShowWhatIfPanel(true)
+    }
   }
 
   const nextActivityName = useMemo(() => {
@@ -268,6 +280,13 @@ export default function Page() {
 
   const viewMode = useViewModeOptional()
   const canApplyReflow = viewMode?.canApplyReflow ?? true
+  const isLiveMode = viewMode?.state.mode ? viewMode.state.mode === "live" : true
+  const weatherPreviewFull = useMemo(() => {
+    if (!isLiveMode) return null
+    const direct = buildWeatherDelayPreview(activities, weatherForecast, weatherLimits)
+    if (direct.length === 0) return null
+    return propagateWeatherDelays(activities, direct)
+  }, [activities, isLiveMode])
 
   const handleApplyAction = (_collision: ScheduleConflict, action: SuggestedAction) => {
     if (action.kind !== "shift_activity") return
@@ -317,6 +336,63 @@ export default function Page() {
       setActivities(previous)
       setUndoCount(stack.length)
     }
+  }
+
+  // What-If Simulation handlers
+  const handleWhatIfSimulate = (scenario: WhatIfScenario) => {
+    const activity = activities.find(a => a.activity_id === scenario.activity_id)
+    if (!activity) return
+
+    const newStartDate = new Date(activity.planned_start)
+    newStartDate.setDate(newStartDate.getDate() + scenario.delay_days)
+    const newStart = newStartDate.toISOString().split("T")[0]
+
+    try {
+      const result = reflowSchedule(activities, scenario.activity_id, newStart, {
+        respectLocks: true,
+        checkResourceConflicts: true,
+      })
+
+      // Calculate metrics
+      const affectedCount = result.impact_report.changes.length
+      const totalDelay = scenario.delay_days
+      const newConflicts = result.impact_report.conflicts.length
+      
+      // Calculate project ETA change (simplified - comparing last activity finish)
+      const currentLastFinish = Math.max(
+        ...activities.map(a => new Date(a.planned_finish).getTime())
+      )
+      const newLastFinish = Math.max(
+        ...result.activities.map(a => new Date(a.planned_finish).getTime())
+      )
+      const etaChangeDays = Math.round(
+        (newLastFinish - currentLastFinish) / (1000 * 60 * 60 * 24)
+      )
+
+      setWhatIfMetrics({
+        affected_activities: affectedCount,
+        total_delay_days: totalDelay,
+        new_conflicts: newConflicts,
+        project_eta_change: etaChangeDays,
+      })
+
+      setReflowPreview({
+        changes: result.impact_report.changes,
+        conflicts: result.impact_report.conflicts,
+        nextActivities: result.activities,
+        scenario,
+      })
+    } catch (error) {
+      console.error("What-If simulation failed:", error)
+      setReflowPreview(null)
+      setWhatIfMetrics(null)
+    }
+  }
+
+  const handleWhatIfCancel = () => {
+    setShowWhatIfPanel(false)
+    setReflowPreview(null)
+    setWhatIfMetrics(null)
   }
 
   return (
@@ -372,7 +448,7 @@ export default function Page() {
 
             <div className="flex flex-1 flex-col min-h-0 space-y-6">
               <KPISection />
-              <AlertsSection />
+              <AlertsSection activities={activities} />
               <TrThreeColumnLayout
                 mapSlot={
                   <div className="space-y-3">
@@ -428,11 +504,48 @@ export default function Page() {
                             )
                           : null
                       }
+                      reflowPreview={
+                        reflowPreview
+                          ? {
+                              changes: reflowPreview.changes,
+                              metadata: reflowPreview.scenario
+                                ? {
+                                    type: "what_if" as const,
+                                    scenario: {
+                                      reason: reflowPreview.scenario.reason,
+                                      confidence: reflowPreview.scenario.confidence,
+                                      delay_days: reflowPreview.scenario.delay_days,
+                                      activity_name: reflowPreview.scenario.activity_name,
+                                    },
+                                  }
+                                : undefined,
+                            }
+                          : null
+                      }
+                      weatherPreview={weatherPreviewFull?.direct_changes ?? null}
+                      weatherPropagated={weatherPreviewFull?.propagated_changes ?? null}
+                      weatherForecast={weatherForecast}
+                      weatherLimits={weatherLimits}
+                      weatherOverlayVisible={isLiveMode}
+                      weatherOverlayOpacity={0.15}
                     />
                   </div>
                 }
                 detailSlot={
                   <div className="space-y-3">
+                    {showWhatIfPanel && (
+                      <WhatIfPanel
+                        activity={
+                          selectedActivityId
+                            ? activities.find((a) => a.activity_id === selectedActivityId) ?? null
+                            : null
+                        }
+                        onSimulate={handleWhatIfSimulate}
+                        onCancel={handleWhatIfCancel}
+                        metrics={whatIfMetrics}
+                        isSimulating={false}
+                      />
+                    )}
                     <DetailPanel
                       activity={
                         selectedActivityId

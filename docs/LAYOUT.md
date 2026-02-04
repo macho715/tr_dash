@@ -6,9 +6,9 @@ updated: 2026-02-04
 
 # HVDC TR Transport Dashboard - Layout 문서
 
-> **버전**: 1.4.0  
+> **버전**: 1.6.0  
 > **최종 업데이트**: 2026-02-04  
-> **최신 작업 반영**: 2026-02-04 — SyncInitialDate(P1-1), GanttLegendDrawer(P1-4), MapLegend, gantt-legend-guide. [plan_patchmain_14.md](plan/plan_patchmain_14.md)  
+> **최신 작업 반영**: 2026-02-04 — Weather Overlay 구현 완료 (Canvas z-0, Range culling, Opacity 슬라이더, UI 토글 🌦️/🌤️, RAF throttle 10fps, 테스트 2/2 ✅). [weather-overlay-implementation-plan.md](plan/weather-overlay-implementation-plan.md)  
 > **프로젝트**: HVDC TR Transport Dashboard - AGI Site  
 > **SSOT**: patch.md, option_c.json (AGENTS.md)
 
@@ -537,6 +537,9 @@ body {
    - **Phase 6 Bug #1**: Selected Date는 UTC 기준(YYYY-MM-DD). `formatShortDateUtc`, `getDatePosition(toUtcNoon(date))` 사용. Gantt 날짜 축과 정렬.
    - **compareDelta** (Phase 10): Compare 모드 시 ghost bars (changed 활동 노란 점선)
    - **GanttLegendDrawer** (P1-4): 범례 태그 클릭 시 우측 Drawer에 정의·의사결정 영향 표시. `lib/gantt-legend-guide.ts`의 LegendDefinition(stage/constraint/collision/meta) 기반. 2-click 내 도달.
+   - **A3 Mapper Caching (2026-02-04)**: Row-level 캐시 (LRU 200), `visTimelineMapper.ts`. 1개 row 변경 시 1개만 재계산, 재렌더링 30% 개선.
+   - **B5 Dependency Type (2026-02-04)**: FS/SS/FF/SF 타입별 시각화, `DependencyArrowsOverlay.tsx` (SVG overlay, z-10). Live DOM 좌표, 4가지 스타일 구분, Lag 라벨. ResizeObserver + RAF throttle. `VisTimelineGantt` rangechange/changed callbacks 동기화.
+   - **Weather Overlay (2026-02-04)**: ✅ **구현 완료** - Canvas 배경 레이어 (z-0), NO_GO/NEAR_LIMIT 시각화, Opacity 슬라이더 (5-40%), UI 토글 (🌦️/🌤️), Range culling, RAF throttle (10fps), DPI 2x. `WeatherOverlay.tsx`, `weather-overlay.ts`, `weather-overlay.test.ts` (테스트 2/2 passed).
    - 스크롤 및 줌 기능
 
 **Props** (실제 코드 기준):

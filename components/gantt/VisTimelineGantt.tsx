@@ -40,6 +40,10 @@ type Props = {
   focusedActivityId?: string | null
   /** GANTTPATCH2: Trip context for events */
   tripId?: TripId
+  /** Vis timeline window updates (range change) */
+  onRangeChange?: (range: { start: Date; end: Date }) => void
+  /** Vis timeline render tick (after redraw) */
+  onRender?: () => void
 }
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24
@@ -48,7 +52,19 @@ const WEEK_VIEW_DAYS = 56
 
 export const VisTimelineGantt = forwardRef<VisTimelineGanttHandle, Props>(
   function VisTimelineGantt(
-    { groups, items, selectedDate, view = "Day", onEvent, onItemClick, onDeselect, focusedActivityId, tripId = 1 },
+    {
+      groups,
+      items,
+      selectedDate,
+      view = "Day",
+      onEvent,
+      onItemClick,
+      onDeselect,
+      focusedActivityId,
+      tripId = 1,
+      onRangeChange,
+      onRender,
+    },
     ref
   ) {
     const containerRef = useRef<HTMLDivElement | null>(null)
@@ -57,12 +73,16 @@ export const VisTimelineGantt = forwardRef<VisTimelineGanttHandle, Props>(
     const onItemClickRef = useRef(onItemClick)
     const onDeselectRef = useRef(onDeselect)
     const onEventRef = useRef(onEvent)
+    const onRangeChangeRef = useRef(onRangeChange)
+    const onRenderRef = useRef(onRender)
     useEffect(() => {
       tripIdRef.current = tripId
     }, [tripId])
     onItemClickRef.current = onItemClick
     onDeselectRef.current = onDeselect
     onEventRef.current = onEvent
+    onRangeChangeRef.current = onRangeChange
+    onRenderRef.current = onRender
 
     const groupsDS = useMemo(() => new DataSet<VisGroup>([]), [])
     const itemsDS = useMemo(() => new DataSet<VisItem>([]), [])
@@ -141,6 +161,14 @@ export const VisTimelineGantt = forwardRef<VisTimelineGanttHandle, Props>(
       )
       timelineRef.current = timeline
 
+      const emitRange = () => {
+        const win = timeline.getWindow()
+        onRangeChangeRef.current?.({ start: win.start, end: win.end })
+      }
+      const emitRender = () => {
+        onRenderRef.current?.()
+      }
+
       timeline.on("select", (ev: { items?: (string | number)[] }) => {
         const id = ev.items?.[0]
         if (id != null) {
@@ -151,8 +179,13 @@ export const VisTimelineGantt = forwardRef<VisTimelineGanttHandle, Props>(
           onDeselectRef.current?.()
         }
       })
+      timeline.on("rangechange", emitRange)
+      timeline.on("rangechanged", emitRange)
+      timeline.on("changed", emitRender)
 
       onEventRef.current?.(createGanttReadyEvent(tripIdRef.current))
+      emitRange()
+      emitRender()
 
       if (selectedDate) {
         const noon = toUtcNoon(selectedDate)

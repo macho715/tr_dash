@@ -6,9 +6,9 @@ updated: 2026-02-04
 
 # HVDC TR Transport Dashboard - 시스템 아키텍처
 
-**버전**: 1.4  
+**버전**: 1.6  
 **최종 업데이트**: 2026-02-04  
-**최신 작업 반영**: 2026-02-04 — SyncInitialDate, GanttLegendDrawer, MapLegend, gantt-legend-guide. [plan_patchmain_14.md](plan/plan_patchmain_14.md), [WORK_LOG_20260202](WORK_LOG_20260202.md), [LAYOUT.md](LAYOUT.md)  
+**최신 작업 반영**: 2026-02-04 — Weather Overlay 구현 완료 (Canvas z-0, Range culling, Opacity 슬라이더 5-40%, UI 토글 🌦️/🌤️, RAF throttle 10fps, DPI 2x, 테스트 2/2 ✅). [weather-overlay-implementation-plan.md](plan/weather-overlay-implementation-plan.md), [WORK_LOG_20260202](WORK_LOG_20260202.md), [LAYOUT.md](LAYOUT.md)  
 **프로젝트**: HVDC TR Transport - AGI Site Logistics Dashboard  
 **SSOT**: patch.md, option_c.json (AGENTS.md)
 

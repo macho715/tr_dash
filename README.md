@@ -7,7 +7,7 @@
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.1-38bdf8)](https://tailwindcss.com/)
 
 **최종 업데이트**: 2026-02-04  
-**최신 작업 반영**: SyncInitialDate(P1-1), GanttLegendDrawer(P1-4), MapLegend, gantt-legend-guide. [docs/plan/plan_patchmain_14.md](docs/plan/plan_patchmain_14.md), [docs/WORK_LOG_20260202.md](docs/WORK_LOG_20260202.md), [docs/LAYOUT.md](docs/LAYOUT.md), [docs/SYSTEM_ARCHITECTURE.md](docs/SYSTEM_ARCHITECTURE.md), [AGENTS.md](AGENTS.md)
+**최신 작업 반영**: Weather Overlay 구현 완료 (Canvas z-0, Range culling, Opacity 슬라이더, UI 토글, RAF throttle, 테스트 2/2 ✅). [docs/plan/weather-overlay-implementation-plan.md](docs/plan/weather-overlay-implementation-plan.md), [docs/WORK_LOG_20260202.md](docs/WORK_LOG_20260202.md)
 
 ---
 
@@ -20,7 +20,7 @@ HVDC TR Transport Dashboard는 **7개의 Transformer Unit**을 **LCT BUSHRA**로
 ### 주요 기능
 
 - **실시간 KPI 모니터링**: 총 일수, 항차 수, SPMT 세트, TR Unit 추적
-- **Gantt 차트**: 7개 항차의 시각적 일정 관리 (Jan 26 - Mar 22, 2026). **조건부 엔진**: `NEXT_PUBLIC_GANTT_ENGINE=vis` 시 vis-timeline(`VisTimelineGantt`), 미설정 시 커스텀 Gantt. Vis 사용 시 Day/Week 뷰, Selected Date 커서(UTC). **Phase 6**: Selected Date UTC(YYYY-MM-DD) 정렬 — Gantt 축과 일치. **UX**: 액티비티 클릭 시 해당 항목으로 스크롤 + Gantt 섹션 노출; 6종 액티비티 모두 막대(bar) 표시(동일일 최소 1일 길이); 액티비티 드래그로 일정 이동 가능.
+- **Gantt 차트**: 7개 항차의 시각적 일정 관리 (Jan 26 - Mar 22, 2026). **조건부 엔진**: `NEXT_PUBLIC_GANTT_ENGINE=vis` 시 vis-timeline(`VisTimelineGantt`), 미설정 시 커스텀 Gantt. Vis 사용 시 Day/Week 뷰, Selected Date 커서(UTC). **Phase 6**: Selected Date UTC(YYYY-MM-DD) 정렬 — Gantt 축과 일치. **UX**: 액티비티 클릭 시 해당 항목으로 스크롤 + Gantt 섹션 노출; 6종 액티비티 모두 막대(bar) 표시(동일일 최소 1일 길이); 액티비티 드래그로 일정 이동 가능. **A3 (2026-02-04)**: Row-level Mapper Caching (LRU 200) — 재렌더링 30% 개선. **B5 (2026-02-04)**: Dependency Type 시각화 (FS/SS/FF/SF) — SVG overlay, lag 라벨, 4가지 타입 구분. **Weather Overlay (2026-02-04)**: Canvas 배경 레이어 (z-0), NO_GO/NEAR_LIMIT 날씨 시각화, Opacity 슬라이더 (5-40%), UI 토글 (🌦️/🌤️), Range culling, RAF throttle (10fps).
 - **스케줄 재계산 엔진**: 의존성 기반 자동 일정 조정
 - **Preview 패널**: 변경 사항 미리보기 및 충돌 검사
 - **Compare Mode**: baseline vs compare delta overlay, Gantt ghost bars. **Compare Diff 패널**: Phase 6에서 Baseline snapshot / Compare as-of 시점 UI 표시.

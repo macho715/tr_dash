@@ -3,8 +3,11 @@
 import type { Ref } from "react"
 import { GanttChart, type GanttChartHandle } from "@/components/dashboard/gantt-chart"
 import type { HighlightFlags, TimelineView } from "@/components/dashboard/timeline-controls"
-import type { ScheduleActivity, ScheduleConflict } from "@/lib/ssot/schedule"
+import type { DateChange, ScheduleActivity, ScheduleConflict } from "@/lib/ssot/schedule"
+import type { WeatherDelayChange } from "@/lib/weather/weather-delay-preview"
+import type { WeatherForecastData, WeatherLimits } from "@/lib/weather/weather-service"
 import type { CompareResult } from "@/lib/compare/types"
+import type { GhostBarMetadata } from "@/lib/gantt/visTimelineMapper"
 
 type GanttSectionProps = {
   ganttRef: Ref<GanttChartHandle>
@@ -23,6 +26,16 @@ type GanttSectionProps = {
   onCollisionClick?: (conflict: ScheduleConflict) => void
   focusedActivityId?: string | null
   compareDelta?: CompareResult | null
+  reflowPreview?: {
+    changes: DateChange[]
+    metadata?: GhostBarMetadata
+  } | DateChange[] | null
+  weatherPreview?: WeatherDelayChange[] | null
+  weatherPropagated?: WeatherDelayChange[] | null
+  weatherForecast?: WeatherForecastData
+  weatherLimits?: WeatherLimits
+  weatherOverlayVisible?: boolean
+  weatherOverlayOpacity?: number
   projectEndDate: string
 }
 
@@ -43,6 +56,13 @@ export function GanttSection({
   onCollisionClick,
   focusedActivityId,
   compareDelta,
+  reflowPreview,
+  weatherPreview,
+  weatherPropagated,
+  weatherForecast,
+  weatherLimits,
+  weatherOverlayVisible,
+  weatherOverlayOpacity,
   projectEndDate,
 }: GanttSectionProps) {
   return (
@@ -64,6 +84,13 @@ export function GanttSection({
         onCollisionClick={onCollisionClick}
         focusedActivityId={focusedActivityId}
         compareDelta={compareDelta}
+        reflowPreview={reflowPreview}
+        weatherPreview={weatherPreview}
+        weatherPropagated={weatherPropagated}
+        weatherForecast={weatherForecast}
+        weatherLimits={weatherLimits}
+        weatherOverlayVisible={weatherOverlayVisible}
+        weatherOverlayOpacity={weatherOverlayOpacity}
         projectEndDate={projectEndDate}
       />
     </section>
