@@ -7,7 +7,7 @@
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.1-38bdf8)](https://tailwindcss.com/)
 
 **최종 업데이트**: 2026-02-04  
-**최신 작업 반영**: Weather Overlay 구현 완료 (Canvas z-0, Range culling, Opacity 슬라이더, UI 토글, RAF throttle, 테스트 2/2 ✅). [docs/plan/weather-overlay-implementation-plan.md](docs/plan/weather-overlay-implementation-plan.md), [docs/WORK_LOG_20260202.md](docs/WORK_LOG_20260202.md)
+**최신 작업 반영**: SSOT 파일 출처 가드 구현 완료 (option_c_v0.8.0.json 우선, 폴백 메커니즘, activities 유효성 검사, 테스트 7/7 ✅). [docs/plan/ssot-source-guard-implementation.md](docs/plan/ssot-source-guard-implementation.md), [docs/WORK_LOG_20260202.md](docs/WORK_LOG_20260202.md)
 
 ---
 

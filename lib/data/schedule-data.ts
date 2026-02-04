@@ -10,9 +10,41 @@ import type { AnchorType, ScheduleActivity } from "@/lib/ssot/schedule"
 import { mapOptionCJsonToScheduleActivities } from "@/lib/ssot/utils/schedule-mapper"
 import { inferDependencies } from "@/lib/utils/infer-dependencies"
 import optionCDataRaw from "../../data/schedule/option_c.json"
+import optionCv08Raw from "../../data/schedule/option_c_v0.8.0.json"
+
+type OptionCSource = {
+  activities?: Record<string, unknown>[]
+  contract?: { version?: string }
+}
+
+function hasActivities(source: OptionCSource | null | undefined): source is {
+  activities: Record<string, unknown>[]
+} {
+  return Array.isArray(source?.activities) && source.activities.length > 0
+}
+
+let selectedSource: OptionCSource | null = null
+const optionCv08 = optionCv08Raw as OptionCSource
+const optionCLegacy = optionCDataRaw as OptionCSource
+
+if (hasActivities(optionCv08)) {
+  selectedSource = optionCv08
+} else if (hasActivities(optionCLegacy)) {
+  selectedSource = optionCLegacy
+  if (process.env.NODE_ENV !== "production") {
+    console.warn(
+      "[SSOT] Using legacy option_c.json because option_c_v0.8.0.json is missing or empty."
+    )
+  }
+} else {
+  selectedSource = { activities: [] }
+  console.error(
+    "[SSOT] No valid SSOT activities found in option_c_v0.8.0.json or option_c.json."
+  )
+}
 
 const mapped = mapOptionCJsonToScheduleActivities(
-  optionCDataRaw as { activities: Record<string, unknown>[] }
+  selectedSource as { activities: Record<string, unknown>[] }
 )
 export const scheduleActivities: ScheduleActivity[] = inferDependencies(mapped)
 

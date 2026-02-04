@@ -108,6 +108,31 @@ function findFirstActivityInVoyageRange(
   return null
 }
 
+function normalizeTripMatchValue(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]/g, "")
+}
+
+function matchTripIdForVoyage(
+  voyage: (typeof voyages)[number] | null,
+  tripList: { trip_id: string; name: string }[]
+): string | null {
+  if (!voyage || tripList.length === 0) return null
+  const voyageNumber = String(voyage.voyage)
+  const tokens = [
+    normalizeTripMatchValue(`voyage ${voyageNumber}`),
+    normalizeTripMatchValue(`voy ${voyageNumber}`),
+    normalizeTripMatchValue(`trip ${voyageNumber}`),
+    normalizeTripMatchValue(`tr ${voyageNumber}`),
+    normalizeTripMatchValue(`tr unit ${voyageNumber}`),
+    normalizeTripMatchValue(voyage.trUnit),
+  ]
+  const matched = tripList.find((trip) => {
+    const normalizedName = normalizeTripMatchValue(trip.name)
+    return tokens.some((token) => token && normalizedName.includes(token))
+  })
+  return matched?.trip_id ?? null
+}
+
 export default function Page() {
   const [activities, setActivities] = useState(scheduleActivities)
   const [activeSection, setActiveSection] = useState("overview")
@@ -231,15 +256,15 @@ export default function Page() {
   }, [sectionIds])
 
   const handleActivityClick = (activityId: string, start: string) => {
+    setWhatIfMetrics(null)
+    setReflowPreview(null)
     setSelectedActivityId(activityId)
     setFocusedActivityId(activityId)
     const v = findVoyageByActivityDate(start, voyages)
     if (v) setSelectedVoyage(v)
     // Enable What-If panel when activity is selected
     const activity = activities.find(a => a.activity_id === activityId)
-    if (activity) {
-      setShowWhatIfPanel(true)
-    }
+    setShowWhatIfPanel(Boolean(activity))
   }
 
   const nextActivityName = useMemo(() => {
@@ -279,8 +304,14 @@ export default function Page() {
   }
 
   const viewMode = useViewModeOptional()
+  const selectedTripId = viewMode?.state.selectedTripId ?? null
   const canApplyReflow = viewMode?.canApplyReflow ?? true
   const isLiveMode = viewMode?.state.mode ? viewMode.state.mode === "live" : true
+  const tripIdFromVoyage = useMemo(
+    () => matchTripIdForVoyage(selectedVoyage, trips),
+    [selectedVoyage, trips]
+  )
+  const readinessTripId = selectedTripId ?? tripIdFromVoyage ?? null
   const weatherPreviewFull = useMemo(() => {
     if (!isLiveMode) return null
     const direct = buildWeatherDelayPreview(activities, weatherForecast, weatherLimits)
@@ -486,7 +517,13 @@ export default function Page() {
                       jumpTrigger={jumpTrigger}
                       onJumpRequest={() => setJumpTrigger((n) => n + 1)}
                       onActivityClick={handleActivityClick}
-                      onActivityDeselect={() => setFocusedActivityId(null)}
+                      onActivityDeselect={() => {
+                        setFocusedActivityId(null)
+                        setSelectedActivityId(null)
+                        setShowWhatIfPanel(false)
+                        setWhatIfMetrics(null)
+                        setReflowPreview(null)
+                      }}
                       conflicts={conflicts}
                       onCollisionClick={(col) => {
                         setSelectedCollision(col)
@@ -608,7 +645,7 @@ export default function Page() {
                     selectedActivityId ?? selectedCollision?.activity_id ?? null
                   }
                 />
-                <ReadinessPanel tripId={selectedVoyage?.id ?? null} />
+                <ReadinessPanel tripId={readinessTripId} />
                 <NotesDecisions />
               </section>
             </div>
