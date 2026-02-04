@@ -9,6 +9,7 @@
 
 ### Added
 
+- **Trip 매칭 개선 (2026-02-04)**: ReadinessPanel의 Trip 선택 정확도 향상. `normalizeTripMatchValue()` (정규화), `matchTripIdForVoyage()` (Voyage → Trip 매칭), `readinessTripId` 파생 (ViewMode → Voyage 매칭 → null). 6가지 토큰 지원 (voyage/voy/trip/tr/tr unit/trUnit). 파일: `app/page.tsx`. Ref: `docs/plan/trip-matching-improvement.md`.
 - **Map Geofence Layer (Phase 1) (2026-02-04)**: Semi-transparent boundary polygons around key locations (LOC_MZP, LOC_AGI)
   - `lib/map/geofenceUtils.ts`: GeoJSON creation and ray-casting algorithm (~2.2km offset)
   - `components/map/GeofenceLayer.tsx`: React component with dashed-border rectangles
