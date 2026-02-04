@@ -187,7 +187,8 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
   const ganttContainerRef = useRef<HTMLDivElement>(null)
   const activityRefs = useRef<Map<string, HTMLDivElement>>(new Map())
   const visTimelineRef = useRef<VisTimelineGanttHandle>(null)
-  const raw = (process.env.NEXT_PUBLIC_GANTT_ENGINE || "").trim().toLowerCase()
+  // AGENTS.md §5.1: VisTimelineGantt 필수 사용 (vis-timeline 기반)
+  const raw = (process.env.NEXT_PUBLIC_GANTT_ENGINE || "vis").trim().toLowerCase()
   const useVisEngine = raw === "vis"
   const ganttRows = useMemo(
     () => scheduleActivitiesToGanttRows(activities),
@@ -403,7 +404,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
               type="button"
               onClick={() => def && setLegendDrawerItem(def)}
               className="flex items-center gap-2.5 text-xs font-medium text-slate-400 hover:text-cyan-300 hover:underline focus:outline-none focus:ring-2 focus:ring-cyan-500/50 rounded min-h-[24px] min-w-[24px]"
-              title="클릭하면 설명 보기"
+              title="Click for description"
             >
               <div
                 className={cn("w-7 h-3.5 rounded shadow-md", legendColors[item.type])}
@@ -422,7 +423,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
                 type="button"
                 onClick={() => def && setLegendDrawerItem(def)}
                 className="hover:text-cyan-300 hover:underline focus:outline-none focus:ring-2 focus:ring-cyan-500/50 rounded min-h-[24px] min-w-[24px]"
-                title="클릭하면 설명 보기"
+                title="Click for description"
               >
                 [{key}]
               </button>
@@ -436,7 +437,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
                 type="button"
                 onClick={() => def && setLegendDrawerItem(def)}
                 className="text-red-400 hover:text-red-300 hover:underline focus:outline-none focus:ring-2 focus:ring-cyan-500/50 rounded min-h-[24px] min-w-[24px]"
-                title="클릭하면 설명 보기"
+                title="Click for description"
               >
                 {key === "COL" ? "[COL]" : key === "COL-LOC" ? "[COL-LOC]" : "[COL-DEP]"}
               </button>
@@ -465,7 +466,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
                 type="button"
                 onClick={() => getLegendDefinition("Compare") && setLegendDrawerItem(getLegendDefinition("Compare")!)}
                 className="text-amber-400 hover:underline focus:outline-none focus:ring-2 focus:ring-cyan-500/50 rounded min-h-[24px] min-w-[24px]"
-                title="클릭하면 설명 보기"
+                title="Click for description"
               >
                 [Compare]
               </button>
