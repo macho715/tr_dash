@@ -584,6 +584,7 @@ export default function Page() {
                       onActivityDeselect={() => {
                         setFocusedActivityId(null)
                         setSelectedActivityId(null)
+                        setSelectedTrId(null)
                         setShowWhatIfPanel(false)
                         setWhatIfMetrics(null)
                         setReflowPreview(null)
