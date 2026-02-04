@@ -184,7 +184,8 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
   const ganttContainerRef = useRef<HTMLDivElement>(null)
   const activityRefs = useRef<Map<string, HTMLDivElement>>(new Map())
   const visTimelineRef = useRef<VisTimelineGanttHandle>(null)
-  const useVisEngine = process.env.NEXT_PUBLIC_GANTT_ENGINE === "vis"
+  const raw = (process.env.NEXT_PUBLIC_GANTT_ENGINE || "").trim().toLowerCase()
+  const useVisEngine = raw === "vis"
   const ganttRows = useMemo(
     () => scheduleActivitiesToGanttRows(activities),
     [activities]
