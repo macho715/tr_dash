@@ -30,11 +30,11 @@ export function StoryHeader({ trId, where, whenWhat, evidence }: StoryHeaderProp
             type="button"
             onClick={() => setHelpOpen((v) => !v)}
             className="flex items-center gap-1 rounded px-2 py-1 text-xs text-muted-foreground hover:bg-accent/20 hover:text-foreground"
-            aria-label={helpOpen ? "도움말 접기" : "도움말 펼치기"}
-            title={helpOpen ? "가이드 접기" : "가이드 펼치기"}
+            aria-label={helpOpen ? "Collapse Help" : "Expand Help"}
+            title={helpOpen ? "Collapse Guide" : "Expand Guide"}
           >
             <HelpCircle className="h-3.5 w-3.5" />
-            도움말
+            Help
           </button>
         </div>
         <div className="grid gap-2 text-sm text-muted-foreground sm:grid-cols-3 sm:gap-4">
@@ -43,7 +43,7 @@ export function StoryHeader({ trId, where, whenWhat, evidence }: StoryHeaderProp
               Location
             </span>
             {helpOpen && (
-              <p className="text-sm font-medium text-foreground">좌측 지도에서 TR 선택</p>
+              <p className="text-sm font-medium text-foreground">Select TR from Map (left)</p>
             )}
           </div>
           <div className="min-w-0 space-y-1">
@@ -51,7 +51,7 @@ export function StoryHeader({ trId, where, whenWhat, evidence }: StoryHeaderProp
               Schedule
             </span>
             {helpOpen && (
-              <p className="text-sm font-medium text-foreground">중앙 타임라인을 확인</p>
+              <p className="text-sm font-medium text-foreground">Check Timeline (center)</p>
             )}
           </div>
           <div className="min-w-0 space-y-1">
@@ -59,7 +59,7 @@ export function StoryHeader({ trId, where, whenWhat, evidence }: StoryHeaderProp
               Verification
             </span>
             {helpOpen && (
-              <p className="text-sm font-medium text-foreground">우측 증빙 탭에서 확인</p>
+              <p className="text-sm font-medium text-foreground">Verify Evidence (right)</p>
             )}
           </div>
         </div>

@@ -6,20 +6,20 @@ import type { ViewMode, RiskOverlay } from '@/src/lib/stores/view-mode-store'
 import { useDate } from '@/lib/contexts/date-context'
 import { parseDateInput } from '@/lib/ssot/schedule'
 
-/** P1-3: 한글 우선 + 괄호 영문 */
+/** P1-3: English labels for i18n */
 const VIEW_MODES: { value: ViewMode; label: string }[] = [
-  { value: 'live', label: '라이브' },
-  { value: 'history', label: '히스토리' },
-  { value: 'approval', label: '승인' },
-  { value: 'compare', label: '비교' },
+  { value: 'live', label: 'Live' },
+  { value: 'history', label: 'History' },
+  { value: 'approval', label: 'Approval' },
+  { value: 'compare', label: 'Compare' },
 ]
 
 const RISK_OVERLAYS: { value: RiskOverlay; label: string }[] = [
-  { value: 'none', label: '없음' },
-  { value: 'all', label: '전체' },
-  { value: 'wx', label: '기상' },
-  { value: 'resource', label: '자원' },
-  { value: 'permit', label: '허가' },
+  { value: 'none', label: 'None' },
+  { value: 'all', label: 'All' },
+  { value: 'wx', label: 'Weather' },
+  { value: 'resource', label: 'Resource' },
+  { value: 'permit', label: 'Permit' },
 ]
 
 type GlobalControlBarProps = {
@@ -64,15 +64,15 @@ export function GlobalControlBar({
     >
       {/* Trip selector */}
       <div className="flex items-center gap-2">
-        <span className="text-xs font-medium text-muted-foreground">항차</span>
+        <span className="text-xs font-medium text-muted-foreground">Trip</span>
         <select
           value={state.selectedTripId ?? ''}
           onChange={(e) => setSelectedTrip(e.target.value || null)}
           className="h-8 w-[140px] rounded-md border border-input bg-background px-2 text-xs"
           data-testid="trip-select"
-          aria-label="항차 선택"
+          aria-label="Select Trip"
         >
-          <option value="">항차 선택</option>
+          <option value="">Select Trip</option>
           {trips.map((t) => (
             <option key={t.trip_id} value={t.trip_id}>
               {t.name}
@@ -89,9 +89,9 @@ export function GlobalControlBar({
           onChange={(e) => setSelectedTrs(e.target.value ? [e.target.value] : [])}
           className="h-8 w-[120px] rounded-md border border-input bg-background px-2 text-xs"
           data-testid="tr-select"
-          aria-label="TR 선택"
+          aria-label="Select TR"
         >
-          <option value="">TR 선택</option>
+          <option value="">Select TR</option>
           {trs.map((t) => (
             <option key={t.tr_id} value={t.tr_id}>
               {t.name}
@@ -103,7 +103,7 @@ export function GlobalControlBar({
       {/* Date Cursor (UTC) — M2-PR1 */}
       <div className="flex items-center gap-2">
         <Calendar className="h-4 w-4 text-muted-foreground" />
-        <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">날짜 (UTC)</span>
+        <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">Date (UTC)</span>
         <input
           type="datetime-local"
           value={state.dateCursor.slice(0, 16)}
@@ -111,14 +111,14 @@ export function GlobalControlBar({
           disabled={state.mode === 'history'}
           className="h-8 rounded-md border border-input bg-background px-2 text-xs"
           data-testid="date-cursor"
-          aria-label="선택일 (UTC)"
-          title={`선택일 (UTC): ${state.dateCursor.slice(0, 10)}`}
+          aria-label="Selected Date (UTC)"
+          title={`Selected Date (UTC): ${state.dateCursor.slice(0, 10)}`}
         />
       </div>
 
       {/* View Mode switcher — M2-PR4: min 24px touch target */}
-      <div className="flex items-center gap-2" role="group" aria-label="보기 모드">
-        <span className="text-xs font-medium text-muted-foreground">보기</span>
+      <div className="flex items-center gap-2" role="group" aria-label="View Mode">
+        <span className="text-xs font-medium text-muted-foreground">View</span>
         <div className="flex rounded-lg border border-input p-0.5">
           {VIEW_MODES.map((m) => (
             <button
@@ -132,7 +132,7 @@ export function GlobalControlBar({
               }`}
               data-testid={`view-mode-${m.value}`}
               aria-pressed={state.mode === m.value ? 'true' : 'false'}
-              aria-label={`보기: ${m.label}`}
+              aria-label={`View: ${m.label}`}
             >
               {m.label}
             </button>
@@ -140,9 +140,9 @@ export function GlobalControlBar({
         </div>
       </div>
 
-      {/* Risk Overlay — M2-PR1: All/None vs 카테고리 분리 */}
-      <div className="flex flex-wrap items-center gap-2" role="group" aria-label="리스크 오버레이">
-        <span className="text-xs font-medium text-muted-foreground shrink-0">리스크</span>
+      {/* Risk Overlay — M2-PR1: All/None vs category separation */}
+      <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Risk Overlay">
+        <span className="text-xs font-medium text-muted-foreground shrink-0">Risk</span>
         <div className="flex items-center gap-1 rounded-lg border border-input p-0.5">
           <button
             type="button"
@@ -152,7 +152,7 @@ export function GlobalControlBar({
             }`}
             data-testid="risk-none"
             aria-pressed={state.riskOverlay === 'none' ? 'true' : 'false'}
-            aria-label="리스크 없음"
+            aria-label="Risk: None"
           >
             {RISK_OVERLAYS.find((x) => x.value === 'none')?.label}
           </button>
@@ -164,7 +164,7 @@ export function GlobalControlBar({
             }`}
             data-testid="risk-all"
             aria-pressed={state.riskOverlay === 'all' ? 'true' : 'false'}
-            aria-label="리스크 전체"
+            aria-label="Risk: All"
           >
             {RISK_OVERLAYS.find((x) => x.value === 'all')?.label}
           </button>
@@ -181,7 +181,7 @@ export function GlobalControlBar({
               }`}
               data-testid={`risk-${r}`}
               aria-pressed={state.riskOverlay === r ? 'true' : 'false'}
-              aria-label={`리스크: ${RISK_OVERLAYS.find((x) => x.value === r)?.label ?? r}`}
+              aria-label={`Risk: ${RISK_OVERLAYS.find((x) => x.value === r)?.label ?? r}`}
             >
               {RISK_OVERLAYS.find((x) => x.value === r)?.label ?? r}
             </button>
@@ -194,7 +194,7 @@ export function GlobalControlBar({
         <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <input
           type="search"
-          placeholder="검색..."
+          placeholder="Search..."
           value={state.searchQuery}
           onChange={(e) => setSearch(e.target.value)}
           className="h-8 w-[160px] rounded-md border border-input bg-background pl-8 pr-2 text-xs"
