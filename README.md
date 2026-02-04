@@ -7,7 +7,7 @@
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.1-38bdf8)](https://tailwindcss.com/)
 
 **최종 업데이트**: 2026-02-04  
-**최신 작업 반영**: [docs/plan/plan_patchmain_14.md](docs/plan/plan_patchmain_14.md) (patchmain 14-item), [docs/WORK_LOG_20260202.md](docs/WORK_LOG_20260202.md) (Phase 6 Bug #1~5,#7, Phase 7/8/10/11, 2026-02-04), [docs/BUGFIX_APPLIED_20260202.md](docs/BUGFIX_APPLIED_20260202.md), [docs/LAYOUT.md](docs/LAYOUT.md), [AGENTS.md](AGENTS.md)
+**최신 작업 반영**: SyncInitialDate(P1-1), GanttLegendDrawer(P1-4), MapLegend, gantt-legend-guide. [docs/plan/plan_patchmain_14.md](docs/plan/plan_patchmain_14.md), [docs/WORK_LOG_20260202.md](docs/WORK_LOG_20260202.md), [docs/LAYOUT.md](docs/LAYOUT.md), [docs/SYSTEM_ARCHITECTURE.md](docs/SYSTEM_ARCHITECTURE.md), [AGENTS.md](AGENTS.md)
 
 ---
 
@@ -25,7 +25,7 @@ HVDC TR Transport Dashboard는 **7개의 Transformer Unit**을 **LCT BUSHRA**로
 - **Preview 패널**: 변경 사항 미리보기 및 충돌 검사
 - **Compare Mode**: baseline vs compare delta overlay, Gantt ghost bars. **Compare Diff 패널**: Phase 6에서 Baseline snapshot / Compare as-of 시점 UI 표시.
 - **날짜 변경 UI**: Calendar + 직접 입력(YYYY-MM-DD). **Phase 6**: `dateToIsoUtc`, `toUtcNoon`으로 UTC 기준 정렬.
-- **StoryHeader·2열 레이아웃**: 좌열 Map+Detail, 우열 Timeline (tr-three-column-layout). Phase 6에서 Location/Schedule/Verification, Map/Timeline 라벨 사용 (WHERE/WHEN/WHAT/EVIDENCE 가이드 문구 제거).
+- **StoryHeader·2열 레이아웃**: 좌열 Map+Detail, 우열 Timeline (tr-three-column-layout). Phase 6에서 Location/Schedule/Verification, Map/Timeline 라벨. **MapLegend**(TR 상태·충돌 범례), **GanttLegendDrawer**(범례 클릭→정의·의사결정 영향 2-click), **SyncInitialDate**(초기 날짜 동기화).
 - **Global Control Bar**: Trip/TR 선택, **View 버튼**(클릭 시 Detailed Voyage Schedule 스크롤), Date Cursor, View Mode. **Phase 6**: API 실패 시 voyages fallback, TR 7개 전부 노출(7 of 7 visible).
 - **항차 상세 정보**: Load-out, Sail-away, Load-in, Turning, Jack-down 일정
 - **History/Evidence (append-only)**: History 입력, Evidence 링크 추가, localStorage 저장
@@ -130,7 +130,7 @@ tr_dashboard/
 │   └── globals.css        # Deep Ocean Theme 스타일
 ├── components/
 │   ├── layout/
-│   │   └── DashboardLayout.tsx  # GlobalControlBar + ViewModeProvider
+│   │   └── DashboardLayout.tsx  # GlobalControlBar + SyncInitialDate + ViewModeProvider
 │   ├── control-bar/
 │   │   └── GlobalControlBar.tsx # Trip/TR, View, Date Cursor, View Mode
 │   ├── dashboard/         # 대시보드 섹션·위젯
@@ -138,13 +138,14 @@ tr_dashboard/
 │   │   ├── kpi-cards.tsx, alerts.tsx, voyage-cards.tsx, schedule-table.tsx
 │   │   ├── gantt-chart.tsx, timeline-controls.tsx
 │   │   ├── WhyPanel.tsx, ReflowPreviewPanel.tsx, ReadinessPanel.tsx
+│   │   ├── SyncInitialDate.tsx, GanttLegendDrawer.tsx
 │   │   ├── layouts/ (dashboard-shell, tr-three-column-layout)
 │   │   └── sections/ (overview, kpi, alerts, voyages, schedule, gantt)
 │   ├── detail/            # DetailPanel, CollisionTray, CollisionCard, sections/
 │   ├── history/           # HistoryEvidencePanel, HistoryTab, TripCloseoutForm
 │   ├── evidence/          # EvidenceTab
 │   ├── compare/            # CompareDiffPanel, CompareModeBanner
-│   ├── map/               # MapPanelWrapper, MapPanel, MapContent
+│   ├── map/               # MapPanelWrapper, MapPanel, MapContent, MapLegend
 │   ├── gantt/             # 대안 Gantt (vis-timeline 연동)
 │   │   ├── VisTimelineGantt.tsx
 │   │   └── ResourceConflictsPanel.tsx
@@ -154,10 +155,12 @@ tr_dashboard/
 │   │   ├── schedule.ts    # 스케줄 타입 + dateToIsoUtc, toUtcNoon
 │   │   └── utils/
 │   │       └── schedule-mapper.ts  # option_c.json → ScheduleActivity
+│   ├── dashboard-data.ts  # getSmartInitialDate (P1-1), voyages, kpiData
 │   ├── data/              # schedule-data, go-nogo-data, tide-data, weather-data
 │   ├── utils/             # schedule-reflow, slack-calc, detect-resource-conflicts, reflow-engine
 │   ├── contexts/          # date-context
 │   ├── gantt/             # visTimelineMapper, contract (vis-timeline)
+│   ├── gantt-legend-guide.ts  # P1-4 Gantt 범례 정의 (LegendDefinition)
 │   ├── ops/               # agi (applyShift, adapters), agi-schedule (pipeline-runner)
 │   ├── compare/           # compare-loader (Phase 10)
 │   ├── baseline/          # baseline-compare, freeze-policy
@@ -398,6 +401,7 @@ Preview 패널 (변경 사항 표시)
 - [docs/BUGFIX_APPLIED_20260202.md](docs/BUGFIX_APPLIED_20260202.md) - **Phase 6 Bugfix 상세**
 - [docs/INDEX.md](docs/INDEX.md) - 문서 인덱스
 - [docs/VERCEL.md](docs/VERCEL.md) - Vercel 배포
+- [docs/plan/map-integration-ideas.md](docs/plan/map-integration-ideas.md) - 지도 번들·히트맵·지오펜스 통합
 - [.cursor/rules/](.cursor/rules/) - Cursor IDE 규칙
 
 ---
@@ -474,6 +478,12 @@ Private project - Samsung C&T × Mammoet. 자세한 내용은 [LICENSE](LICENSE)
 ---
 
 ## 📝 최근 업데이트
+
+### 2026-02-04: P1-1 SyncInitialDate, P1-4 GanttLegendDrawer, MapLegend
+
+- **SyncInitialDate** (P1-1): DashboardLayout 마운트 시 `getSmartInitialDate()`로 DateProvider·ViewModeStore 초기 날짜 동기화.
+- **GanttLegendDrawer** (P1-4): Gantt 범례 태그 클릭 → 우측 Drawer에 정의·의사결정 영향 표시. `lib/gantt-legend-guide.ts` 기반.
+- **MapLegend**: MapPanel 좌하단 TR 상태·충돌 범례 (patch §4.1).
 
 ### 2026-02-04: patchmain 14-item 적용
 

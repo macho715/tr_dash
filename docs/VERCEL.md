@@ -4,6 +4,8 @@
 
 **운영 규모**: 1 Trip당 1 TR 운송, 총 7 Trip, SPMT 1기 운영
 
+**최신 반영**: SyncInitialDate(P1-1), GanttLegendDrawer(P1-4), MapLegend — 배포 영향 없음 (클라이언트 컴포넌트)
+
 **프로덕션 URL**: https://trdash.vercel.app
 
 **GitHub 저장소**: https://github.com/macho715/tr_dash.git

@@ -8,7 +8,7 @@ updated: 2026-02-04
 
 > **버전**: 1.4.0  
 > **최종 업데이트**: 2026-02-04  
-> **최신 작업 반영**: 2026-02-04 — [plan_patchmain_14.md](plan/plan_patchmain_14.md) (patchmain #11, #12, #9 등)  
+> **최신 작업 반영**: 2026-02-04 — SyncInitialDate(P1-1), GanttLegendDrawer(P1-4), MapLegend, gantt-legend-guide. [plan_patchmain_14.md](plan/plan_patchmain_14.md)  
 > **프로젝트**: HVDC TR Transport Dashboard - AGI Site  
 > **SSOT**: patch.md, option_c.json (AGENTS.md)
 
@@ -35,7 +35,7 @@ HVDC TR Transport Dashboard는 **Al Ghallan Island (AGI) Site**의 7개 Transfor
 
 ### 핵심 특징
 
-- **레이아웃**: patch.md §2.1 권장은 3열(Map | Timeline | Detail). **현재 구현은 2열** — 좌: Map+Detail(세로 배치), 우: Timeline (`lg:grid-cols-[1fr_2fr]`). 3열은 향후 옵션.
+- **레이아웃**: patch.md §2.1 권장은 3열(Map | Timeline | Detail). **현재 구현은 2열** — 좌: Map+Detail(세로 배치), 우: Timeline (`lg:grid-cols-[1fr_2fr]`). MapLegend(TR 상태·충돌 범례), GanttLegendDrawer(범례 클릭→정의+의사결정 영향 2-click). 3열은 향후 옵션.
 - **단일 시선 흐름**: Location → Schedule → Verification (3초 내 읽기). Phase 6에서 UI 가이드 문구 제거 완료 — StoryHeader 라벨은 Location/Schedule/Verification. TrThreeColumnLayout 슬롯 라벨은 "Map", "Timeline" (Phase 6 Bug #4).
 - **2-click Collision UX**: 배지 → Why 패널 → Root cause + Evidence
 - **Compare Mode** (patch.md §2.2): baseline vs compare delta overlay, Gantt ghost bars
@@ -144,6 +144,7 @@ graph TB
 
 **구성**:
 - GlobalControlBar: Trip/TR 선택, **View 버튼** (Phase 6 Bug #3: 클릭 시 `id="schedule"` Detailed Voyage Schedule 섹션으로 스크롤), Date Cursor, View Mode, Risk Overlay. **Phase 6 Bug #2**: API 실패/7개 미만 시 voyages 기반 fallback으로 trips/trs 7개 노출, selectedVoyage ↔ selectedTripId/selectedTrIds 동기화.
+- **SyncInitialDate** (P1-1): 마운트 시 selectedDate·dateCursor를 smart initial(항차 창 내 today, 없으면 가장 가까운 voyage start)로 동기화. DateProvider + ViewModeStore와 초기 일치 유지.
 - ViewModeProvider: Live/History/Approval/Compare 모드
 
 ### 3. Page Component (`app/page.tsx`)
@@ -235,7 +236,7 @@ graph TB
 ```tsx
 <div className="grid flex-1 min-h-0 gap-4 lg:grid-cols-[1fr_2fr] lg:min-h-[480px]">
   <div aria-label="WHERE and DETAIL">
-    <aside aria-label="Map">{mapSlot}</aside>
+    <aside aria-label="Map">{mapSlot}</aside>  {/* MapPanel + MapLegend(좌하단 TR 상태·충돌 범례) */}
     <aside aria-label="DETAIL">{detailSlot}</aside>
   </div>
   <main aria-label="Timeline">{timelineSlot}</main>
@@ -535,6 +536,7 @@ body {
    - 활동 바 표시. **UX**: 액티비티 클릭 → 해당 항목으로 스크롤(`scrollToActivity`) + `#gantt` 섹션 `scrollIntoView`; 액티비티 **드래그로 일정 이동** 가능(editable, itemsAlwaysDraggable).
    - **Phase 6 Bug #1**: Selected Date는 UTC 기준(YYYY-MM-DD). `formatShortDateUtc`, `getDatePosition(toUtcNoon(date))` 사용. Gantt 날짜 축과 정렬.
    - **compareDelta** (Phase 10): Compare 모드 시 ghost bars (changed 활동 노란 점선)
+   - **GanttLegendDrawer** (P1-4): 범례 태그 클릭 시 우측 Drawer에 정의·의사결정 영향 표시. `lib/gantt-legend-guide.ts`의 LegendDefinition(stage/constraint/collision/meta) 기반. 2-click 내 도달.
    - 스크롤 및 줌 기능
 
 **Props** (실제 코드 기준):
@@ -619,6 +621,8 @@ components/
 │   ├── WhyPanel.tsx
 │   ├── ReflowPreviewPanel.tsx
 │   ├── ReadinessPanel.tsx
+│   ├── SyncInitialDate.tsx  # P1-1: DateProvider·ViewModeStore 초기 날짜 동기화
+│   ├── GanttLegendDrawer.tsx # P1-4: 범례 클릭 시 정의·의사결정 영향 Drawer
 │   ├── notes-decisions.tsx
 │   ├── gantt-chart.tsx
 │   ├── resource-utilization-panel.tsx  # 미사용 (선택적)
@@ -656,7 +660,8 @@ components/
 ├── map/
 │   ├── MapPanelWrapper.tsx
 │   ├── MapPanel.tsx
-│   └── MapContent.tsx
+│   ├── MapContent.tsx
+│   └── MapLegend.tsx        # TR 상태·충돌 범례 (patch §4.1, 좌하단 오버레이)
 ├── approval/
 │   └── ApprovalModeBanner.tsx
 └── ...
@@ -715,7 +720,17 @@ lib/
 │       ├── shift.ts
 │       ├── pipeline-runner.ts
 │       └── ...
+├── gantt-legend-guide.ts    # P1-4: Gantt 범례 정의 (LegendDefinition, stage/constraint/collision)
 └── dashboard-data.ts
+
+files/
+└── map/                     # 지도 번들·히트맵·지오펜스 참조용 (map-integration-ideas.md)
+    ├── bundle-geofence-heatmap-eta/
+    ├── HeatmapLegend.tsx
+    ├── HvdcPoiLayers.ts
+    ├── MapView.tsx
+    ├── PoiLocationsLayer.ts
+    └── layers/
 ```
 
 ---
@@ -749,7 +764,12 @@ lib/
 - `onApplyAction` 핸들러 실행 → reflowSchedule 호출
 - ReflowPreviewPanel 표시 (변경 사항 + 새로운 충돌)
 
-### 5. Reflow Preview → Apply (Phase 7)
+### 5. Gantt 범례 2-Click (P1-4)
+
+- **범례 태그 클릭** → GanttLegendDrawer 열림 (정의·의사결정 영향)
+- `lib/gantt-legend-guide.ts`의 LegendDefinition (stage/constraint/collision/meta) 기반
+
+### 6. Reflow Preview → Apply (Phase 7)
 
 ```mermaid
 sequenceDiagram
@@ -762,20 +782,20 @@ sequenceDiagram
     Activities->>Gantt: 자동 리렌더링
 ```
 
-### 6. 스케줄 업데이트
+### 7. 스케줄 업데이트
 
 - **AgiScheduleUpdaterBar** → 명령 입력
 - **미리보기** → 변경사항 확인
 - **적용** → `handleApplyPreview` 실행
 - **변경 이력** → `changeBatches`에 추가
 
-### 7. 변경 취소 (Undo)
+### 8. 변경 취소 (Undo)
 
 - **GanttSection** → `onUndoChangeImpact` 호출
 - **이전 상태 복원** → `lastBatch.previousActivities` 적용
 - **최대 스택**: MAX_CHANGE_STACK (기본 20개)
 
-### 8. View Mode 전환 (Phase 4)
+### 9. View Mode 전환 (Phase 4)
 
 - **Global Control Bar** → View Mode 버튼 (Live/History/Approval/Compare)
 - **ViewModeStore** → 전역 상태 업데이트
@@ -865,7 +885,7 @@ sequenceDiagram
 ---
 
 **문서 작성일**: 2025-01-31  
-**최종 업데이트**: 2026-02-04 (patchmain #9, #11, #12, §3·§5 반영)  
+**최종 업데이트**: 2026-02-04 (SyncInitialDate, GanttLegendDrawer, MapLegend, gantt-legend-guide 반영)  
 **프로젝트**: HVDC TR Transport Dashboard  
 
 ## Refs
@@ -876,3 +896,4 @@ sequenceDiagram
 - [plan_patchmain_14.md](plan/plan_patchmain_14.md) — patchmain 14-item (2026-02-04)
 - [WORK_LOG_20260202.md](WORK_LOG_20260202.md) — Phase 6/7/10/11, 2026-02-04 patchmain 작업 요약
 - [BUGFIX_APPLIED_20260202.md](BUGFIX_APPLIED_20260202.md) — Bug #1~5,#7 적용
+- [map-integration-ideas.md](plan/map-integration-ideas.md) — 지도 번들·히트맵·지오펜스 통합 아이디어

@@ -6,9 +6,9 @@ updated: 2026-02-04
 
 # HVDC TR Transport Dashboard - 시스템 아키텍처
 
-**버전**: 1.3  
+**버전**: 1.4  
 **최종 업데이트**: 2026-02-04  
-**최신 작업 반영**: 2026-02-04 — [plan_patchmain_14.md](plan/plan_patchmain_14.md), [WORK_LOG_20260202](WORK_LOG_20260202.md), [BUGFIX_APPLIED_20260202](BUGFIX_APPLIED_20260202.md)  
+**최신 작업 반영**: 2026-02-04 — SyncInitialDate, GanttLegendDrawer, MapLegend, gantt-legend-guide. [plan_patchmain_14.md](plan/plan_patchmain_14.md), [WORK_LOG_20260202](WORK_LOG_20260202.md), [LAYOUT.md](LAYOUT.md)  
 **프로젝트**: HVDC TR Transport - AGI Site Logistics Dashboard  
 **SSOT**: patch.md, option_c.json (AGENTS.md)
 
@@ -58,6 +58,9 @@ HVDC TR Transport Dashboard는 **7개의 Transformer Unit**을 **LCT BUSHRA**로
 | **Phase 10** | Compare Mode: compare-loader, CompareModeBanner, Gantt ghost bars (compareDelta). |
 | **Phase 11** | T11.2 Cycle detection, T11.3 Evidence gate, T11.4 E2E workflow 테스트 완료. |
 | **2026-02-04 patchmain** | sections/sectionIds 단일 소스, ScrollSpy·SectionNav 일원화. pipeline-check 순수 함수·null/empty 안전 (patchmain #13). Day Number 정수, Schedule 기본 표시, SectionNav a11y·sticky, Vitest pipeline-check. |
+| **P1-1 SyncInitialDate** | `lib/dashboard-data.ts`의 `getSmartInitialDate()`: 오늘·항차 창·가장 가까운 voyage start 계산. `DashboardLayout` 마운트 시 `DateProvider`·`ViewModeStore`(dateCursor) 초기 동기화. |
+| **P1-4 GanttLegendDrawer** | 범례 태그 클릭 → 우측 Drawer에 정의·의사결정 영향 표시. `lib/gantt-legend-guide.ts`(LegendDefinition: stage/constraint/collision/meta) 기반. 2-click 내 도달. |
+| **MapLegend** | `MapPanel` 좌하단 오버레이. TR 상태(Planned/Ready/In progress/Completed/Blocked/Delayed) 색상·충돌(Blocking/Warning) 배지. patch §4.1, `lib/ssot/map-status-colors.ts` 연동. |
 | **Vis Gantt 패치·UX** | [visganttpatch.md](../visganttpatch.md) 참조. `gantt-chart.tsx`의 `useVisEngine`(= `NEXT_PUBLIC_GANTT_ENGINE` trim/toLowerCase `"vis"`)으로 vis-timeline(VisTimelineGantt) vs 자체 렌더 전환. `.env.local` 예: `NEXT_PUBLIC_GANTT_ENGINE=vis`, `PORT=3001`. `lib/gantt/visTimelineMapper.ts`: GanttRow → Vis groups/items, 동일일 막대 보정(min 1-day). VisTimelineGantt: DataSet, customTime(Selected Date), editable/draggable. 액티비티 클릭 → scrollToActivity + #gantt scrollIntoView. |
 
 ---
@@ -168,7 +171,11 @@ function GanttChart() {
 - **구성요소**:
   - `app/page.tsx`: 메인 페이지 조립자
   - `components/dashboard/*`: 대시보드 섹션 컴포넌트
+  - `components/dashboard/SyncInitialDate.tsx`: P1-1 — 마운트 시 DateProvider·ViewModeStore 초기 날짜 동기화
+  - `components/dashboard/GanttLegendDrawer.tsx`: P1-4 — 범례 클릭 시 정의·의사결정 영향 Drawer
   - `components/gantt/*`: Gantt 차트 관련 컴포넌트
+  - `components/map/*`: MapPanel, MapContent, MapLegend (TR 상태·충돌 범례)
+  - `components/layout/DashboardLayout.tsx`: GlobalControlBar + SyncInitialDate + ViewModeProvider
 - **특징**: 계산 로직 없음, props 기반 데이터 수신
 
 #### 2. Business Logic Layer
@@ -187,6 +194,8 @@ function GanttChart() {
   - `lib/compare/`: Compare Mode (Phase 10 완료)
   - `lib/contexts/`: date-context.tsx (DateProvider) — app에서 사용
   - `lib/gantt/`: visTimelineMapper, gantt-contract (vis-timeline 연동/계약)
+  - `lib/gantt-legend-guide.ts`: P1-4 — LegendDefinition(stage/constraint/collision/meta), Gantt 범례 정의·의사결정 영향
+  - `lib/dashboard-data.ts`: getSmartInitialDate (P1-1), getVoyageWindows, voyages, kpiData, PROJECT_START/END
   - `lib/data/`: schedule-data.ts (진입점), go-nogo-data.ts, tide-data.ts, weather-data.ts
   - `lib/store/trip-store.ts`: History/Evidence localStorage (append-only)
   - `lib/reports/trip-report.ts`: Trip Report 생성 + MD/JSON Export
@@ -305,6 +314,7 @@ interface ReflowResult {
 - **인터랙티브 활동 바**: 호버 시 Tooltip, 클릭 시 Dialog; Vis 사용 시 **클릭 → scrollToActivity + #gantt scrollIntoView**, **드래그로 일정 이동**(editable, itemsAlwaysDraggable)
 - **마일스톤 표시**: 주요 이벤트 마커
 - **레전드**: 활동 타입별 색상 구분(mobilization, loadout, transport, loadin, turning, jackdown — 6종 모두 막대 표시)
+- **GanttLegendDrawer** (P1-4): 범례 태그 클릭 시 우측 Drawer에 정의·의사결정 영향 표시. `lib/gantt-legend-guide.ts`의 LegendDefinition 기반. 2-click 내 도달.
 - **Activity 스크롤**: `scrollToActivity()` 함수로 특정 활동으로 이동
 
 **데이터 변환**:
@@ -324,7 +334,15 @@ ScheduleActivity[]
 - **적용/취소**: Preview 적용 시 상태 업데이트
 - **연결**: `onApplyAction` → `reflowSchedule` → ReflowPreviewPanel 표시
 
-### 5. DetailPanel + WhyPanel + ReflowPreview (Phase 7)
+### 5. MapPanel + MapLegend
+
+**책임**: TR 위치·라우트 시각화, 상태·충돌 범례 (patch §4.1)
+
+**구성요소**:
+- **MapPanel**: MapContent(Leaflet), SSOT 기반 TR 마커·라우트, activityStateToMapStatus
+- **MapLegend**: 좌하단 오버레이 — TR 상태(Planned/Ready/In progress/Completed/Blocked/Delayed) 색상, Collision(Blocking/Warning) 배지. `lib/ssot/map-status-colors.ts`(MAP_STATUS_HEX) 연동.
+
+### 6. DetailPanel + WhyPanel + ReflowPreview (Phase 7)
 
 **책임**: Activity inspector, 2-click Collision UX, Reflow preview (patch.md §4.2)
 
@@ -344,7 +362,7 @@ Collision 배지 클릭
   → Activities 상태 업데이트
 ```
 
-### 6. State Machine & Evidence Gates (Phase 3)
+### 7. State Machine & Evidence Gates (Phase 3)
 
 **책임**: Activity 상태 전이 및 증빙 검증
 
@@ -376,6 +394,8 @@ const [changeBatches, setChangeBatches] = useState<ChangeBatch[]>([])
 ```
 
 **Phase 6 Bug #1**: Selected Date는 `lib/ssot/schedule.ts`의 `dateToIsoUtc`, `toUtcNoon`으로 UTC(YYYY-MM-DD) 정렬. Gantt/DatePicker 축과 일치.
+
+**P1-1 SyncInitialDate**: 마운트 시 `lib/dashboard-data.ts`의 `getSmartInitialDate()` 호출 — 항차 창 내 today 또는 가장 가까운 voyage start. `DateProvider.setSelectedDate`, `ViewModeStore.setDateCursor` 동기화. SSR hydration 후 클라이언트에서 1회 실행.
 
 ### 상태 업데이트 패턴
 
@@ -562,7 +582,7 @@ const changeImpactItems = useMemo(() => {
 
 ---
 
-**Last Updated**: 2026-02-04 (patchmain 14-item 반영)
+**Last Updated**: 2026-02-04 (SyncInitialDate, GanttLegendDrawer, MapLegend, gantt-legend-guide 반영)
 
 ## Refs
 
@@ -573,3 +593,4 @@ const changeImpactItems = useMemo(() => {
 - [plan_patchmain_14.md](plan/plan_patchmain_14.md) — patchmain 14-item (2026-02-04)
 - [WORK_LOG_20260202.md](WORK_LOG_20260202.md), [BUGFIX_APPLIED_20260202.md](BUGFIX_APPLIED_20260202.md) — 최신 작업 반영
 - [plan_patchm1_m5.md](plan/plan_patchm1_m5.md)
+- [map-integration-ideas.md](plan/map-integration-ideas.md) — 지도 번들·히트맵·지오펜스 통합
