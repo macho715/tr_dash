@@ -1,5 +1,6 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
+@import 'vis-timeline/styles/vis-timeline-graph2d.css';
 
 @custom-variant dark (&:is(.dark *));
 

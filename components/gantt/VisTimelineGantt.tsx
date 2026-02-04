@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useRef, forwardRef, useImperativeHandle } from "react"
 import { DataSet } from "vis-data"
 import { Timeline } from "vis-timeline/standalone"
-import "vis-timeline/styles/vis-timeline-graph2d.css"
 import type { VisGroup, VisItem } from "@/lib/gantt/visTimelineMapper"
 import { PROJECT_START, PROJECT_END } from "@/lib/dashboard-data"
 import { toUtcNoon, dateToIsoUtc } from "@/lib/ssot/schedule"

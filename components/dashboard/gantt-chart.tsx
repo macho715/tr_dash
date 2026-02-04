@@ -2,6 +2,7 @@
 
 import React from "react"
 
+import dynamic from "next/dynamic"
 import { useEffect, useMemo, useRef, useState, forwardRef, useImperativeHandle } from "react"
 import { Calendar } from "lucide-react"
 import {
@@ -15,10 +16,22 @@ import {
 } from "@/lib/dashboard-data"
 import { scheduleActivitiesToGanttRows } from "@/lib/data/schedule-data"
 import { ganttRowsToVisData } from "@/lib/gantt/visTimelineMapper"
-import {
-  VisTimelineGantt,
-  type VisTimelineGanttHandle,
-} from "@/components/gantt/VisTimelineGantt"
+import type { VisTimelineGanttHandle } from "@/components/gantt/VisTimelineGantt"
+
+const VisTimelineGantt = dynamic(
+  () =>
+    import("@/components/gantt/VisTimelineGantt").then((m) => ({
+      default: m.VisTimelineGantt,
+    })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex min-h-[400px] items-center justify-center rounded-lg border border-dashed border-muted-foreground/30 bg-muted/20 text-sm text-muted-foreground">
+        Loading Gantt…
+      </div>
+    ),
+  }
+)
 import type { GanttEventBase } from "@/lib/gantt/gantt-contract"
 import type { ScheduleActivity } from "@/lib/ssot/schedule"
 import {
@@ -410,6 +423,10 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
               </span>
             </>
           )}
+          <span className="text-slate-500">|</span>
+          <span className="text-xs text-muted-foreground" title="Gantt engine (NEXT_PUBLIC_GANTT_ENGINE)">
+            Gantt: {useVisEngine ? "vis-timeline" : "custom"}
+          </span>
         </div>
       </div>
 
