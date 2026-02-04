@@ -9,6 +9,7 @@
 
 ### Added
 
+- **StoryHeader SSOT 통합 (2026-02-04)**: TR/Activity 선택 시 Where/When/What/Evidence 자동 갱신. SSOT 타입 (`Activity`, `ActivityState`, `OptionC`) + derived-calc (`calculateCurrentActivityForTR`, `calculateCurrentLocationForTR`) + evidence-gate (`checkEvidenceGate`) import. `selectedTrId`, `ssot` state 추가. `storyHeaderData` 파생 계산 (`useMemo`). TR 선택 와이어링 (`handleActivityClick`, Map callbacks). ReadinessPanel에 `ssot` prop 전달. 파일: `app/page.tsx` (+175/-116). Ref: `docs/plan/story-header-ssot-integration.md`.
 - **Trip 매칭 개선 (2026-02-04)**: ReadinessPanel의 Trip 선택 정확도 향상. `normalizeTripMatchValue()` (정규화), `matchTripIdForVoyage()` (Voyage → Trip 매칭), `readinessTripId` 파생 (ViewMode → Voyage 매칭 → null). 6가지 토큰 지원 (voyage/voy/trip/tr/tr unit/trUnit). 파일: `app/page.tsx`. Ref: `docs/plan/trip-matching-improvement.md`.
 - **Map Geofence Layer (Phase 1) (2026-02-04)**: Semi-transparent boundary polygons around key locations (LOC_MZP, LOC_AGI)
   - `lib/map/geofenceUtils.ts`: GeoJSON creation and ray-casting algorithm (~2.2km offset)
