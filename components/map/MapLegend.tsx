@@ -12,8 +12,20 @@ const STATUS_LABELS: Record<MapStatusToken, string> = {
   delayed: 'Delayed',
 }
 
+type MapLegendProps = {
+  showGeofence?: boolean
+  onToggleGeofence?: (value: boolean) => void
+  showHeatmapLegend?: boolean
+  onToggleHeatmapLegend?: (value: boolean) => void
+}
+
 /** Map legend for TR status colors and collision badges (patch §4.1) */
-export function MapLegend() {
+export function MapLegend({
+  showGeofence = false,
+  onToggleGeofence,
+  showHeatmapLegend = false,
+  onToggleHeatmapLegend,
+}: MapLegendProps = {}) {
   return (
     <div
       className="absolute bottom-2 left-2 z-[1000] rounded-md border border-accent/30 bg-card/90 px-2 py-1.5 text-xs backdrop-blur-sm"
@@ -45,6 +57,40 @@ export function MapLegend() {
           Warning
         </span>
       </div>
+      {onToggleGeofence && (
+        <>
+          <div className="mt-1.5 border-t border-accent/20 pt-1 font-semibold text-muted-foreground">
+            Layers
+          </div>
+          <label className="flex cursor-pointer items-center gap-1.5 text-muted-foreground hover:text-foreground">
+            <input
+              type="checkbox"
+              checked={showGeofence}
+              onChange={(e) => onToggleGeofence(e.target.checked)}
+              className="h-3 w-3 rounded border-gray-300"
+            />
+            <span>Geofence</span>
+          </label>
+        </>
+      )}
+      {onToggleHeatmapLegend && (
+        <>
+          {!onToggleGeofence && (
+            <div className="mt-1.5 border-t border-accent/20 pt-1 font-semibold text-muted-foreground">
+              Layers
+            </div>
+          )}
+          <label className="flex cursor-pointer items-center gap-1.5 text-muted-foreground hover:text-foreground">
+            <input
+              type="checkbox"
+              checked={showHeatmapLegend}
+              onChange={(e) => onToggleHeatmapLegend(e.target.checked)}
+              className="h-3 w-3 rounded border-gray-300"
+            />
+            <span>Heatmap Legend</span>
+          </label>
+        </>
+      )}
     </div>
   )
 }

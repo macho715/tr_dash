@@ -12,10 +12,6 @@ const MapContent = dynamic(
   () => import('./MapContent').then((m) => m.MapContent),
   { ssr: false }
 )
-const MapLegend = dynamic(
-  () => import('./MapLegend').then((m) => m.MapLegend),
-  { ssr: false }
-)
 
 export type ViewMode = 'live' | 'history' | 'approval' | 'compare'
 
@@ -36,8 +32,8 @@ const LOCATION_OVERRIDES: Record<string, Location> = {
   LOC_MZP: {
     location_id: 'LOC_MZP',
     name: 'Mina Zayed Port',
-    lat: 24.5327093,
-    lon: 54.3781822,
+    lat: 24.524890,
+    lon: 54.377980,
   },
   LOC_AGI: {
     location_id: 'LOC_AGI',
@@ -73,6 +69,7 @@ export function MapPanel({
   onActivitySelect,
 }: MapPanelProps) {
   const [mounted, setMounted] = useState(false)
+  const [showHeatmapLegend] = useState(true)
 
   useEffect(() => {
     setMounted(true)
@@ -86,14 +83,29 @@ export function MapPanel({
     [ssot]
   )
 
-  /** Heat points for Mina Port and AGI (lat, lon, intensity) */
-  const heatPoints = useMemo(
-    () => [
-      [LOCATION_OVERRIDES.LOC_MZP.lat, LOCATION_OVERRIDES.LOC_MZP.lon, 1.0] as [number, number, number],
-      [LOCATION_OVERRIDES.LOC_AGI.lat, LOCATION_OVERRIDES.LOC_AGI.lon, 1.0] as [number, number, number],
-    ],
-    []
-  )
+  /** Heat points with dynamic intensity based on activity density */
+  const heatPoints = useMemo(() => {
+    const result: [number, number, number][] = []
+    const activities = ssot?.entities?.activities ?? {}
+
+    for (const loc of Object.values(locations)) {
+      // Count activities at this location (both from and to)
+      const activityCount = Object.values(activities).filter(
+        (a) =>
+          a.plan?.location?.from_location_id === loc.location_id ||
+          a.plan?.location?.to_location_id === loc.location_id
+      ).length
+
+      if (activityCount === 0) continue
+
+      // Normalize: 1-10 activities → 0.2-1.0 intensity
+      const intensity = Math.min(1.0, 0.2 + (activityCount / 10) * 0.8)
+
+      result.push([loc.lat, loc.lon, intensity])
+    }
+
+    return result
+  }, [locations, ssot])
 
   const trs = ssot?.entities?.trs ?? {}
   const activities = ssot?.entities?.activities ?? {}
@@ -109,6 +121,11 @@ export function MapPanel({
       hasBlockingCollision: boolean
       hasWarningCollision: boolean
       label: string
+      currentActivityName: string | null
+      currentActivityId: string | null
+      locationName: string | null
+      eta: string | null
+      isHighlighted: boolean
     }> = []
 
     for (const trId of Object.keys(trs)) {
@@ -144,6 +161,12 @@ export function MapPanel({
         }
       }
 
+      // Calculate ETA: use plan.end_ts or calc.ef_ts for in-progress activities
+      const eta =
+        activity && activity.actual.start_ts && !activity.actual.end_ts
+          ? activity.plan.end_ts || activity.calc.ef_ts
+          : null
+
       result.push({
         trId,
         lat: loc.lat,
@@ -152,10 +175,15 @@ export function MapPanel({
         hasBlockingCollision: hasBlocking,
         hasWarningCollision: hasWarning,
         label: tr?.name ?? trId,
+        currentActivityName: activity?.name || null,
+        currentActivityId,
+        locationName: loc?.name || null,
+        eta,
+        isHighlighted: selectedActivityId ? activity?.activity_id === selectedActivityId : false,
       })
     }
     return result
-  }, [ssot, trs, locations, activities, collisions])
+  }, [ssot, trs, locations, activities, collisions, selectedActivityId])
 
   // Route segments from activities with route_id
   const routeSegments = useMemo(() => {
@@ -165,6 +193,8 @@ export function MapPanel({
       coords: [number, number][]
       activityId: string
       isHighlighted: boolean
+      status: 'planned' | 'in_progress' | 'completed'
+      trId: string
     }> = []
 
     for (const activity of Object.values(activities)) {
@@ -178,12 +208,22 @@ export function MapPanel({
       const coords = getRoutePolyline(locations, loc.from_location_id, loc.to_location_id)
       if (coords.length < 2) continue
 
+      // Calculate status from activity actual timestamps
+      let status: 'planned' | 'in_progress' | 'completed' = 'planned'
+      if (activity.actual.end_ts) {
+        status = 'completed'
+      } else if (activity.actual.start_ts) {
+        status = 'in_progress'
+      }
+
       result.push({
         routeId: loc.route_id,
         coords,
         activityId: activity.activity_id,
         isHighlighted:
           highlightedRouteId === loc.route_id || selectedActivityId === activity.activity_id,
+        status,
+        trId: activity.tr_ids?.[0] || '',
       })
     }
     return result
@@ -216,17 +256,16 @@ export function MapPanel({
   return (
     <div className="relative h-[280px] w-full overflow-hidden rounded-lg" data-testid="map-panel">
       {mounted ? (
-        <>
-          <MapContent
-            heatPoints={heatPoints}
-            locations={locations}
-            routeSegments={routeSegments}
-            trMarkers={trMarkers}
-            onTrMarkerClick={handleTrMarkerClick}
-            mapStatusHex={MAP_STATUS_HEX}
-          />
-          <MapLegend />
-        </>
+        <MapContent
+          heatPoints={heatPoints}
+          locations={locations}
+          routeSegments={routeSegments}
+          trMarkers={trMarkers}
+          onTrMarkerClick={handleTrMarkerClick}
+          mapStatusHex={MAP_STATUS_HEX}
+          showGeofence={false}
+          showHeatmapLegend={showHeatmapLegend}
+        />
       ) : (
         <div className="flex h-full w-full items-center justify-center rounded-lg bg-muted/20 text-sm text-muted-foreground">
           Loading map…
