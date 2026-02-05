@@ -1,0 +1,6 @@
+{
+  "hs_limit_m": 3.0,
+  "wind_limit_kt": 20,
+  "wind_gust_limit_kt": 25,
+  "source": "default"
+}

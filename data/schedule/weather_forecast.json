@@ -1,0 +1,11 @@
+{
+  "updatedAt": "2026-02-04T00:00:00Z",
+  "timezone": "UTC",
+  "location": "Arabian Gulf",
+  "series": [
+    { "ts": "2026-02-04T00:00:00Z", "hs_m": 2.2, "wind_kt": 16, "wind_gust_kt": 21 },
+    { "ts": "2026-02-04T06:00:00Z", "hs_m": 2.8, "wind_kt": 19, "wind_gust_kt": 24 },
+    { "ts": "2026-02-04T12:00:00Z", "hs_m": 3.4, "wind_kt": 23, "wind_gust_kt": 28 },
+    { "ts": "2026-02-04T18:00:00Z", "hs_m": 2.0, "wind_kt": 14, "wind_gust_kt": 18 }
+  ]
+}
