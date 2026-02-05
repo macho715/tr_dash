@@ -8,17 +8,23 @@ import { TripCloseoutForm } from '@/components/history/TripCloseoutForm'
 import type { OptionC } from '@/src/types/ssot'
 import { getHistoryEvents, getEvidenceItems, appendHistoryEvent, appendEvidenceItem, subscribe } from '@/lib/store/trip-store'
 
+export type HistoryEvidenceTab = "history" | "evidence" | "compare" | "closeout"
+
 type HistoryEvidencePanelProps = {
   selectedActivityId?: string | null
   filterEventType?: string | null
+  requestedTab?: HistoryEvidenceTab | null
+  onTabChange?: (tab: HistoryEvidenceTab) => void
 }
 
 export function HistoryEvidencePanel({
   selectedActivityId = null,
   filterEventType = null,
+  requestedTab = null,
+  onTabChange,
 }: HistoryEvidencePanelProps) {
   const [ssot, setSsot] = useState<OptionC | null>(null)
-  const [activeTab, setActiveTab] = useState<'history' | 'evidence' | 'compare' | 'closeout'>('history')
+  const [activeTab, setActiveTab] = useState<HistoryEvidenceTab>("history")
   const [storeVersion, setStoreVersion] = useState(0)
 
   useEffect(() => {
@@ -32,6 +38,17 @@ export function HistoryEvidencePanel({
     const unsub = subscribe(() => setStoreVersion((v) => v + 1))
     return unsub
   }, [])
+
+  useEffect(() => {
+    if (requestedTab && requestedTab !== activeTab) {
+      setActiveTab(requestedTab)
+    }
+  }, [requestedTab, activeTab])
+
+  const setTab = (tab: HistoryEvidenceTab) => {
+    setActiveTab(tab)
+    onTabChange?.(tab)
+  }
 
   const mergedSsot = ssot
     ? {
@@ -83,7 +100,7 @@ export function HistoryEvidencePanel({
       <div className="flex gap-2 border-b border-accent/20 pb-2">
         <button
           type="button"
-          onClick={() => setActiveTab('history')}
+          onClick={() => setTab("history")}
           className={`rounded px-2 py-1 text-xs font-medium transition ${
             activeTab === 'history'
               ? 'bg-primary text-primary-foreground'
@@ -95,7 +112,7 @@ export function HistoryEvidencePanel({
         </button>
         <button
           type="button"
-          onClick={() => setActiveTab('evidence')}
+          onClick={() => setTab("evidence")}
           className={`rounded px-2 py-1 text-xs font-medium transition ${
             activeTab === 'evidence'
               ? 'bg-primary text-primary-foreground'
@@ -107,7 +124,7 @@ export function HistoryEvidencePanel({
         </button>
         <button
           type="button"
-          onClick={() => setActiveTab('compare')}
+          onClick={() => setTab("compare")}
           className={`rounded px-2 py-1 text-xs font-medium transition ${
             activeTab === 'compare'
               ? 'bg-primary text-primary-foreground'
@@ -119,7 +136,7 @@ export function HistoryEvidencePanel({
         </button>
         <button
           type="button"
-          onClick={() => setActiveTab('closeout')}
+          onClick={() => setTab("closeout")}
           className={`rounded px-2 py-1 text-xs font-medium transition ${
             activeTab === 'closeout'
               ? 'bg-primary text-primary-foreground'

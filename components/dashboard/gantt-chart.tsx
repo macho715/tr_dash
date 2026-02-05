@@ -442,21 +442,6 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
   const groupedVisData = useMemo(() => {
     if (!useVisEngine) return null
     
-    // Debug: Log activity processing
-    console.log('[Gantt Debug] Building grouped vis data')
-    console.log('[Gantt Debug] Filtered activities count:', filteredActivities.length)
-    
-    if (filteredActivities.length > 0) {
-      const sample = filteredActivities[0]
-      console.log('[Gantt Debug] Sample activity:', {
-        id: sample.activity_id,
-        title: sample.title,
-        tr_unit_id: sample.tr_unit_id,
-        planned_start: sample.planned_start,
-        level1: sample.level1
-      })
-    }
-    
     const result = buildGroupedVisData({
       activities: filteredActivities,
       compareDelta,
@@ -467,17 +452,6 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
       eventLogByActivity: eventOverlayEnabled ? eventLogByActivity : undefined,
       eventOverlay: eventOverlayEnabled ? eventOverlays : undefined,
     })
-    
-    console.log('[Gantt Debug] Result groups:', result?.groups.length ?? 0)
-    console.log('[Gantt Debug] Result items:', result?.items.length ?? 0)
-    
-    if (result && result.groups.length > 0) {
-      console.log('[Gantt Debug] Sample group:', result.groups[0])
-    }
-    if (result && result.items.length > 0) {
-      console.log('[Gantt Debug] Sample item:', result.items[0])
-    }
-    
     return result
   }, [
     useVisEngine,
@@ -611,53 +585,30 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
   }
 
   const handleResetGantt = () => {
-    console.log('🔄 [Reset] Starting Gantt reset...')
-    console.log('[Reset] Current state:', {
-      filters,
-      collapsedGroups: collapsedGroups.size,
-      eventOverlays,
-      heatmapEnabled,
-      view,
-      filteredActivities: filteredActivities.length,
-      groupedVisData: {
-        groups: groupedVisData?.groups.length ?? 0,
-        items: groupedVisData?.items.length ?? 0
-      }
-    })
-    
     // 1. Reset view to Day
     onViewChange?.("Day")
-    console.log('[Reset] ✓ View reset to Day')
-    
+
     // 2. Reset filters
     setFilters({ criticalOnly: false, blockedOnly: false })
-    console.log('[Reset] ✓ Filters cleared')
-    
+
     // 3. Reset highlight flags
     onHighlightFlagsChange?.({ delay: false, lock: false, constraint: false })
-    console.log('[Reset] ✓ Highlight flags cleared')
-    
+
     // 4. Expand all groups
     setCollapsedGroups(new Set())
-    console.log('[Reset] ✓ All groups expanded')
-    
+
     // 5. Reset event overlays
     setEventOverlays({ showActual: false, showHold: false, showMilestone: false })
-    console.log('[Reset] ✓ Event overlays disabled')
-    
+
     // 6. Disable heatmap
     setHeatmapEnabled(false)
-    console.log('[Reset] ✓ Heatmap disabled')
-    
+
     // 7. Fit timeline
     if (visTimelineRef.current) {
       setTimeout(() => {
         visTimelineRef.current?.fit()
-        console.log('[Reset] ✓ Timeline fitted')
       }, 100)
     }
-    
-    console.log('🔄 [Reset] Reset completed!')
   }
 
   const handleGroupClick = (groupId: string) => {

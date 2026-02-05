@@ -16,6 +16,9 @@ export interface VisGroup {
   id: string
   content: string
   order?: number
+  nestedGroups?: string[]
+  showNested?: boolean
+  level?: number
 }
 
 export interface VisItem {
@@ -24,7 +27,7 @@ export interface VisItem {
   content: string
   start: Date
   end: Date
-  type: "range"
+  type: "range" | "background" | "point"
   className?: string
   title?: string
 }

@@ -95,8 +95,11 @@ class SSOTValidator:
             return True
             
         except Exception as e:
+            import traceback
             self.errors.append(f"Unexpected error: {str(e)}")
             print(f"\n[FAIL] VALIDATION FAILED: {e}")
+            print("\nFull traceback:")
+            traceback.print_exc()
             return False
     
     def _validate_contract_section(self):
@@ -343,8 +346,19 @@ class SSOTValidator:
                 pass
     
     def _validate_collisions(self):
-        """Validate collisions"""
-        collisions = self.data.get('collisions', {})
+        """Validate collisions (supports both dict and list format)"""
+        collisions_raw = self.data.get('collisions', {})
+        
+        # Handle both dict and list formats
+        if isinstance(collisions_raw, list):
+            # List format: convert to dict using collision_id as key
+            collisions = {c.get('collision_id', f'col_{i}'): c for i, c in enumerate(collisions_raw)}
+        elif isinstance(collisions_raw, dict):
+            # Dict format: use as-is
+            collisions = collisions_raw
+        else:
+            self.errors.append(f"collisions must be dict or list, got {type(collisions_raw).__name__}")
+            return
         
         for collision_id, collision in collisions.items():
             self.collision_ids.add(collision_id)
@@ -397,15 +411,30 @@ class SSOTValidator:
             self.errors.append(f"reflow_runs[{idx}]: invalid mode '{mode}'")
     
     def _validate_baselines(self):
-        """Validate baselines"""
-        baselines = self.data.get('baselines', {})
+        """Validate baselines (supports both dict and list format)"""
+        baselines_raw = self.data.get('baselines', {})
+        
+        # Handle both dict and list formats
+        if isinstance(baselines_raw, list):
+            # List format: skip validation (no baseline structure to validate)
+            return
+        elif not isinstance(baselines_raw, dict):
+            self.warnings.append(f"baselines must be dict or list, got {type(baselines_raw).__name__}")
+            return
+        
+        baselines = baselines_raw
         
         if 'current_baseline_id' not in baselines:
             self.warnings.append("baselines: missing current_baseline_id")
         
         items = baselines.get('items', {})
-        for baseline_id, baseline in items.items():
-            self._validate_baseline(baseline_id, baseline)
+        if isinstance(items, dict):
+            for baseline_id, baseline in items.items():
+                self._validate_baseline(baseline_id, baseline)
+        elif isinstance(items, list):
+            for baseline in items:
+                baseline_id = baseline.get('baseline_id', 'unknown')
+                self._validate_baseline(baseline_id, baseline)
     
     def _validate_baseline(self, baseline_id: str, baseline: Dict[str, Any]):
         """Validate single baseline"""

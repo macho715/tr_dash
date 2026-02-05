@@ -156,32 +156,15 @@ export function buildGroupedVisData(params: {
   // Build TR → Date+Phase structure (2 levels instead of 3)
   const trMap = new Map<string, Map<string, ScheduleActivity[]>>()
 
-  console.log('[Grouping Debug] Processing activities:', activities.length)
-
   for (const activity of activities) {
     if (!activity.activity_id) continue
     const tr = getTrLabel(activity)
     const datePhase = getDatePhaseLabel(activity)
-    
-    // Debug: Log first 3 activities
-    if (trMap.size === 0 && !trMap.has(tr)) {
-      console.log('[Grouping Debug] First activity:', {
-        id: activity.activity_id,
-        tr_unit_id: activity.tr_unit_id,
-        tr_label: tr,
-        datePhase,
-        level1: activity.level1
-      })
-    }
-    
     if (!trMap.has(tr)) trMap.set(tr, new Map())
     const dateMap = trMap.get(tr)!
     if (!dateMap.has(datePhase)) dateMap.set(datePhase, [])
     dateMap.get(datePhase)!.push(activity)
   }
-
-  console.log('[Grouping Debug] TR groups found:', trMap.size)
-  console.log('[Grouping Debug] TR labels:', Array.from(trMap.keys()))
 
   const groups: VisGroup[] = []
   const items: VisItem[] = []
@@ -190,8 +173,6 @@ export function buildGroupedVisData(params: {
   let order = 0
 
   const sortedTrs = Array.from(trMap.keys()).sort((a, b) => getTrSortKey(a) - getTrSortKey(b))
-  
-  console.log('[Grouping Debug] Sorted TRs:', sortedTrs)
   
   for (const tr of sortedTrs) {
     const trId = `tr_${slugify(tr)}`
@@ -310,9 +291,6 @@ export function buildGroupedVisData(params: {
       }
     }
   }
-
-  console.log('[Grouping Debug] Final groups:', groups.length)
-  console.log('[Grouping Debug] Final items:', items.length)
 
   if (compareDelta?.changed?.length) {
     for (const d of compareDelta.changed) {

@@ -21,8 +21,15 @@ export async function GET() {
       try {
         const raw = await readFile(p, 'utf-8')
         const data = JSON.parse(raw)
-        if (!data || !Array.isArray(data.activities) || data.activities.length === 0) {
-          console.warn(`[SSOT] Invalid or empty activities in ${p}. Skipping.`)
+        
+        // Check for Contract v0.8.0 structure (entities.activities as object)
+        const hasValidActivities = data?.entities?.activities && 
+          typeof data.entities.activities === 'object' &&
+          !Array.isArray(data.entities.activities) &&
+          Object.keys(data.entities.activities).length > 0
+        
+        if (!data || !hasValidActivities) {
+          console.warn(`[SSOT] Invalid or empty entities.activities in ${p}. Skipping.`)
           continue
         }
         return NextResponse.json(data)

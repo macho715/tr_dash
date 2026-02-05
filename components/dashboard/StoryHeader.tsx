@@ -2,6 +2,15 @@
 
 import { useState } from "react"
 import { HelpCircle } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 /**
  * Story Header (patch.md §2.1, P1-2)
@@ -12,11 +21,32 @@ type StoryHeaderProps = {
   where?: string
   whenWhat?: string
   evidence?: string
+  // Phase 1: TR 선택 드롭다운
+  trs?: { tr_id: string; name: string }[]
+  onTrSelect?: (trId: string) => void
+  // Phase 2: Evidence 배지
+  evidenceBadgeVariant?: "success" | "warning" | "destructive" | "secondary"
+  // Phase 3: 블록 클릭 핸들러
+  onWhereClick?: () => void
+  onWhenWhatClick?: () => void
+  onEvidenceClick?: () => void
 }
 
-export function StoryHeader({ trId, where, whenWhat, evidence }: StoryHeaderProps) {
+export function StoryHeader({ 
+  trId, 
+  where, 
+  whenWhat, 
+  evidence,
+  trs = [],
+  onTrSelect,
+  evidenceBadgeVariant = "secondary",
+  onWhereClick,
+  onWhenWhatClick,
+  onEvidenceClick,
+}: StoryHeaderProps) {
   const [helpOpen, setHelpOpen] = useState(false)
 
+  // TR이 없을 때 (빈 상태)
   if (!trId) {
     return (
       <div
@@ -25,7 +55,25 @@ export function StoryHeader({ trId, where, whenWhat, evidence }: StoryHeaderProp
         role="region"
         aria-label="TR story summary"
       >
-        <div className="flex items-center justify-end gap-2 mb-2">
+        <div className="flex items-center justify-between gap-2 mb-3">
+          {/* TR 선택 드롭다운 (항상 표시) */}
+          {trs.length > 0 && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Select TR:</span>
+              <Select value={trId ?? ""} onValueChange={onTrSelect}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Choose a TR..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {trs.map((tr) => (
+                    <SelectItem key={tr.tr_id} value={tr.tr_id}>
+                      {tr.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <button
             type="button"
             onClick={() => setHelpOpen((v) => !v)}
@@ -43,7 +91,7 @@ export function StoryHeader({ trId, where, whenWhat, evidence }: StoryHeaderProp
               Location
             </span>
             {helpOpen && (
-              <p className="text-sm font-medium text-foreground">Select TR from Map (left)</p>
+              <p className="text-sm font-medium text-foreground">Select TR from dropdown or Map</p>
             )}
           </div>
           <div className="min-w-0 space-y-1">
@@ -51,7 +99,7 @@ export function StoryHeader({ trId, where, whenWhat, evidence }: StoryHeaderProp
               Schedule
             </span>
             {helpOpen && (
-              <p className="text-sm font-medium text-foreground">Check Timeline (center)</p>
+              <p className="text-sm font-medium text-foreground">Current activity will appear here</p>
             )}
           </div>
           <div className="min-w-0 space-y-1">
@@ -59,7 +107,7 @@ export function StoryHeader({ trId, where, whenWhat, evidence }: StoryHeaderProp
               Verification
             </span>
             {helpOpen && (
-              <p className="text-sm font-medium text-foreground">Verify Evidence (right)</p>
+              <p className="text-sm font-medium text-foreground">Evidence status will appear here</p>
             )}
           </div>
         </div>
@@ -67,36 +115,95 @@ export function StoryHeader({ trId, where, whenWhat, evidence }: StoryHeaderProp
     )
   }
 
+  // TR이 선택된 상태
   return (
     <div
-      className="grid min-h-[96px] gap-2 rounded-xl border border-accent/30 bg-card/60 px-4 py-3 sm:grid-cols-3 sm:gap-4"
+      className="rounded-xl border border-accent/30 bg-card/60 px-4 py-3"
       data-testid="story-header"
       role="region"
       aria-label="TR story summary"
     >
-      <div className="min-w-0">
-        <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-          Location
-        </span>
-        <p className="truncate text-sm font-medium text-foreground" title={where}>
-          {where ?? "—"}
-        </p>
-      </div>
-      <div className="min-w-0">
-        <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-          Schedule
-        </span>
-        <p className="truncate text-sm font-medium text-foreground" title={whenWhat}>
-          {whenWhat ?? "—"}
-        </p>
-      </div>
-      <div className="min-w-0">
-        <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-          Verification
-        </span>
-        <p className="truncate text-sm font-medium text-foreground" title={evidence}>
-          {evidence ?? "—"}
-        </p>
+      {/* TR 선택 드롭다운 (상단) */}
+      {trs.length > 0 && (
+        <div className="mb-3 flex items-center gap-2">
+          <span className="text-xs font-medium text-muted-foreground">TR:</span>
+          <Select value={trId ?? ""} onValueChange={onTrSelect}>
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="Choose a TR..." />
+            </SelectTrigger>
+            <SelectContent>
+              {trs.map((tr) => (
+                <SelectItem key={tr.tr_id} value={tr.tr_id}>
+                  {tr.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+      
+      {/* Where / When-What / Evidence 블록 */}
+      <div className="grid gap-2 sm:grid-cols-3 sm:gap-4">
+        {/* Where 블록 (클릭 가능) */}
+        <div className="min-w-0">
+          <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            Location
+          </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onWhereClick}
+            disabled={!onWhereClick}
+            className="h-auto w-full justify-start p-0 text-left font-medium hover:bg-accent/20 disabled:opacity-100"
+          >
+            <p className="truncate text-sm text-foreground" title={where}>
+              {where ?? "—"}
+            </p>
+          </Button>
+        </div>
+
+        {/* When/What 블록 (클릭 가능) */}
+        <div className="min-w-0">
+          <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            Schedule
+          </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onWhenWhatClick}
+            disabled={!onWhenWhatClick}
+            className="h-auto w-full justify-start p-0 text-left font-medium hover:bg-accent/20 disabled:opacity-100"
+          >
+            <p className="truncate text-sm text-foreground" title={whenWhat}>
+              {whenWhat ?? "—"}
+            </p>
+          </Button>
+        </div>
+
+        {/* Evidence 블록 (클릭 가능 + 배지) */}
+        <div className="min-w-0">
+          <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            Verification
+          </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onEvidenceClick}
+            disabled={!onEvidenceClick}
+            className="h-auto w-full justify-start p-0 text-left font-medium hover:bg-accent/20 disabled:opacity-100"
+          >
+            <div className="flex items-center gap-2 truncate">
+              <p className="truncate text-sm text-foreground" title={evidence}>
+                {evidence ?? "—"}
+              </p>
+              {evidenceBadgeVariant !== "secondary" && (
+                <Badge variant={evidenceBadgeVariant} className="shrink-0">
+                  {evidenceBadgeVariant === "destructive" ? "!" : "⚠"}
+                </Badge>
+              )}
+            </div>
+          </Button>
+        </div>
       </div>
     </div>
   )

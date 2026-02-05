@@ -1,0 +1,92 @@
+{
+  "timestamp": "2026-02-05T18:55:26.864Z",
+  "total_events": 12,
+  "linked_count": 4,
+  "unlinked_count": 8,
+  "matching_rate": 0.3333333333333333,
+  "validation_results": [
+    {
+      "valid": true,
+      "gate": "pair_closure",
+      "errors": [],
+      "warnings": []
+    },
+    {
+      "valid": true,
+      "gate": "hold_closure",
+      "errors": [],
+      "warnings": []
+    },
+    {
+      "valid": true,
+      "gate": "milestone_usage",
+      "errors": [],
+      "warnings": []
+    },
+    {
+      "valid": true,
+      "gate": "timestamp_order",
+      "errors": [],
+      "warnings": []
+    }
+  ],
+  "unlinked_events": [
+    {
+      "event_id": "EVT-00018",
+      "activity_id": "A1103",
+      "suggested_activity_id": null,
+      "confidence_score": 0,
+      "reason": "no_match_above_threshold"
+    },
+    {
+      "event_id": "EVT-00019",
+      "activity_id": "A1103",
+      "suggested_activity_id": null,
+      "confidence_score": 0,
+      "reason": "no_match_above_threshold"
+    },
+    {
+      "event_id": "EVT-00020",
+      "activity_id": "A1103",
+      "suggested_activity_id": null,
+      "confidence_score": 0,
+      "reason": "no_match_above_threshold"
+    },
+    {
+      "event_id": "EVT-00021",
+      "activity_id": "A1103",
+      "suggested_activity_id": null,
+      "confidence_score": 0,
+      "reason": "no_match_above_threshold"
+    },
+    {
+      "event_id": "EVT-00026",
+      "activity_id": "A1112",
+      "suggested_activity_id": null,
+      "confidence_score": 0,
+      "reason": "no_match_above_threshold"
+    },
+    {
+      "event_id": "EVT-00027",
+      "activity_id": "A1112",
+      "suggested_activity_id": null,
+      "confidence_score": 0,
+      "reason": "no_match_above_threshold"
+    },
+    {
+      "event_id": "EVT-00040",
+      "activity_id": "A1114",
+      "suggested_activity_id": null,
+      "confidence_score": 0,
+      "reason": "no_match_above_threshold"
+    },
+    {
+      "event_id": "EVT-00041",
+      "activity_id": "A1114",
+      "suggested_activity_id": null,
+      "confidence_score": 0,
+      "reason": "no_match_above_threshold"
+    }
+  ],
+  "suggested_aliases": []
+}

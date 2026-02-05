@@ -1,0 +1,13 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# TDD Pre-Commit Hook
+# Runs quality gates before allowing commit
+
+echo "🛡️  Running TDD quality gates..."
+
+# Run verification
+pnpm tdd:verify
+
+# Exit with verification result
+exit $?

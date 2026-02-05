@@ -29,7 +29,7 @@ import { WhatIfPanel, type WhatIfScenario, type WhatIfMetrics } from "@/componen
 import { DetailPanel } from "@/components/detail/DetailPanel"
 import { ApprovalModeBanner } from "@/components/approval/ApprovalModeBanner"
 import { CompareModeBanner } from "@/components/compare/CompareModeBanner"
-import { HistoryEvidencePanel } from "@/components/history/HistoryEvidencePanel"
+import { HistoryEvidencePanel, type HistoryEvidenceTab } from "@/components/history/HistoryEvidencePanel"
 import { ReadinessPanel } from "@/components/dashboard/ReadinessPanel"
 import { calculateSlack } from "@/lib/utils/slack-calc"
 import { OverviewSection } from "@/components/dashboard/sections/overview-section"
@@ -174,6 +174,7 @@ export default function Page() {
   )
   const ganttRef = useRef<GanttChartHandle>(null)
   const evidenceRef = useRef<HTMLElement>(null)
+  const [evidenceTab, setEvidenceTab] = useState<HistoryEvidenceTab | null>(null)
   const [trips, setTrips] = useState<{ trip_id: string; name: string }[]>([])
   const [trs, setTrs] = useState<{ tr_id: string; name: string }[]>([])
   const [ssot, setSsot] = useState<OptionC | null>(null)
@@ -188,13 +189,17 @@ export default function Page() {
   const [showWhatIfPanel, setShowWhatIfPanel] = useState(false)
 
   useEffect(() => {
-    setSsotError(null)
+    let cancelled = false
+    
     fetch("/api/ssot")
       .then((r) => {
         if (!r.ok) throw new Error(`SSOT failed: ${r.status}`)
         return r.json()
       })
       .then((data: OptionC | null) => {
+        if (cancelled) return
+        
+        setSsotError(null)
         if (data) {
           setSsot(data)
         }
@@ -216,9 +221,14 @@ export default function Page() {
         }
       })
       .catch((e: unknown) => {
+        if (cancelled) return
         const msg = e instanceof Error ? e.message : "SSOT load failed"
         setSsotError(msg)
       })
+    
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   const findTrIdForActivity = (activityId: string): string | null => {
@@ -289,24 +299,82 @@ export default function Page() {
     }
   }, [ssot, storyHeaderTrId, storyHeaderActivity])
 
-  const handleApplyPreview = (
-    nextActivities: ScheduleActivity[],
-    _impactReport: ImpactReport | null
-  ) => {
+  // Phase 2: Evidence 배지 variant 계산
+  const evidenceBadgeVariant = useMemo(() => {
+    if (!storyHeaderActivity || !ssot) return "secondary"
+    
+    const targetState = getEvidenceTargetState(storyHeaderActivity.state)
+    const gateResult = checkEvidenceGate(
+      storyHeaderActivity,
+      targetState,
+      storyHeaderActivity.state,
+      ssot
+    )
+    
+    if (gateResult.missing.length === 0) return "success"
+    if (gateResult.missing.length <= 2) return "warning"
+    return "destructive"
+  }, [storyHeaderActivity, ssot])
+
+  // Phase 3: 블록 클릭 핸들러
+  const handleWhereClick = () => {
+    const mapSection = document.getElementById("map")
+    mapSection?.scrollIntoView({ behavior: "smooth", block: "start" })
+  }
+
+  const handleWhenWhatClick = () => {
+    if (!selectedActivityId) return
+    const detailSection = document.getElementById("detail")
+    detailSection?.scrollIntoView({ behavior: "smooth", block: "start" })
+    setFocusedActivityId(selectedActivityId)
+  }
+
+  const handleEvidenceClick = () => {
+    if (!selectedActivityId) return
+    evidenceRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+  }
+
+  const handleTrSelect = (trId: string) => {
+    setSelectedTrId(trId)
+    
+    // Activity 자동 선택
+    if (ssot) {
+      const activityId = calculateCurrentActivityForTR(ssot, trId)
+      if (activityId) {
+        setSelectedActivityId(activityId)
+        setFocusedActivityId(activityId)
+        ganttRef.current?.scrollToActivity(activityId)
+      }
+    }
+  }
+
+  const handleApplyPreview = (nextActivities: ScheduleActivity[]) => {
     setActivities(nextActivities)
   }
 
-  useEffect(() => {
-    setOps((prev) => ({
-      ...prev,
-      pipeline: runPipelineCheck({
+  // Derive pipeline from activities (memoized)
+  const pipelineResult = useMemo(
+    () =>
+      runPipelineCheck({
         activities,
-        noticeDate: prev.notice.date,
-        weatherDaysCount: prev.weather.days.length,
+        noticeDate: ops.notice.date,
+        weatherDaysCount: ops.weather.days.length,
         projectEndDate: PROJECT_END_DATE,
       }),
-    }))
-  }, [activities])
+    [activities, ops.notice.date, ops.weather.days.length]
+  )
+
+  // Update ops.pipeline when pipelineResult changes
+  useEffect(() => {
+    setOps((prev) => {
+      // Only update if pipeline actually changed (avoid unnecessary re-renders)
+      if (prev.pipeline === pipelineResult) return prev
+      return {
+        ...prev,
+        pipeline: pipelineResult,
+      }
+    })
+  }, [pipelineResult])
 
   useEffect(() => {
     if (!selectedVoyage || !ganttRef.current) return
@@ -385,6 +453,28 @@ export default function Page() {
   }
 
   const handleJumpToEvidence = () => {
+    evidenceRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+  }
+
+  const openActivityFromGantt = (activityId: string) => {
+    const activity = activities.find((a) => a.activity_id === activityId)
+    if (activity) {
+      handleActivityClick(activityId, activity.planned_start)
+      return
+    }
+    setSelectedActivityId(activityId)
+    setFocusedActivityId(activityId)
+  }
+
+  const handleOpenEvidence = (activityId: string) => {
+    openActivityFromGantt(activityId)
+    setEvidenceTab("evidence")
+    evidenceRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+  }
+
+  const handleOpenHistory = (activityId: string) => {
+    openActivityFromGantt(activityId)
+    setEvidenceTab("history")
     evidenceRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
   }
 
@@ -549,6 +639,12 @@ export default function Page() {
               where={storyHeaderData.where}
               whenWhat={storyHeaderData.whenWhat}
               evidence={storyHeaderData.evidence}
+              trs={trs}
+              onTrSelect={handleTrSelect}
+              evidenceBadgeVariant={evidenceBadgeVariant}
+              onWhereClick={handleWhereClick}
+              onWhenWhatClick={handleWhenWhatClick}
+              onEvidenceClick={handleEvidenceClick}
             />
                 <OverviewSection
               activities={activities}
@@ -609,6 +705,7 @@ export default function Page() {
                       <GanttSection
                       ganttRef={ganttRef}
                       activities={activities}
+                      ssot={ssot}
                       view={timelineView}
                       onViewChange={setTimelineView}
                       highlightFlags={highlightFlags}
@@ -667,6 +764,8 @@ export default function Page() {
                       weatherLimits={weatherLimits}
                       weatherOverlayVisible={isLiveMode}
                       weatherOverlayOpacity={0.15}
+                      onOpenEvidence={handleOpenEvidence}
+                      onOpenHistory={handleOpenHistory}
                     />
                     </WidgetErrorBoundary>
                   </div>
@@ -747,6 +846,8 @@ export default function Page() {
                   selectedActivityId={
                     selectedActivityId ?? selectedCollision?.activity_id ?? null
                   }
+                  requestedTab={evidenceTab}
+                  onTabChange={setEvidenceTab}
                 />
                 <ReadinessPanel ssot={ssot} tripId={readinessTripId} />
                 <NotesDecisions />

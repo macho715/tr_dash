@@ -8,9 +8,8 @@
  * 4. Metrics 계산 정확도 확인
  */
 
-import { describe, it, expect, vi } from "vitest"
+import { describe, it, expect } from "vitest"
 import type { ScheduleActivity } from "@/lib/ssot/schedule"
-import { reflowSchedule } from "@/lib/utils/schedule-reflow"
 import type { WhatIfScenario, WhatIfMetrics } from "@/components/ops/WhatIfPanel"
 
 // Mock activities (simplified)
@@ -20,8 +19,9 @@ const mockActivities: ScheduleActivity[] = [
     activity_name: "Jack-down TR1",
     planned_start: "2026-02-10",
     planned_finish: "2026-02-12",
-    actual_start: null,
-    actual_finish: null,
+    duration: 2,
+    actual_start: undefined,
+    actual_finish: undefined,
     depends_on: [],
     anchor_type: "LOADOUT" as const,
     level1: "Trip 1",
@@ -32,9 +32,10 @@ const mockActivities: ScheduleActivity[] = [
     activity_name: "Transport TR1",
     planned_start: "2026-02-13",
     planned_finish: "2026-02-14",
-    actual_start: null,
-    actual_finish: null,
-    depends_on: ["A1030"],
+    duration: 1,
+    actual_start: undefined,
+    actual_finish: undefined,
+    depends_on: [{ predecessorId: "A1030", type: "FS", lagDays: 0 }],
     anchor_type: "SAIL_AWAY" as const,
     level1: "Trip 1",
     level2: "Transport",
@@ -44,9 +45,10 @@ const mockActivities: ScheduleActivity[] = [
     activity_name: "Install TR1",
     planned_start: "2026-02-15",
     planned_finish: "2026-02-17",
-    actual_start: null,
-    actual_finish: null,
-    depends_on: ["A1040"],
+    duration: 2,
+    actual_start: undefined,
+    actual_finish: undefined,
+    depends_on: [{ predecessorId: "A1040", type: "FS", lagDays: 0 }],
     anchor_type: "BERTHING" as const,
     level1: "Trip 1",
     level2: "Install",
