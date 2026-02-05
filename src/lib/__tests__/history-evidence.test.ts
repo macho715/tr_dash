@@ -8,7 +8,7 @@
 
 import { describe, it, expect } from 'vitest'
 import type { OptionC, HistoryEvent } from '@/types/ssot'
-import { checkEvidenceGate } from '@/lib/state-machine/evidence-gate'
+import { checkEvidenceGate } from '@/src/lib/state-machine/evidence-gate'
 
 const minimalHistoryEvents: HistoryEvent[] = [
   {

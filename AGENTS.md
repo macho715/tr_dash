@@ -157,6 +157,12 @@
   - dynamic import/지연 로딩 가능
   - ErrorBoundary + fallback(간단 리스트/표) + skeleton 로딩 제공
 
+### 5.1 데이터 소스 (Data sources)
+
+- **타임라인/ops (Gantt, conflicts, slack, Apply, What-If):** `scheduleActivities` → 페이지 `activities` state. 빌드 시점에 `option_c*.json`에서 `ScheduleActivity[]`로 변환(`lib/data/schedule-data.ts`). 클라이언트에서 편집(Apply/Undo/What-If) 가능.
+- **맵 / StoryHeader / Readiness:** `/api/ssot` 응답(OptionC entities). Where/Evidence/상태 표시용. 페이지에서 1회 fetch 후 MapPanelWrapper에 props로 전달(중복 fetch 방지).
+- **정책:** 동일한 option_c*.json이 정적(schedule-data)과 API(/api/ssot) 두 경로로 사용됨. 타임라인은 “편집 가능한 스케줄 배열”, 맵/헤더는 “엔티티 기반 읽기”로 역할 분리. 향후 entities.activities 단일화 시 설계 변경 필요.
+
 ---
 
 ## 6) 안전/권한 (Safety & Permissions)

@@ -50,10 +50,11 @@ export function getNearestVoyageStart(): Date {
   return getSmartInitialDate()
 }
 
-/** Noon UTC for consistency with parseDateInput (Bug #1: date range validation at boundaries) */
+/** Noon UTC for consistency with parseDateInput (Bug #1: date range validation at boundaries). SSOT for project end. */
+export const PROJECT_END_DATE = "2026-03-24"
 export const PROJECT_START = toUtcNoon(parseUTCDate("2026-01-26"))
-export const PROJECT_END = toUtcNoon(parseUTCDate("2026-03-22"))
-// 포함일 기준 계산: Jan 26 = Day 1, Mar 22 = Day 56
+export const PROJECT_END = toUtcNoon(parseUTCDate(PROJECT_END_DATE))
+// 포함일 기준 계산: Jan 26 = Day 1, Mar 24 = last day
 export const TOTAL_DAYS =
   Math.floor((PROJECT_END.getTime() - PROJECT_START.getTime()) / (1000 * 60 * 60 * 24)) + 1
 
@@ -64,7 +65,7 @@ export const kpiData = [
   { icon: "tool", value: "2", label: "SPMT 세트 (SPMT Set)" },
   { icon: "package", value: "7", label: "TR 유닛 (TR Units)" },
   { icon: "flag", value: "Jan 26", label: "시작일 (Start Date)" },
-  { icon: "target", value: "Mar 22", label: "종료일 (End Date)" },
+  { icon: "target", value: "Mar 24", label: "종료일 (End Date)" },
 ]
 
 export const voyages = [

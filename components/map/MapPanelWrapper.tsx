@@ -20,6 +20,8 @@ const MapPanel = dynamic(() => import('./MapPanel').then((m) => m.MapPanel), {
 })
 
 type MapPanelWrapperProps = {
+  /** When provided, no internal fetch; parent is SSOT source. */
+  ssot?: OptionC | null
   selectedTripId?: string | null
   selectedTrIds?: string[]
   selectedActivityId?: string | null
@@ -29,6 +31,7 @@ type MapPanelWrapperProps = {
 }
 
 export function MapPanelWrapper({
+  ssot: ssotProp,
   selectedTripId = null,
   selectedTrIds = [],
   selectedActivityId = null,
@@ -36,21 +39,24 @@ export function MapPanelWrapper({
   onTrClick,
   onActivitySelect,
 }: MapPanelWrapperProps) {
-  const [ssot, setSsot] = useState<OptionC | null>(null)
+  const [internalSsot, setInternalSsot] = useState<OptionC | null>(null)
   const [error, setError] = useState<string | null>(null)
   const viewModeCtx = useViewModeOptional()
   const riskOverlay: RiskOverlay = viewModeCtx?.state.riskOverlay ?? 'none'
   const viewMode: ViewMode = viewModeCtx?.state.mode ?? 'live'
 
+  const ssot = ssotProp !== undefined ? ssotProp : internalSsot
+
   useEffect(() => {
+    if (ssotProp !== undefined) return
     fetch('/api/ssot')
       .then((res) => {
         if (!res.ok) throw new Error(`SSOT fetch failed: ${res.status}`)
         return res.json()
       })
-      .then((data: OptionC) => setSsot(data))
+      .then((data: OptionC) => setInternalSsot(data))
       .catch((e) => setError(e.message))
-  }, [])
+  }, [ssotProp])
 
   if (error) {
     return (

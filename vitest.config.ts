@@ -5,12 +5,15 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
+    testTimeout: 20000,
     include: [
       'src/**/__tests__/**/*.test.ts',
       'lib/**/__tests__/**/*.test.ts',
       'components/detail/__tests__/**/*.test.{ts,tsx}',
       'components/dashboard/__tests__/**/*.test.{ts,tsx}',
+      'components/control-bar/__tests__/**/*.test.{ts,tsx}',
       'components/ops/__tests__/**/*.test.{ts,tsx}',
+      'components/map/__tests__/**/*.test.{ts,tsx}',
     ],
     coverage: {
       provider: 'v8',

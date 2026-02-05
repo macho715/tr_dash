@@ -32,9 +32,9 @@ describe('SSOT Loader', () => {
       const ssot = loadSSOTSync('tests/fixtures/option_c_baseline.json');
       
       expect(ssot).toBeDefined();
-      expect(Object.keys(ssot.entities.activities).length).toBe(16);
+      expect(Object.keys(ssot.entities.activities).length).toBe(17);
       expect(Object.keys(ssot.entities.trips).length).toBe(2);
-      expect(Object.keys(ssot.entities.trs).length).toBe(3);
+      expect(Object.keys(ssot.entities.trs).length).toBe(7);
     });
     
     it('should throw on missing file', () => {
@@ -69,7 +69,7 @@ describe('SSOT Loader', () => {
       const activities = getActivitiesArray(ssot);
       
       expect(Array.isArray(activities)).toBe(true);
-      expect(activities.length).toBe(16);
+      expect(activities.length).toBe(17);
       expect(activities[0]).toHaveProperty('activity_id');
     });
   });

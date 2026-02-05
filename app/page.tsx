@@ -38,8 +38,9 @@ import { AlertsSection } from "@/components/dashboard/sections/alerts-section"
 import { VoyagesSection } from "@/components/dashboard/sections/voyages-section"
 import { ScheduleSection } from "@/components/dashboard/sections/schedule-section"
 import { GanttSection } from "@/components/dashboard/sections/gantt-section"
+import { WidgetErrorBoundary, WidgetErrorFallback } from "@/components/dashboard/WidgetErrorBoundary"
 import { scheduleActivities } from "@/lib/data/schedule-data"
-import { voyages } from "@/lib/dashboard-data"
+import { voyages, PROJECT_END_DATE } from "@/lib/dashboard-data"
 import {
   runAgiOpsPipeline,
   createDefaultOpsState,
@@ -48,6 +49,7 @@ import { runPipelineCheck } from "@/lib/ops/agi-schedule/pipeline-check"
 import { detectResourceConflicts } from "@/lib/utils/detect-resource-conflicts"
 import { calculateDelta } from "@/lib/compare/compare-loader"
 import { reflowSchedule } from "@/lib/utils/schedule-reflow"
+import { addUTCDays, dateToIsoUtc, parseUTCDate } from "@/lib/ssot/schedule"
 import { appendHistoryEvent } from "@/lib/store/trip-store"
 import { useViewModeOptional } from "@/src/lib/stores/view-mode-store"
 import { weatherForecast, weatherLimits } from "@/lib/weather/weather-service"
@@ -69,7 +71,6 @@ type SectionItem = {
   count?: number
 }
 
-const PROJECT_END_DATE = "2026-03-24"
 /** patchmain #11: ScrollSpy offset (header + summary bar height) */
 const SCROLL_SPY_OFFSET = 120
 
@@ -176,6 +177,7 @@ export default function Page() {
   const [trips, setTrips] = useState<{ trip_id: string; name: string }[]>([])
   const [trs, setTrs] = useState<{ tr_id: string; name: string }[]>([])
   const [ssot, setSsot] = useState<OptionC | null>(null)
+  const [ssotError, setSsotError] = useState<string | null>(null)
   const [reflowPreview, setReflowPreview] = useState<{
     changes: ImpactReport["changes"]
     conflicts: ImpactReport["conflicts"]
@@ -186,8 +188,12 @@ export default function Page() {
   const [showWhatIfPanel, setShowWhatIfPanel] = useState(false)
 
   useEffect(() => {
+    setSsotError(null)
     fetch("/api/ssot")
-      .then((r) => r.ok ? r.json() : null)
+      .then((r) => {
+        if (!r.ok) throw new Error(`SSOT failed: ${r.status}`)
+        return r.json()
+      })
       .then((data: OptionC | null) => {
         if (data) {
           setSsot(data)
@@ -209,7 +215,10 @@ export default function Page() {
           )
         }
       })
-      .catch(() => {})
+      .catch((e: unknown) => {
+        const msg = e instanceof Error ? e.message : "SSOT load failed"
+        setSsotError(msg)
+      })
   }, [])
 
   const findTrIdForActivity = (activityId: string): string | null => {
@@ -450,9 +459,9 @@ export default function Page() {
     const activity = activities.find(a => a.activity_id === scenario.activity_id)
     if (!activity) return
 
-    const newStartDate = new Date(activity.planned_start)
-    newStartDate.setDate(newStartDate.getDate() + scenario.delay_days)
-    const newStart = newStartDate.toISOString().split("T")[0]
+    const baseDate = parseUTCDate(activity.planned_start.slice(0, 10))
+    const newDate = addUTCDays(baseDate, scenario.delay_days)
+    const newStart = dateToIsoUtc(newDate)
 
     try {
       const result = reflowSchedule(activities, scenario.activity_id, newStart, {
@@ -513,6 +522,14 @@ export default function Page() {
         </a>
 
         <DashboardHeader />
+        {ssotError && (
+          <div
+            className="rounded-lg border border-amber-500/50 bg-amber-500/10 px-4 py-2 text-sm text-amber-800 dark:text-amber-200"
+            role="alert"
+          >
+            {ssotError}
+          </div>
+        )}
         <main id="main" tabIndex={-1} className="flex flex-1 flex-col min-h-0">
           <DashboardLayout
             trips={trips}
@@ -547,19 +564,30 @@ export default function Page() {
               <TrThreeColumnLayout
                 mapSlot={
                   <div className="space-y-3">
-                    <MapPanelWrapper
-                      selectedActivityId={selectedActivityId ?? selectedCollision?.activity_id ?? focusedActivityId ?? null}
-                      onTrClick={(trId) => setSelectedTrId(trId)}
-                      onActivitySelect={(activityId) => {
-                        setSelectedActivityId(activityId)
-                        setFocusedActivityId(activityId)
-                        const trId = findTrIdForActivity(activityId)
-                        if (trId) setSelectedTrId(trId)
-                        ganttRef.current?.scrollToActivity?.(activityId)
-                        const ganttSection = document.getElementById("gantt")
-                        ganttSection?.scrollIntoView({ behavior: "smooth", block: "start" })
-                      }}
-                    />
+                    <WidgetErrorBoundary
+                      widgetName="Map"
+                      fallback={
+                        <WidgetErrorFallback
+                          widgetName="Map"
+                          onRetry={() => window.location.reload()}
+                        />
+                      }
+                    >
+                      <MapPanelWrapper
+                        ssot={ssot}
+                        selectedActivityId={selectedActivityId ?? selectedCollision?.activity_id ?? focusedActivityId ?? null}
+                        onTrClick={(trId) => setSelectedTrId(trId)}
+                        onActivitySelect={(activityId) => {
+                          setSelectedActivityId(activityId)
+                          setFocusedActivityId(activityId)
+                          const trId = findTrIdForActivity(activityId)
+                          if (trId) setSelectedTrId(trId)
+                          ganttRef.current?.scrollToActivity?.(activityId)
+                          const ganttSection = document.getElementById("gantt")
+                          ganttSection?.scrollIntoView({ behavior: "smooth", block: "start" })
+                        }}
+                      />
+                    </WidgetErrorBoundary>
                     <VoyagesSection
                       onSelectVoyage={setSelectedVoyage}
                       selectedVoyage={selectedVoyage}
@@ -569,7 +597,16 @@ export default function Page() {
                 timelineSlot={
                   <div className="flex flex-1 flex-col min-h-0">
                     <ScheduleSection />
-                    <GanttSection
+                    <WidgetErrorBoundary
+                      widgetName="Gantt"
+                      fallback={
+                        <WidgetErrorFallback
+                          widgetName="Gantt"
+                          onRetry={() => window.location.reload()}
+                        />
+                      }
+                    >
+                      <GanttSection
                       ganttRef={ganttRef}
                       activities={activities}
                       view={timelineView}
@@ -631,6 +668,7 @@ export default function Page() {
                       weatherOverlayVisible={isLiveMode}
                       weatherOverlayOpacity={0.15}
                     />
+                    </WidgetErrorBoundary>
                   </div>
                 }
                 detailSlot={

@@ -500,7 +500,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
     <section className="flex flex-col flex-1 min-h-0 bg-card/85 backdrop-blur-lg rounded-2xl p-6 border border-accent/15">
       <h2 className="text-foreground text-base font-bold mb-5 flex items-center gap-2 tracking-tight">
         <Calendar className="w-5 h-5 text-cyan-400" />
-        Gantt Chart (Jan 26 - Mar 22, 2026)
+        Gantt Chart (Jan 26 - Mar 24, 2026)
         <span className="flex-1 h-px bg-gradient-to-r from-accent/40 to-transparent ml-3" />
       </h2>
 
