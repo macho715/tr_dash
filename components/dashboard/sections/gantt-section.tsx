@@ -8,10 +8,12 @@ import type { WeatherDelayChange } from "@/lib/weather/weather-delay-preview"
 import type { WeatherForecastData, WeatherLimits } from "@/lib/weather/weather-service"
 import type { CompareResult } from "@/lib/compare/types"
 import type { GhostBarMetadata } from "@/lib/gantt/visTimelineMapper"
+import type { OptionC } from "@/src/types/ssot"
 
 type GanttSectionProps = {
   ganttRef: Ref<GanttChartHandle>
   activities: ScheduleActivity[]
+  ssot?: OptionC | null
   view: TimelineView
   onViewChange: (view: TimelineView) => void
   highlightFlags: HighlightFlags
@@ -37,11 +39,14 @@ type GanttSectionProps = {
   weatherOverlayVisible?: boolean
   weatherOverlayOpacity?: number
   projectEndDate: string
+  onOpenEvidence?: (activityId: string) => void
+  onOpenHistory?: (activityId: string) => void
 }
 
 export function GanttSection({
   ganttRef,
   activities,
+  ssot,
   view,
   onViewChange,
   highlightFlags,
@@ -64,12 +69,15 @@ export function GanttSection({
   weatherOverlayVisible,
   weatherOverlayOpacity,
   projectEndDate,
+  onOpenEvidence,
+  onOpenHistory,
 }: GanttSectionProps) {
   return (
     <section id="gantt" aria-label="Gantt Chart" className="flex flex-1 flex-col min-h-0">
       <GanttChart
         ref={ganttRef}
         activities={activities}
+        ssot={ssot}
         view={view}
         onViewChange={onViewChange}
         highlightFlags={highlightFlags}
@@ -92,6 +100,8 @@ export function GanttSection({
         weatherOverlayVisible={weatherOverlayVisible}
         weatherOverlayOpacity={weatherOverlayOpacity}
         projectEndDate={projectEndDate}
+        onOpenEvidence={onOpenEvidence}
+        onOpenHistory={onOpenHistory}
       />
     </section>
   )

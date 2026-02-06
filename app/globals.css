@@ -269,6 +269,39 @@ body::before {
   background: rgba(30, 41, 59, 0.5) !important;
 }
 
+.gantt-vis-wrapper .vis-labelset .vis-label .custom-group {
+  width: 100%;
+  padding: 6px 8px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Level 0: TR Unit (진하게, 보라색) */
+.gantt-vis-wrapper .vis-labelset .vis-label .custom-group.group-level-0 {
+  color: #e9d5ff !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  padding: 8px 12px !important;
+  background: linear-gradient(
+    to right,
+    rgba(147, 51, 234, 0.25),
+    rgba(147, 51, 234, 0.08)
+  ) !important;
+  border-left: 4px solid rgba(147, 51, 234, 0.8) !important;
+}
+
+/* Level 1: Date + Phase (중간, 청록색) */
+.gantt-vis-wrapper .vis-labelset .vis-label .custom-group.group-level-1 {
+  color: #67e8f9 !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  padding: 6px 20px !important;
+  background: rgba(6, 182, 212, 0.12) !important;
+  border-left: 3px solid rgba(6, 182, 212, 0.5) !important;
+}
+
 .gantt-vis-wrapper .vis-foreground .vis-group {
   border-color: rgba(6, 182, 212, 0.12) !important;
 }
@@ -313,6 +346,24 @@ body::before {
   background: linear-gradient(to right, rgba(192, 132, 252, 0.6), rgba(139, 92, 246, 0.6)) !important;
   border-color: rgba(167, 139, 250, 0.7) !important;
 }
+
+/* TR Summary bar (collapse 상태에서 표시) */
+.gantt-vis-wrapper .vis-item.gantt-tr-summary {
+  background: linear-gradient(to right, rgba(147, 51, 234, 0.4), rgba(99, 102, 241, 0.3)) !important;
+  border: 2px solid rgba(147, 51, 234, 0.8) !important;
+  border-radius: 6px !important;
+  opacity: 0.9 !important;
+  height: 28px !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
+  z-index: 5 !important;
+}
+
+.gantt-vis-wrapper .vis-item.gantt-tr-summary .vis-item-content {
+  font-weight: 600 !important;
+  font-size: 12px !important;
+  color: #e9d5ff !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5) !important;
+}
 .gantt-vis-wrapper .vis-item.gantt-type-loadout {
   background: linear-gradient(to right, rgba(103, 232, 249, 0.6), rgba(6, 182, 212, 0.6)) !important;
   border-color: rgba(34, 211, 238, 0.7) !important;
@@ -332,6 +383,71 @@ body::before {
 .gantt-vis-wrapper .vis-item.gantt-type-jackdown {
   background: linear-gradient(to right, rgba(96, 165, 250, 0.6), rgba(59, 130, 246, 0.6)) !important;
   border-color: rgba(96, 165, 250, 0.7) !important;
+}
+
+/* Event overlays: Actual / Hold / Milestone */
+.gantt-vis-wrapper .vis-item.actual-bar {
+  background-color: rgba(34, 197, 94, 0.28) !important;
+  border: 2px solid rgba(34, 197, 94, 0.8) !important;
+  box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.3);
+  z-index: 6 !important;
+}
+.gantt-vis-wrapper .vis-item.actual-bar.variance-positive {
+  border-color: rgba(239, 68, 68, 0.85) !important;
+}
+.gantt-vis-wrapper .vis-item.actual-bar.variance-negative {
+  border-color: rgba(16, 185, 129, 0.85) !important;
+}
+
+.gantt-vis-wrapper .vis-item.hold-bar {
+  background-color: rgba(239, 68, 68, 0.18) !important;
+  border: none !important;
+  opacity: 0.6 !important;
+  z-index: 1 !important;
+}
+.gantt-vis-wrapper .vis-item.hold-weather {
+  background-color: rgba(251, 191, 36, 0.25) !important;
+}
+.gantt-vis-wrapper .vis-item.hold-ptw {
+  background-color: rgba(249, 115, 22, 0.25) !important;
+}
+.gantt-vis-wrapper .vis-item.hold-berth_occupied {
+  background-color: rgba(147, 51, 234, 0.22) !important;
+}
+.gantt-vis-wrapper .vis-item.hold-mws {
+  background-color: rgba(236, 72, 153, 0.25) !important;
+}
+.gantt-vis-wrapper .vis-item.hold-resource {
+  background-color: rgba(59, 130, 246, 0.22) !important;
+}
+.gantt-vis-wrapper .vis-item.hold-other {
+  background-color: rgba(148, 163, 184, 0.2) !important;
+}
+
+.gantt-vis-wrapper .vis-item.vis-point[class*="milestone-"] {
+  width: 12px !important;
+  height: 12px !important;
+  border-radius: 999px !important;
+  z-index: 7 !important;
+  color: #0f172a !important;
+  font-size: 8px;
+  font-weight: 700;
+}
+.gantt-vis-wrapper .vis-item.vis-point.milestone-arrive {
+  background-color: #3b82f6 !important;
+  border: 2px solid #1e40af !important;
+}
+.gantt-vis-wrapper .vis-item.vis-point.milestone-depart {
+  background-color: #f59e0b !important;
+  border: 2px solid #d97706 !important;
+}
+.gantt-vis-wrapper .vis-item.vis-point.milestone-approved {
+  background-color: #10b981 !important;
+  border: 2px solid #059669 !important;
+}
+.gantt-vis-wrapper .vis-item.vis-point.milestone-rejected {
+  background-color: #ef4444 !important;
+  border: 2px solid #dc2626 !important;
 }
 .gantt-vis-wrapper .vis-item.vis-range:not(.baseline-ghost):not([class*="gantt-type-"]) {
   background-color: rgba(6, 182, 212, 0.2) !important;

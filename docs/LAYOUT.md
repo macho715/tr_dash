@@ -6,9 +6,9 @@ updated: 2026-02-04
 
 # HVDC TR Transport Dashboard - Layout 문서
 
-> **버전**: 1.6.0  
-> **최종 업데이트**: 2026-02-04  
-> **최신 작업 반영**: 2026-02-04 — Weather Overlay 구현 완료 (Canvas z-0, Range culling, Opacity 슬라이더, UI 토글 🌦️/🌤️, RAF throttle 10fps, 테스트 2/2 ✅). [weather-overlay-implementation-plan.md](plan/weather-overlay-implementation-plan.md)  
+> **버전**: 1.8.0  
+> **최종 업데이트**: 2026-02-05  
+> **최신 작업 반영**: 2026-02-05 — Gantt Reset 버튼 & Activity 디버깅 강화 (Phase 13 완료). Timeline controls에 Reset 버튼 추가, Activity 로딩 디버깅 로그. Event Sourcing Overlay Pipeline 구현 완료 (Event Log → Actual/Hold/Milestone → Gantt 오버레이. 3-PR: ID Resolution/JSON Patch/KPI Calc. Plan 불변, actual만 갱신). [WORK_LOG_20260202.md](WORK_LOG_20260202.md). Weather Overlay (Canvas z-0, Range culling, Opacity 슬라이더, UI 토글 🌦️/🌤️, RAF throttle 10fps, 테스트 2/2 ✅). [weather-overlay-implementation-plan.md](plan/weather-overlay-implementation-plan.md)  
 > **프로젝트**: HVDC TR Transport Dashboard - AGI Site  
 > **SSOT**: patch.md, option_c.json (AGENTS.md)
 
@@ -530,6 +530,17 @@ body {
    - 뷰 모드 전환 (Week/Month/Quarter)
    - 하이라이트 플래그 토글
    - 날짜 점프 기능
+   - **Zoom/Pan Controls** (vis-timeline 사용 시):
+     - Zoom In/Out (+ / -)
+     - Pan Left/Right (← / →)
+     - Fit All (⊡)
+     - Today (현재 날짜로 이동)
+     - **Reset (⟲)** (Phase 13, 2026-02-05): 
+       - Gantt 전체 리셋 버튼 (주황색 hover)
+       - View → Day, 모든 필터/하이라이트 비활성화
+       - 모든 TR 그룹 펼치기, Event overlays/Heatmap 비활성화
+       - Timeline fit (전체 보기)
+       - `handleResetGantt()` in `gantt-chart.tsx`
 
 2. **GanttChart**
    - 타임라인 차트. **조건부 엔진**: `NEXT_PUBLIC_GANTT_ENGINE=vis` 시 `VisTimelineGantt`(vis-timeline), 미설정 시 CSS/SVG 커스텀 Gantt. Vis 사용 시 Day/Week 뷰, Selected Date 커서(UTC), 6종 액티비티 모두 막대(bar) 표시(동일일 최소 1일 길이). 환경에 따른 엔진 선택 로직은 `components/dashboard/gantt-chart.tsx`의 `useVisEngine`(process.env).
@@ -540,6 +551,14 @@ body {
    - **A3 Mapper Caching (2026-02-04)**: Row-level 캐시 (LRU 200), `visTimelineMapper.ts`. 1개 row 변경 시 1개만 재계산, 재렌더링 30% 개선.
    - **B5 Dependency Type (2026-02-04)**: FS/SS/FF/SF 타입별 시각화, `DependencyArrowsOverlay.tsx` (SVG overlay, z-10). Live DOM 좌표, 4가지 스타일 구분, Lag 라벨. ResizeObserver + RAF throttle. `VisTimelineGantt` rangechange/changed callbacks 동기화.
    - **Weather Overlay (2026-02-04)**: ✅ **구현 완료** - Canvas 배경 레이어 (z-0), NO_GO/NEAR_LIMIT 시각화, Opacity 슬라이더 (5-40%), UI 토글 (🌦️/🌤️), Range culling, RAF throttle (10fps), DPI 2x. `WeatherOverlay.tsx`, `weather-overlay.ts`, `weather-overlay.test.ts` (테스트 2/2 passed).
+   - **Event Overlays (Phase 12, 2026-02-05)**: ✅ **구현 완료**
+     - **Actual Bar**: START/END 이벤트 기반, variance class (On Time/Early/Delayed)
+     - **HOLD Period**: HOLD/RESUME 페어링, reason_tag 구분 (Weather/PTW/Berth/MWS)
+     - **MILESTONE Marker**: ARRIVE/DEPART 포인트 (A/D 심볼)
+     - **UI Toggles**: Show Actual/Hold/Milestone (timeline-controls)
+     - **Overlay Legend**: 조건부 범례 표시 (Actual/Hold/Milestone 스타일)
+     - **Event Log Loader**: localStorage cache (1-hour TTL) + `/data/event-logs/sample_events.json` fallback
+     - **Mapper**: `lib/gantt/event-sourcing-mapper.ts` (Activity + Events → Enhanced VisItems)
    - 스크롤 및 줌 기능
 
 **Props** (실제 코드 기준):
@@ -888,7 +907,7 @@ sequenceDiagram
 ---
 
 **문서 작성일**: 2025-01-31  
-**최종 업데이트**: 2026-02-04 (SyncInitialDate, GanttLegendDrawer, MapLegend, gantt-legend-guide 반영)  
+**최종 업데이트**: 2026-02-05 (Phase 12 Event Sourcing Overlay 반영)  
 **프로젝트**: HVDC TR Transport Dashboard  
 
 ## Refs

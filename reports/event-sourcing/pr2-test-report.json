@@ -1,0 +1,224 @@
+{
+  "timestamp": "2026-02-05T18:55:53.590Z",
+  "total_operations": 16,
+  "validation_result": {
+    "valid": true,
+    "errors": [],
+    "forbidden_paths": []
+  },
+  "patch_file": {
+    "schema": "https://datatracker.ietf.org/doc/html/rfc6902",
+    "generated_at": "2026-02-05T18:55:53.590Z",
+    "source": {
+      "pr1_report_id": "2026-02-05T18:55:53.588Z",
+      "events_count": 12,
+      "linked_events_count": 4
+    },
+    "operations": [
+      {
+        "op": "replace",
+        "path": "/entities/activities/A1000/actual/start_ts",
+        "value": "2026-01-26T08:00:00+04:00"
+      },
+      {
+        "op": "replace",
+        "path": "/entities/activities/A1000/state",
+        "value": "in_progress"
+      },
+      {
+        "op": "add",
+        "path": "/entities/activities/A1000/event_log_refs",
+        "value": [
+          "EVT-00001",
+          "EVT-00002",
+          "EVT-00001",
+          "EVT-00002"
+        ]
+      },
+      {
+        "op": "add",
+        "path": "/entities/activities/A1000/event_log_refs/-",
+        "value": "EVT-00001"
+      },
+      {
+        "op": "replace",
+        "path": "/entities/activities/A1000/actual/end_ts",
+        "value": "2026-01-26T18:00:00+04:00"
+      },
+      {
+        "op": "replace",
+        "path": "/entities/activities/A1000/actual/progress_pct",
+        "value": 100
+      },
+      {
+        "op": "replace",
+        "path": "/entities/activities/A1000/state",
+        "value": "done"
+      },
+      {
+        "op": "add",
+        "path": "/entities/activities/A1000/event_log_refs/-",
+        "value": "EVT-00002"
+      },
+      {
+        "op": "add",
+        "path": "/entities/activities/A1100/history_events",
+        "value": [
+          {
+            "event_id": "EVT-00015",
+            "ts": "2026-02-03T12:00:00+04:00",
+            "actor": "system",
+            "event_type": "milestone",
+            "entity_ref": {
+              "entity_type": "activity",
+              "entity_id": "A1100"
+            },
+            "details": {
+              "phase": "BERTHING",
+              "state": "ARRIVE",
+              "note": "LCT Arrival at AGI",
+              "site": "AGI"
+            }
+          },
+          {
+            "event_id": "EVT-00015",
+            "ts": "2026-02-03T12:00:00+04:00",
+            "actor": "system",
+            "event_type": "milestone",
+            "entity_ref": {
+              "entity_type": "activity",
+              "entity_id": "A1100"
+            },
+            "details": {
+              "phase": "BERTHING",
+              "state": "ARRIVE",
+              "note": "LCT Arrival at AGI",
+              "site": "AGI"
+            }
+          }
+        ]
+      },
+      {
+        "op": "add",
+        "path": "/entities/activities/A1100/history_events/-",
+        "value": {
+          "event_id": "EVT-00015",
+          "ts": "2026-02-03T12:00:00+04:00",
+          "actor": "system",
+          "event_type": "milestone",
+          "entity_ref": {
+            "entity_type": "activity",
+            "entity_id": "A1100"
+          },
+          "details": {
+            "phase": "BERTHING",
+            "state": "ARRIVE",
+            "note": "LCT Arrival at AGI",
+            "site": "AGI"
+          }
+        }
+      },
+      {
+        "op": "add",
+        "path": "/entities/activities/A1100/event_log_refs",
+        "value": [
+          "EVT-00015",
+          "EVT-00015"
+        ]
+      },
+      {
+        "op": "add",
+        "path": "/entities/activities/A1100/event_log_refs/-",
+        "value": "EVT-00015"
+      },
+      {
+        "op": "add",
+        "path": "/entities/activities/A1121/history_events",
+        "value": [
+          {
+            "event_id": "EVT-00044",
+            "ts": "2026-02-06T12:00:00+04:00",
+            "actor": "system",
+            "event_type": "milestone",
+            "entity_ref": {
+              "entity_type": "activity",
+              "entity_id": "A1121"
+            },
+            "details": {
+              "phase": "SAIL",
+              "state": "DEPART",
+              "note": "LCT departed back to MZP",
+              "site": "AGI"
+            }
+          },
+          {
+            "event_id": "EVT-00044",
+            "ts": "2026-02-06T12:00:00+04:00",
+            "actor": "system",
+            "event_type": "milestone",
+            "entity_ref": {
+              "entity_type": "activity",
+              "entity_id": "A1121"
+            },
+            "details": {
+              "phase": "SAIL",
+              "state": "DEPART",
+              "note": "LCT departed back to MZP",
+              "site": "AGI"
+            }
+          }
+        ]
+      },
+      {
+        "op": "add",
+        "path": "/entities/activities/A1121/history_events/-",
+        "value": {
+          "event_id": "EVT-00044",
+          "ts": "2026-02-06T12:00:00+04:00",
+          "actor": "system",
+          "event_type": "milestone",
+          "entity_ref": {
+            "entity_type": "activity",
+            "entity_id": "A1121"
+          },
+          "details": {
+            "phase": "SAIL",
+            "state": "DEPART",
+            "note": "LCT departed back to MZP",
+            "site": "AGI"
+          }
+        }
+      },
+      {
+        "op": "add",
+        "path": "/entities/activities/A1121/event_log_refs",
+        "value": [
+          "EVT-00044",
+          "EVT-00044"
+        ]
+      },
+      {
+        "op": "add",
+        "path": "/entities/activities/A1121/event_log_refs/-",
+        "value": "EVT-00044"
+      }
+    ]
+  },
+  "operations_by_type": {
+    "replace": 5,
+    "add": 11
+  },
+  "affected_activities": 3,
+  "statistics": {
+    "by_field": {
+      "start_ts": 1,
+      "state": 2,
+      "event_log_refs": 3,
+      "-": 6,
+      "end_ts": 1,
+      "progress_pct": 1,
+      "history_events": 2
+    },
+    "avg_operations_per_activity": 5.333333333333333
+  }
+}

@@ -15,7 +15,9 @@ import {
   activityTypeNames,
 } from "@/lib/dashboard-data"
 import { scheduleActivitiesToGanttRows } from "@/lib/data/schedule-data"
-import { ganttRowsToVisDataCached } from "@/lib/gantt/visTimelineMapper"
+import { buildGroupedVisData, applyGanttFilters } from "@/lib/gantt/grouping"
+import { buildDensityBuckets } from "@/lib/gantt/density"
+import { loadEventLog } from "@/lib/data/event-log-loader"
 import type { VisTimelineGanttHandle } from "@/components/gantt/VisTimelineGantt"
 import { DependencyArrowsOverlay } from "@/components/gantt/DependencyArrowsOverlay"
 import { WeatherOverlay } from "@/components/gantt/WeatherOverlay"
@@ -48,14 +50,20 @@ import {
   parseDateToNoonUtc,
   toUtcNoon,
   dateToIsoUtc,
+  diffUTCDays,
 } from "@/lib/ssot/schedule"
 import {
   TimelineControls,
   type HighlightFlags,
   type TimelineView,
+  type TimelineFilters,
+  type GroupingState,
+  type EventOverlayToggles,
 } from "@/components/dashboard/timeline-controls"
 import { cn } from "@/lib/utils"
 import { useDate } from "@/lib/contexts/date-context"
+import { useViewModeOptional } from "@/src/lib/stores/view-mode-store"
+import { checkEvidenceGate } from "@/src/lib/state-machine/evidence-gate"
 import {
   getConstraintBadges,
   getCollisionBadges,
@@ -67,6 +75,10 @@ import type { CompareResult } from "@/lib/compare/types"
 import { calculateSlack } from "@/lib/utils/slack-calc"
 import { getLegendDefinition, type LegendDefinition } from "@/lib/gantt-legend-guide"
 import { GanttLegendDrawer } from "@/components/dashboard/GanttLegendDrawer"
+import { GanttMiniMap } from "@/components/gantt/GanttMiniMap"
+import { DensityHeatmapOverlay } from "@/components/gantt/DensityHeatmapOverlay"
+import type { EventLogItem } from "@/lib/ops/event-sourcing/types"
+import type { Activity as SsotActivity, ActivityState, OptionC } from "@/src/types/ssot"
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24
 const DAYS_PER_WEEK = 7
@@ -152,11 +164,43 @@ function formatShortDateUtc(date: Date) {
   return `${month}-${day}`
 }
 
+function getEvidenceTargetState(state: ActivityState): ActivityState {
+  if (state === "in_progress") return "completed"
+  if (state === "planned" || state === "ready" || state === "blocked") return "in_progress"
+  return state
+}
+
+function getFirstEventTs(
+  events: EventLogItem[],
+  state: EventLogItem["state"]
+): string | null {
+  const match = events
+    .filter((event) => event.state === state)
+    .sort((a, b) => new Date(a.ts).getTime() - new Date(b.ts).getTime())[0]
+  return match?.ts ?? null
+}
+
+function getLastEventTs(
+  events: EventLogItem[],
+  state: EventLogItem["state"]
+): string | null {
+  const matches = events
+    .filter((event) => event.state === state)
+    .sort((a, b) => new Date(a.ts).getTime() - new Date(b.ts).getTime())
+  return matches.length > 0 ? matches[matches.length - 1].ts : null
+}
+
 interface TooltipState {
   visible: boolean
   x: number
   y: number
   activity: Activity | null
+}
+
+interface HoverCardState {
+  activityId: string
+  x: number
+  y: number
 }
 
 export interface GanttChartHandle {
@@ -165,6 +209,7 @@ export interface GanttChartHandle {
 
 interface GanttChartProps {
   activities: ScheduleActivity[]
+  ssot?: OptionC | null
   view: TimelineView
   onViewChange: (view: TimelineView) => void
   highlightFlags: HighlightFlags
@@ -199,11 +244,14 @@ interface GanttChartProps {
   projectEndDate: string
   /** GANTTPATCH2: Event stream (ITEM_SELECTED, GANTT_READY) */
   onGanttEvent?: (event: GanttEventBase) => void
+  onOpenEvidence?: (activityId: string) => void
+  onOpenHistory?: (activityId: string) => void
 }
 
 export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function GanttChart(
   {
     activities,
+    ssot,
     view,
     onViewChange,
     highlightFlags,
@@ -227,10 +275,14 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
     weatherOverlayOpacity = 0.15,
     projectEndDate,
     onGanttEvent,
+    onOpenEvidence,
+    onOpenHistory,
   },
   ref
 ) {
   const { selectedDate, setSelectedDate } = useDate()
+  const viewMode = useViewModeOptional()
+  const canEdit = viewMode?.canEdit ?? true
   const [legendDrawerItem, setLegendDrawerItem] = useState<LegendDefinition | null>(null)
   const [collisionPopover, setCollisionPopover] = useState<{
     x: number
@@ -243,6 +295,8 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
     y: 0,
     activity: null,
   })
+  const [hoverCard, setHoverCard] = useState<HoverCardState | null>(null)
+  const hoverHideTimeoutRef = useRef<number | null>(null)
   const ganttContainerRef = useRef<HTMLDivElement>(null)
   const visContainerRef = useRef<HTMLDivElement>(null)
   const activityRefs = useRef<Map<string, HTMLDivElement>>(new Map())
@@ -255,6 +309,22 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
     end: PROJECT_END,
   })
   const [visRange, setVisRange] = useState(visRangeRef.current)
+  const [filters, setFilters] = useState<TimelineFilters>({
+    criticalOnly: false,
+    blockedOnly: false,
+  })
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set())
+  const [heatmapEnabled, setHeatmapEnabled] = useState(false)
+  const [eventOverlays, setEventOverlays] = useState<EventOverlayToggles>({
+    showActual: false,
+    showHold: false,
+    showMilestone: false,
+  })
+  const [eventLogByActivity, setEventLogByActivity] = useState<
+    Map<string, EventLogItem[]>
+  >(new Map())
+  const [eventLogLoading, setEventLogLoading] = useState(false)
+  const [eventLogAttempted, setEventLogAttempted] = useState(false)
   const [weatherOverlayEnabled, setWeatherOverlayEnabled] = useState(
     weatherOverlayVisible
   )
@@ -264,29 +334,39 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
   // AGENTS.md §5.1: VisTimelineGantt 필수 사용 (vis-timeline 기반)
   const raw = (process.env.NEXT_PUBLIC_GANTT_ENGINE || "vis").trim().toLowerCase()
   const useVisEngine = raw === "vis"
-  const ganttRows = useMemo(
-    () => scheduleActivitiesToGanttRows(activities),
-    [activities]
-  )
+  const eventOverlayEnabled =
+    useVisEngine &&
+    (eventOverlays.showActual || eventOverlays.showHold || eventOverlays.showMilestone)
+  const showOverlayLegend =
+    useVisEngine &&
+    (eventOverlays.showActual || eventOverlays.showHold || eventOverlays.showMilestone)
   const totalWeeks = Math.ceil(TOTAL_DAYS / DAYS_PER_WEEK)
   const totalUnits = view === "Day" ? TOTAL_DAYS : totalWeeks
   const unitWidth = view === "Day" ? 22 : 120
   const chartWidth = Math.max(1000, totalUnits * unitWidth)
 
+  const slackMap = useMemo(
+    () => calculateSlack(activities, projectEndDate),
+    [activities, projectEndDate]
+  )
+  const filteredActivities = useMemo(
+    () => applyGanttFilters(activities, filters, slackMap),
+    [activities, filters, slackMap]
+  )
+  const ganttRows = useMemo(
+    () => scheduleActivitiesToGanttRows(filteredActivities),
+    [filteredActivities]
+  )
+
   const activityMeta = useMemo(() => {
     const map = new Map<string, ScheduleActivity>()
-    for (const activity of activities) {
+    for (const activity of filteredActivities) {
       if (activity.activity_id) {
         map.set(activity.activity_id, activity)
       }
     }
     return map
-  }, [activities])
-
-  const slackMap = useMemo(
-    () => calculateSlack(activities, projectEndDate),
-    [activities, projectEndDate]
-  )
+  }, [filteredActivities])
 
   const { barPositions, dependencyEdges } = useMemo(() => {
     const positions = new Map<
@@ -321,7 +401,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
       (e) => positions.has(e.predId) && positions.has(e.succId)
     )
     return { barPositions: positions, dependencyEdges: validEdges }
-  }, [activities, view, totalUnits, activityMeta])
+  }, [ganttRows, view, totalUnits, activityMeta])
 
   const dateMarks = useMemo(() => {
     const marks: string[] = []
@@ -335,6 +415,19 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
     return marks
   }, [view, totalWeeks])
 
+  const density = useMemo(
+    () => buildDensityBuckets(filteredActivities, PROJECT_START, PROJECT_END),
+    [filteredActivities]
+  )
+
+  const groupingState: GroupingState = useMemo(
+    () => ({
+      enabled: useVisEngine,
+      collapsed: collapsedGroups,
+    }),
+    [useVisEngine, collapsedGroups]
+  )
+
   const getDatePosition = (date: Date) => {
     const noon = toUtcNoon(date)
     const daysFromStart =
@@ -346,15 +439,52 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
     return Math.max(0, Math.min(100, ((daysFromStart - 0.5) / totalUnits) * 100))
   }
 
-  const visData = useMemo(
-    () =>
-      ganttRowsToVisDataCached(ganttRows, compareDelta, {
-        reflowPreview,
-        weatherPreview,
-        weatherPropagated,
-      }),
-    [ganttRows, compareDelta, reflowPreview, weatherPreview, weatherPropagated]
-  )
+  const groupedVisData = useMemo(() => {
+    if (!useVisEngine) return null
+    
+    const result = buildGroupedVisData({
+      activities: filteredActivities,
+      compareDelta,
+      reflowPreview,
+      weatherPreview,
+      weatherPropagated,
+      collapsedGroupIds: collapsedGroups,
+      eventLogByActivity: eventOverlayEnabled ? eventLogByActivity : undefined,
+      eventOverlay: eventOverlayEnabled ? eventOverlays : undefined,
+    })
+    return result
+  }, [
+    useVisEngine,
+    filteredActivities,
+    compareDelta,
+    reflowPreview,
+    weatherPreview,
+    weatherPropagated,
+    collapsedGroups,
+    eventOverlayEnabled,
+    eventLogByActivity,
+    eventOverlays,
+  ])
+
+  const isGhostItemId = (id: string) =>
+    id.startsWith("ghost_") ||
+    id.startsWith("reflow_ghost_") ||
+    id.startsWith("weather_ghost_") ||
+    id.startsWith("weather_prop_ghost_")
+
+  const isOverlayNonInteractiveId = (id: string) =>
+    id.startsWith("hold__") || id.startsWith("milestone__")
+
+  const normalizeItemId = (id: string) => {
+    if (id.startsWith("ghost_")) return id.slice(6)
+    if (id.startsWith("reflow_ghost_")) return id.slice(13)
+    if (id.startsWith("weather_ghost_")) return id.slice(14)
+    if (id.startsWith("weather_prop_ghost_")) return id.slice(20)
+    if (id.startsWith("actual__")) return id.slice(8)
+    if (id.startsWith("hold__")) return id.split("__")[1] ?? id
+    if (id.startsWith("milestone__")) return id.split("__")[1] ?? id
+    return id
+  }
 
   const scrollToActivity = (activityId: string) => {
     const normalizedId = activityId.split(":")[0].trim()
@@ -405,6 +535,24 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
     setWeatherOverlayOpacityValue(weatherOverlayOpacity)
   }, [weatherOverlayOpacity])
 
+  useEffect(() => {
+    if (!eventOverlayEnabled) return
+    if (eventLogLoading || eventLogAttempted) return
+    let active = true
+    setEventLogLoading(true)
+    setEventLogAttempted(true)
+    loadEventLog()
+      .then((map) => {
+        if (active) setEventLogByActivity(map)
+      })
+      .finally(() => {
+        if (active) setEventLogLoading(false)
+      })
+    return () => {
+      active = false
+    }
+  }, [eventOverlayEnabled, eventLogLoading, eventLogAttempted])
+
   const scheduleVisRenderTick = () => {
     if (visRenderRaf.current !== null) return
     visRenderRaf.current = requestAnimationFrame(() => {
@@ -426,6 +574,89 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
     scheduleVisRangeUpdate()
     scheduleVisRenderTick()
   }
+
+  const handleCollapseAll = () => {
+    if (!groupedVisData) return
+    setCollapsedGroups(new Set(groupedVisData.parentGroupIds))
+  }
+
+  const handleExpandAll = () => {
+    setCollapsedGroups(new Set())
+  }
+
+  const handleResetGantt = () => {
+    // 1. Reset view to Day
+    onViewChange?.("Day")
+
+    // 2. Reset filters
+    setFilters({ criticalOnly: false, blockedOnly: false })
+
+    // 3. Reset highlight flags
+    onHighlightFlagsChange?.({ delay: false, lock: false, constraint: false })
+
+    // 4. Expand all groups
+    setCollapsedGroups(new Set())
+
+    // 5. Reset event overlays
+    setEventOverlays({ showActual: false, showHold: false, showMilestone: false })
+
+    // 6. Disable heatmap
+    setHeatmapEnabled(false)
+
+    // 7. Fit timeline
+    if (visTimelineRef.current) {
+      setTimeout(() => {
+        visTimelineRef.current?.fit()
+      }, 100)
+    }
+  }
+
+  const handleGroupClick = (groupId: string) => {
+    if (!groupedVisData?.parentGroupIds.has(groupId)) return
+    setCollapsedGroups((prev) => {
+      const next = new Set(prev)
+      if (next.has(groupId)) {
+        next.delete(groupId)
+      } else {
+        next.add(groupId)
+      }
+      return next
+    })
+  }
+
+  const clearHoverHideTimeout = () => {
+    if (hoverHideTimeoutRef.current !== null) {
+      window.clearTimeout(hoverHideTimeoutRef.current)
+      hoverHideTimeoutRef.current = null
+    }
+  }
+
+  const handleItemHover = (payload: { id: string; x: number; y: number }) => {
+    if (isGhostItemId(payload.id) || isOverlayNonInteractiveId(payload.id)) return
+    const activityId = normalizeItemId(payload.id)
+    if (!activityMeta.has(activityId)) return
+    clearHoverHideTimeout()
+    setHoverCard({ activityId, x: payload.x, y: payload.y })
+  }
+
+  const handleItemBlur = () => {
+    clearHoverHideTimeout()
+    hoverHideTimeoutRef.current = window.setTimeout(() => {
+      setHoverCard(null)
+      hoverHideTimeoutRef.current = null
+    }, 120)
+  }
+
+  useEffect(() => {
+    if (!groupedVisData) return
+    setCollapsedGroups((prev) => {
+      const next = new Set<string>()
+      for (const id of prev) {
+        if (groupedVisData.parentGroupIds.has(id)) next.add(id)
+      }
+      return next.size === prev.size ? prev : next
+    })
+  }, [groupedVisData])
 
   useEffect(() => {
     if (jumpTrigger === 0) return
@@ -496,6 +727,71 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
     setTooltip({ visible: false, x: 0, y: 0, activity: null })
   }
 
+  const hoverActivity = hoverCard ? activityMeta.get(hoverCard.activityId) ?? null : null
+  const hoverEvents = hoverCard
+    ? eventLogByActivity.get(hoverCard.activityId) ?? []
+    : []
+  const hoverSsotActivity: SsotActivity | null =
+    hoverCard && ssot?.entities?.activities
+      ? ssot.entities.activities[hoverCard.activityId] ?? null
+      : null
+
+  const hoverEvidenceSummary = hoverSsotActivity
+    ? (() => {
+        const targetState = getEvidenceTargetState(hoverSsotActivity.state)
+        const gate = checkEvidenceGate(
+          hoverSsotActivity,
+          targetState,
+          hoverSsotActivity.state,
+          ssot ?? undefined
+        )
+        const missingTypes = Array.from(
+          new Set(gate.missing.map((missing) => missing.evidence_type))
+        )
+        return {
+          evidenceCount: hoverSsotActivity.evidence_ids?.length ?? 0,
+          missingCount: gate.missing.length,
+          missingTypes: missingTypes.length > 0 ? missingTypes.join(", ") : "—",
+        }
+      })()
+    : null
+
+  const derivedActualStart =
+    hoverActivity?.actual_start ?? getFirstEventTs(hoverEvents, "START")
+  const derivedActualEnd =
+    hoverActivity?.actual_finish ?? getLastEventTs(hoverEvents, "END")
+
+  const hoverProgressLabel = hoverActivity
+    ? (() => {
+        if (derivedActualEnd) return "Complete"
+        if (derivedActualStart && !derivedActualEnd) {
+          const todayIso = dateToIsoUtc(toUtcNoon(selectedDate))
+          const elapsed = Math.max(1, diffUTCDays(derivedActualStart, todayIso) + 1)
+          const duration = Math.max(1, Math.ceil(hoverActivity.duration))
+          const pct = Math.min(100, Math.round((elapsed / duration) * 100))
+          return `In progress • ${pct}% (${elapsed}/${duration}d)`
+        }
+        return "Planned"
+      })()
+    : "Planned"
+
+  const handleQuickEdit = (activityId: string) => {
+    const meta = activityMeta.get(activityId)
+    if (!meta || !onActivityClick) return
+    onActivityClick(activityId, meta.planned_start)
+    setHoverCard(null)
+  }
+
+  const handleQuickEvidence = (activityId: string) => {
+    onOpenEvidence?.(activityId)
+    setHoverCard(null)
+  }
+
+  const handleQuickHistory = (activityId: string) => {
+    onOpenHistory?.(activityId)
+    setHoverCard(null)
+  }
+
   return (
     <section className="flex flex-col flex-1 min-h-0 bg-card/85 backdrop-blur-lg rounded-2xl p-6 border border-accent/15">
       <h2 className="text-foreground text-base font-bold mb-5 flex items-center gap-2 tracking-tight">
@@ -509,6 +805,15 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
         onViewChange={onViewChange}
         highlightFlags={highlightFlags}
         onHighlightFlagsChange={onHighlightFlagsChange}
+        filters={filters}
+        onFiltersChange={setFilters}
+        grouping={groupingState}
+        onCollapseAll={handleCollapseAll}
+        onExpandAll={handleExpandAll}
+        eventOverlays={useVisEngine ? eventOverlays : undefined}
+        onEventOverlaysChange={useVisEngine ? setEventOverlays : undefined}
+        heatmapEnabled={heatmapEnabled}
+        onHeatmapToggle={() => setHeatmapEnabled((prev) => !prev)}
         jumpDate={jumpDate}
         onJumpDateChange={onJumpDateChange}
         onJumpRequest={onJumpRequest}
@@ -521,10 +826,21 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
                 onToday: () => visTimelineRef.current?.moveToToday(selectedDate),
                 onPanLeft: () => visTimelineRef.current?.panLeft(),
                 onPanRight: () => visTimelineRef.current?.panRight(),
+                onReset: handleResetGantt,
               }
             : undefined
         }
       />
+      {!useVisEngine && (
+        <div className="mb-4 rounded-lg border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-xs text-amber-200">
+          Advanced grouping, mini-map, hover cards, and density heatmap are available in the vis-timeline engine.
+        </div>
+      )}
+      {eventOverlayEnabled && eventLogLoading && (
+        <div className="mb-4 rounded-lg border border-indigo-400/20 bg-indigo-500/10 px-3 py-2 text-xs text-indigo-200">
+          Loading event log overlays…
+        </div>
+      )}
 
       {/* Legend — P1-4: 클릭 시 Drawer(태그 정의·의사결정 영향) */}
       <div className="flex flex-wrap gap-5 p-4 bg-glass rounded-xl mb-5 border border-accent/15">
@@ -660,6 +976,58 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
           </>
         )}
       </div>
+      {showOverlayLegend && (
+        <div className="flex flex-wrap gap-4 p-4 bg-glass rounded-xl mb-5 border border-accent/15 text-xs text-slate-400">
+          {eventOverlays.showActual && (
+            <>
+              <div className="flex items-center gap-2">
+                <div className="h-3 w-8 rounded bg-emerald-500/30 border-2 border-emerald-500/70" />
+                <span>Actual (On Time)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="h-3 w-8 rounded bg-emerald-500/30 border-2 border-emerald-600/90" />
+                <span>Actual (Early)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="h-3 w-8 rounded bg-red-500/30 border-2 border-red-500/80" />
+                <span>Actual (Delayed)</span>
+              </div>
+            </>
+          )}
+          {eventOverlays.showHold && (
+            <>
+              <div className="flex items-center gap-2">
+                <div className="h-3 w-8 rounded bg-yellow-500/30" />
+                <span>Hold (Weather)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="h-3 w-8 rounded bg-orange-500/30" />
+                <span>Hold (PTW)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="h-3 w-8 rounded bg-purple-500/30" />
+                <span>Hold (Berth)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="h-3 w-8 rounded bg-pink-500/30" />
+                <span>Hold (MWS)</span>
+              </div>
+            </>
+          )}
+          {eventOverlays.showMilestone && (
+            <>
+              <div className="flex items-center gap-2">
+                <div className="h-3 w-3 rounded-full bg-blue-500 border-2 border-blue-700" />
+                <span>Arrive</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="h-3 w-3 rounded-full bg-orange-500 border-2 border-orange-700" />
+                <span>Depart</span>
+              </div>
+            </>
+          )}
+        </div>
+      )}
       {legendDrawerItem && (
         <GanttLegendDrawer
           item={legendDrawerItem}
@@ -671,6 +1039,13 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
       <div className="flex min-h-[400px] flex-1 flex-col">
       {useVisEngine ? (
         <div ref={visContainerRef} className="relative flex-1 min-h-[400px]">
+          {heatmapEnabled && (
+            <DensityHeatmapOverlay
+              buckets={density.buckets}
+              maxCount={density.maxCount}
+              className="pointer-events-none absolute inset-0 z-0"
+            />
+          )}
           {weatherOverlayEnabled && weatherForecast && weatherLimits && (
             <WeatherOverlay
               containerRef={visContainerRef as React.RefObject<HTMLDivElement>}
@@ -691,24 +1066,19 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
           />
           <VisTimelineGantt
             ref={visTimelineRef}
-            groups={visData.groups}
-            items={visData.items}
+            groups={groupedVisData?.groups ?? []}
+            items={groupedVisData?.items ?? []}
             selectedDate={selectedDate}
             view={view}
             onEvent={onGanttEvent}
             onRangeChange={handleVisRangeChange}
             onRender={scheduleVisRenderTick}
+            onItemHover={handleItemHover}
+            onItemBlur={handleItemBlur}
+            onGroupClick={handleGroupClick}
             onItemClick={(id) => {
-              const activityId = id.startsWith("ghost_")
-                ? id.slice(6)
-                : id.startsWith("reflow_ghost_")
-                  ? id.slice(13)
-                  : id.startsWith("weather_ghost_")
-                    ? id.slice(14)
-                    : id.startsWith("weather_prop_ghost_")
-                      ? id.slice(20)
-                    : id
-              onActivityClick?.(activityId, activities.find((a) => a.activity_id === activityId)?.planned_start ?? "")
+              const activityId = normalizeItemId(id)
+              onActivityClick?.(activityId, activityMeta.get(activityId)?.planned_start ?? "")
               scrollToActivity(activityId)
               const ganttSection = document.getElementById("gantt")
               ganttSection?.scrollIntoView({ behavior: "smooth", block: "start" })
@@ -716,6 +1086,20 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
             onDeselect={onActivityDeselect}
             focusedActivityId={focusedActivityId}
           />
+          {groupedVisData && (
+            <div className="absolute bottom-3 right-3 z-30">
+              <GanttMiniMap
+                buckets={density.buckets}
+                maxCount={density.maxCount}
+                projectStart={PROJECT_START}
+                projectEnd={PROJECT_END}
+                visibleRange={visRange}
+                onWindowChange={(start, end) =>
+                  visTimelineRef.current?.setWindow(start, end, { animation: true })
+                }
+              />
+            </div>
+          )}
         </div>
       ) : (
       <div className="overflow-x-auto flex-1 min-h-0" ref={ganttContainerRef}>
@@ -1048,6 +1432,66 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
               <strong className="text-slate-300">Type:</strong>{" "}
               {activityTypeNames[tooltip.activity.type]}
             </p>
+          </div>
+        </div>
+      )}
+
+      {hoverCard && hoverActivity && (
+        <div
+          className="fixed z-50 w-72 rounded-xl border border-cyan-500/40 bg-slate-900/95 p-4 text-xs text-slate-200 shadow-2xl"
+          style={{ left: hoverCard.x, top: hoverCard.y, transform: "translate(-40%, -110%)" }}
+          onMouseEnter={clearHoverHideTimeout}
+          onMouseLeave={() => setHoverCard(null)}
+        >
+          <div className="flex items-center justify-between gap-2">
+            <div className="font-semibold text-sm text-foreground">
+              {hoverActivity.activity_name || hoverActivity.activity_id}
+            </div>
+            <span className="rounded bg-slate-800 px-2 py-0.5 text-[10px] uppercase text-slate-400">
+              {hoverActivity.status ?? "planned"}
+            </span>
+          </div>
+          <div className="mt-2 space-y-1 text-[11px] text-slate-400">
+            <div>
+              <span className="text-slate-300">Progress:</span> {hoverProgressLabel}
+            </div>
+            <div>
+              <span className="text-slate-300">Owner/Resource:</span>{" "}
+              {hoverActivity.resource_tags?.[0] ?? "Unassigned"}
+            </div>
+            {hoverEvidenceSummary && (
+              <div>
+                <span className="text-slate-300">Evidence:</span>{" "}
+                {hoverEvidenceSummary.evidenceCount} attached • Missing{" "}
+                {hoverEvidenceSummary.missingCount} ({hoverEvidenceSummary.missingTypes})
+              </div>
+            )}
+          </div>
+          <div className="mt-3 flex gap-2">
+            <button
+              type="button"
+              onClick={() => handleQuickEdit(hoverCard.activityId)}
+              disabled={!canEdit || !onActivityClick}
+              className="flex-1 rounded-md border border-cyan-500/40 px-2 py-1 text-xs font-semibold text-cyan-200 hover:bg-cyan-500/10 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Edit
+            </button>
+            <button
+              type="button"
+              onClick={() => handleQuickEvidence(hoverCard.activityId)}
+              disabled={!onOpenEvidence}
+              className="flex-1 rounded-md border border-slate-700/60 px-2 py-1 text-xs font-semibold text-slate-200 hover:bg-slate-800/60 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Evidence
+            </button>
+            <button
+              type="button"
+              onClick={() => handleQuickHistory(hoverCard.activityId)}
+              disabled={!onOpenHistory}
+              className="flex-1 rounded-md border border-slate-700/60 px-2 py-1 text-xs font-semibold text-slate-200 hover:bg-slate-800/60 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              History
+            </button>
           </div>
         </div>
       )}

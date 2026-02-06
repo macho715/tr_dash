@@ -6,8 +6,8 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue)](https://www.typescriptlang.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.1-38bdf8)](https://tailwindcss.com/)
 
-**최종 업데이트**: 2026-02-04  
-**최신 작업 반영**: SSOT 파일 출처 가드 구현 완료 (option_c_v0.8.0.json 우선, 폴백 메커니즘, activities 유효성 검사, 테스트 7/7 ✅). [docs/plan/ssot-source-guard-implementation.md](docs/plan/ssot-source-guard-implementation.md), [docs/WORK_LOG_20260202.md](docs/WORK_LOG_20260202.md)
+**최종 업데이트**: 2026-02-05  
+**최신 작업 반영**: Gantt Reset 버튼 추가 & Activity 디버깅 강화 ([docs/GANTT_RESET_AND_DEBUG.md](docs/GANTT_RESET_AND_DEBUG.md)). SSOT 파일 출처 가드 구현 완료 (option_c_v0.8.0.json 우선, 폴백 메커니즘, activities 유효성 검사, 테스트 7/7 ✅). [docs/plan/ssot-source-guard-implementation.md](docs/plan/ssot-source-guard-implementation.md), [docs/WORK_LOG_20260202.md](docs/WORK_LOG_20260202.md)
 
 ---
 
@@ -478,6 +478,64 @@ Private project - Samsung C&T × Mammoet. 자세한 내용은 [LICENSE](LICENSE)
 ---
 
 ## 📝 최근 업데이트
+
+### 2026-02-05: Gantt Reset 버튼 & Activity 디버깅 강화 ✅
+
+#### Reset 버튼 구현
+- **위치**: Timeline controls (Zoom/Pan 버튼 옆)
+- **아이콘**: ⟲ (RotateCcw, 주황색 hover)
+- **동작**:
+  - View → Day 리셋
+  - 모든 필터/하이라이트 비활성화
+  - 모든 TR 그룹 펼치기
+  - Event overlays/Heatmap 비활성화
+  - Timeline fit (전체 보기)
+
+#### 디버깅 강화
+- **Activity 로딩 추적**: 브라우저 콘솔에 상세 로그
+  - `[Gantt Debug]` Filtered activities count, groups, items
+  - `[Grouping Debug]` TR groups, TR labels
+  - `[Reset]` Reset 프로세스 단계별 로그
+- **구현 파일**:
+  - `components/dashboard/timeline-controls.tsx` (Reset UI)
+  - `components/dashboard/gantt-chart.tsx` (handleResetGantt)
+  - `lib/gantt/grouping.ts` (TR 그룹핑 디버그)
+
+**상세 문서**: [docs/GANTT_RESET_AND_DEBUG.md](docs/GANTT_RESET_AND_DEBUG.md)
+
+---
+
+### 2026-02-05: Event Sourcing & Overlay Pipeline 통합 (완료 ✅)
+
+#### Event Sourcing Pipeline (3-PR)
+- **PR#1**: Activity ID Resolution & QA Gates
+  - Direct/Alias/Auto-match 지원 (`lib/ops/event-sourcing/activity-resolver.ts`)
+  - 4개 QA Gate (Pair closure, Hold closure, Milestone misuse, Timestamp order)
+  - Matching rate ≥95% 보장
+- **PR#2**: JSON Patch Generation (RFC 6902)
+  - `plan.*` 필드 immutable 보장 (`lib/ops/event-sourcing/patch-generator.ts`)
+  - `actual.*`, `state`, `blocker_*` 자동 갱신
+  - MILESTONE → `history_events` 분리
+- **PR#3**: Derived KPI Calculation
+  - Calendar Track (actual/planned duration, variance, delay breakdown)
+  - Workday Track (선택적, shift_calendar 기반)
+  - High variance (≥8hr) 알람 (`lib/ops/event-sourcing/kpi-calculator.ts`)
+
+#### Gantt Chart Event Overlays
+- **Actual Bar**: Plan vs Actual 시각화 (On Time/Early/Delayed)
+- **HOLD Period**: Weather/PTW/Berth/MWS 이유별 구분
+- **MILESTONE Marker**: Arrive/Depart 포인트
+- **UI Toggles**: Show Actual/Hold/Milestone (`timeline-controls.tsx`)
+- **Overlay Legend**: Actual/Hold/Milestone 범례 (조건부 표시)
+
+#### 구현 파일
+- Event Sourcing Core: `lib/ops/event-sourcing/` (6개 파일 + 4개 테스트)
+- Gantt Mapper: `lib/gantt/event-sourcing-mapper.ts` (Activity + Events → Enhanced VisItems)
+- Event Loader: `lib/data/event-log-loader.ts` (localStorage cache + static JSON)
+- Sample Data: `public/data/event-logs/sample_events.json`
+
+#### 스타일링
+- `app/globals.css`: actual-bar, hold-bar (weather/ptw/berth/mws), milestone-arrive/depart
 
 ### 2026-02-04: P1-1 SyncInitialDate, P1-4 GanttLegendDrawer, MapLegend
 

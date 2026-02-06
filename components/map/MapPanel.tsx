@@ -69,11 +69,21 @@ export function MapPanel({
   onActivitySelect,
 }: MapPanelProps) {
   const [mounted, setMounted] = useState(false)
+  const [mapReady, setMapReady] = useState(false)
   const [showHeatmapLegend] = useState(true)
 
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  // Defer Leaflet mount until container is in DOM (avoids appendChild on undefined)
+  useEffect(() => {
+    if (!mounted) return
+    const t = requestAnimationFrame(() => {
+      requestAnimationFrame(() => setMapReady(true))
+    })
+    return () => cancelAnimationFrame(t)
+  }, [mounted])
 
   const locations = useMemo(
     () => ({
@@ -255,7 +265,7 @@ export function MapPanel({
 
   return (
     <div className="relative h-[280px] w-full overflow-hidden rounded-lg" data-testid="map-panel">
-      {mounted ? (
+      {mounted && mapReady ? (
         <MapContent
           heatPoints={heatPoints}
           locations={locations}

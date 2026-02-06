@@ -14,22 +14,53 @@ import optionCv08Raw from "../../data/schedule/option_c_v0.8.0.json"
 
 type OptionCSource = {
   activities?: Record<string, unknown>[]
+  entities?: {
+    activities?: Record<string, Record<string, unknown>>
+  }
   contract?: { version?: string }
 }
 
-function hasActivities(source: OptionCSource | null | undefined): source is {
-  activities: Record<string, unknown>[]
-} {
+function hasActivitiesArray(source: OptionCSource | null | undefined): boolean {
   return Array.isArray(source?.activities) && source.activities.length > 0
+}
+
+function hasEntitiesActivities(source: OptionCSource | null | undefined): boolean {
+  const entities = source?.entities
+  if (!entities) return false
+  const activities = entities.activities
+  return typeof activities === "object" && activities !== null && Object.keys(activities).length > 0
+}
+
+function normalizeToActivitiesArray(source: OptionCSource): { activities: Record<string, unknown>[] } {
+  // Contract v0.8.0 format: entities.activities (dictionary)
+  if (hasEntitiesActivities(source)) {
+    const activitiesDict = source.entities!.activities!
+    const activitiesArray = Object.entries(activitiesDict).map(([id, activity]) => ({
+      activity_id: id,
+      ...activity
+    }))
+    return { activities: activitiesArray }
+  }
+  
+  // Legacy format: activities (array)
+  if (hasActivitiesArray(source)) {
+    return { activities: source.activities! }
+  }
+  
+  return { activities: [] }
 }
 
 let selectedSource: OptionCSource | null = null
 const optionCv08 = optionCv08Raw as OptionCSource
 const optionCLegacy = optionCDataRaw as OptionCSource
 
-if (hasActivities(optionCv08)) {
+if (hasEntitiesActivities(optionCv08) || hasActivitiesArray(optionCv08)) {
   selectedSource = optionCv08
-} else if (hasActivities(optionCLegacy)) {
+  if (process.env.NODE_ENV !== "production") {
+    const format = hasEntitiesActivities(optionCv08) ? "v0.8.0 (entities)" : "v0.8.0 (array)"
+    console.log(`[SSOT] Using option_c_v0.8.0.json (${format})`)
+  }
+} else if (hasEntitiesActivities(optionCLegacy) || hasActivitiesArray(optionCLegacy)) {
   selectedSource = optionCLegacy
   if (process.env.NODE_ENV !== "production") {
     console.warn(
@@ -43,9 +74,8 @@ if (hasActivities(optionCv08)) {
   )
 }
 
-const mapped = mapOptionCJsonToScheduleActivities(
-  selectedSource as { activities: Record<string, unknown>[] }
-)
+const normalizedSource = normalizeToActivitiesArray(selectedSource)
+const mapped = mapOptionCJsonToScheduleActivities(normalizedSource)
 export const scheduleActivities: ScheduleActivity[] = inferDependencies(mapped)
 
 function mapAnchorTypeToActivityType(anchorType: AnchorType | undefined): ActivityType {

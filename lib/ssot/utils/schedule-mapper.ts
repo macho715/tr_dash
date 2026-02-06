@@ -4,16 +4,56 @@ export function mapOptionCToScheduleActivity(
   raw: Record<string, unknown>,
   _index?: number
 ): ScheduleActivity {
-  const activityName = typeof raw.activity_name === "string" ? raw.activity_name : ""
+  const activityName = typeof raw.activity_name === "string" ? raw.activity_name : 
+    (typeof raw.title === "string" ? raw.title : "")
   const level2 = typeof raw.level2 === "string" ? raw.level2 : null
   const activityId =
     typeof raw.activity_id === "string" || raw.activity_id === null ? raw.activity_id : null
 
   const isSummary = activityId === null
-  const trUnitId = extractTRUnitId(activityName)
+  
+  // Contract v0.8.0: Use tr_unit_id field directly if available
+  let trUnitId: TRUnitId | undefined
+  if (typeof raw.tr_unit_id === "string" && raw.tr_unit_id) {
+    // Convert "TR_01" format to "TR-1" format
+    const match = raw.tr_unit_id.match(/TR[_-](\d+)/i)
+    if (match) {
+      const num = parseInt(match[1], 10)
+      trUnitId = `TR-${num}` as TRUnitId
+    } else if (raw.tr_unit_id === "MOBILIZATION" || raw.tr_unit_id === "DEMOBILIZATION") {
+      // Keep as-is for special TR types
+      trUnitId = raw.tr_unit_id as TRUnitId
+    }
+  }
+  
+  // Fallback: Extract from activity name
+  if (!trUnitId) {
+    trUnitId = extractTRUnitId(activityName)
+  }
+  
   const anchorType = extractAnchorType(activityName, level2)
   const resourceTags = extractResourceTags(activityName)
   const voyageId = trUnitId ? extractVoyageId(trUnitId) : undefined
+
+  // Contract v0.8.0: dates in plan.start_ts / plan.end_ts (ISO 8601 timestamps)
+  // Legacy: dates in planned_start / planned_finish (YYYY-MM-DD)
+  let plannedStart = ""
+  let plannedFinish = ""
+  let duration = 0
+
+  if (typeof raw.plan === "object" && raw.plan !== null) {
+    // Contract v0.8.0 format
+    const plan = raw.plan as Record<string, unknown>
+    // Extract date part from ISO timestamp: "2026-01-26T00:00:00+04:00" -> "2026-01-26"
+    plannedStart = typeof plan.start_ts === "string" ? plan.start_ts.split("T")[0] : ""
+    plannedFinish = typeof plan.end_ts === "string" ? plan.end_ts.split("T")[0] : ""
+    duration = typeof plan.duration_min === "number" ? Math.ceil(plan.duration_min / 1440) : 0
+  } else {
+    // Legacy format
+    plannedStart = typeof raw.planned_start === "string" ? raw.planned_start : ""
+    plannedFinish = typeof raw.planned_finish === "string" ? raw.planned_finish : ""
+    duration = typeof raw.duration === "number" ? raw.duration : 0
+  }
 
   return {
     ...(raw as ScheduleActivity),
@@ -21,9 +61,9 @@ export function mapOptionCToScheduleActivity(
     activity_name: activityName,
     level1: typeof raw.level1 === "string" ? raw.level1 : "",
     level2,
-    duration: typeof raw.duration === "number" ? raw.duration : 0,
-    planned_start: typeof raw.planned_start === "string" ? raw.planned_start : "",
-    planned_finish: typeof raw.planned_finish === "string" ? raw.planned_finish : "",
+    duration,
+    planned_start: plannedStart,
+    planned_finish: plannedFinish,
     _is_summary: isSummary,
     tr_unit_id: trUnitId,
     anchor_type: anchorType,

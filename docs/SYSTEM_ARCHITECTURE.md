@@ -6,9 +6,9 @@ updated: 2026-02-04
 
 # HVDC TR Transport Dashboard - 시스템 아키텍처
 
-**버전**: 1.6  
-**최종 업데이트**: 2026-02-04  
-**최신 작업 반영**: 2026-02-04 — Weather Overlay 구현 완료 (Canvas z-0, Range culling, Opacity 슬라이더 5-40%, UI 토글 🌦️/🌤️, RAF throttle 10fps, DPI 2x, 테스트 2/2 ✅). [weather-overlay-implementation-plan.md](plan/weather-overlay-implementation-plan.md), [WORK_LOG_20260202](WORK_LOG_20260202.md), [LAYOUT.md](LAYOUT.md)  
+**버전**: 1.8  
+**최종 업데이트**: 2026-02-05  
+**최신 작업 반영**: 2026-02-05 — Gantt Reset 버튼 & Activity 디버깅 강화 (Phase 13 완료). Timeline controls에 Reset 버튼 추가, Activity 로딩 디버깅 로그. Event Sourcing Overlay Pipeline 구현 완료 (Event Log → Actual/Hold/Milestone → Gantt 오버레이. 3-PR: ID Resolution/JSON Patch/KPI Calc. Plan 불변, actual만 갱신). [WORK_LOG_20260202.md](WORK_LOG_20260202.md). Weather Overlay (2026-02-04). [weather-overlay-implementation-plan.md](plan/weather-overlay-implementation-plan.md)  
 **프로젝트**: HVDC TR Transport - AGI Site Logistics Dashboard  
 **SSOT**: patch.md, option_c.json (AGENTS.md)
 
@@ -44,10 +44,13 @@ HVDC TR Transport Dashboard는 **7개의 Transformer Unit**을 **LCT BUSHRA**로
 - **변경 영향 분석**: 일정 변경 시 영향받는 작업 자동 계산
 - **불변성 보장**: 원본 데이터 보호 및 안전한 상태 업데이트
 
-### 최근 반영 (Phase 6/7/10/11) — 본문 반영
+### 최근 반영 (Phase 6/7/10/11/12) — 본문 반영
 
 | Phase | 반영 내용 (본문과 일치하도록 유지) |
 |-------|-----------------------------------|
+| **Phase 13 (2026-02-05)** | **Gantt Reset 버튼 & Activity 디버깅**: Timeline controls에 Reset 버튼 추가 (⟲, 주황색 hover). handleResetGantt() — View/Filters/Highlights/Groups/Overlays/Heatmap 일괄 초기화. 디버그 로그: `[Gantt Debug]`, `[Grouping Debug]`, `[Reset]`. |
+| **Phase 12 (2026-02-05)** | **Event Sourcing Layer**: Event Log → Actual/Hold/Milestone → Gantt 오버레이. 3-PR Pipeline (ID Resolution/JSON Patch/KPI Calc). Plan 불변, actual만 갱신. lib/ops/event-sourcing/, lib/gantt/event-sourcing-mapper.ts. |
+| **Phase 12 (2026-02-05)** | Event Sourcing Overlay Pipeline: Event Log → Actual/Hold/Milestone → Gantt 오버레이. 3-PR (ID Resolution/JSON Patch/KPI Calc). Plan 불변, actual만 갱신. |
 | **Phase 6 Bug #1** | Selected Date UTC 정렬: `lib/ssot/schedule.ts`의 `dateToIsoUtc`, `toUtcNoon`. Gantt/DatePicker는 UTC 기준(YYYY-MM-DD)으로 축과 정렬. |
 | **Phase 6 Bug #2** | Trip/TR 필터: API 실패/7개 미만 시 voyages 기반 fallback. `selectedVoyage` ↔ `selectedTripId`/`selectedTrIds` 동기화. schedule-table 0개 시 7개 fallback. |
 | **Phase 6 Bug #3** | GlobalControlBar View 버튼: 클릭 시 `id="schedule"` Detailed Voyage Schedule로 스크롤. |
@@ -186,6 +189,7 @@ function GanttChart() {
   - **AGI 일정 연산**: `lib/ops/agi/`, `lib/ops/agi-schedule/` — applyShift, parseCommand, pipeline (reflowSchedule가 사용)
   - **AGI / pipeline**: `lib/ops/agi-schedule/pipeline-check.ts` — `runPipelineCheck` 입력 null/empty/partial 허용, 순수 함수.
   - **AGI 명령**: `lib/ops/agi/parseCommand.ts` — `/shift` 시 **pivot=YYYY-MM-DD** 필수.
+  - **Event Sourcing** (Phase 12): `lib/ops/event-sourcing/` — Activity ID resolution, QA gates, JSON Patch, KPI calculator (6개 모듈 + 4개 테스트)
   - **상태·증빙**: `src/lib/state-machine/` — State transitions, Evidence gates
   - **매퍼(SSOT)**: `lib/ssot/utils/schedule-mapper.ts` — TR Unit, Anchor 타입 추출 (데이터 변환)
   - `lib/utils/slack-calc.ts`: ES/EF/LS/LF, critical path
@@ -193,10 +197,10 @@ function GanttChart() {
   - `lib/baseline/`: Baseline/Approval 모드, baseline-compare.ts (computeActivityDiff)
   - `lib/compare/`: Compare Mode (Phase 10 완료)
   - `lib/contexts/`: date-context.tsx (DateProvider) — app에서 사용
-  - `lib/gantt/`: visTimelineMapper, gantt-contract (vis-timeline 연동/계약)
+  - `lib/gantt/`: visTimelineMapper, event-sourcing-mapper (Activity + Events → Enhanced VisItems), gantt-contract (vis-timeline 연동/계약)
   - `lib/gantt-legend-guide.ts`: P1-4 — LegendDefinition(stage/constraint/collision/meta), Gantt 범례 정의·의사결정 영향
   - `lib/dashboard-data.ts`: getSmartInitialDate (P1-1), getVoyageWindows, voyages, kpiData, PROJECT_START/END
-  - `lib/data/`: schedule-data.ts (진입점), go-nogo-data.ts, tide-data.ts, weather-data.ts
+  - `lib/data/`: schedule-data.ts (진입점), go-nogo-data.ts, tide-data.ts, weather-data.ts, event-log-loader.ts (Event log loader)
   - `lib/store/trip-store.ts`: History/Evidence localStorage (append-only)
   - `lib/reports/trip-report.ts`: Trip Report 생성 + MD/JSON Export
 - **특징**: 순수 함수, 사이드 이펙트 없음
@@ -553,6 +557,48 @@ const changeImpactItems = useMemo(() => {
 
 ---
 
+## Event Sourcing Layer (Phase 12, 2026-02-05)
+
+**책임**: Event Log 기반 실행 추적 및 KPI 계산
+
+**구성요소**:
+- `lib/ops/event-sourcing/` (6개 모듈 + 4개 테스트)
+  - activity-resolver: Activity ID 해결 (직접/alias/자동)
+  - validators: 4개 QA Gates (Pair/Hold closure, Milestone 분리, Timestamp 순서)
+  - patch-generator: JSON Patch ops 생성 (RFC 6902)
+  - kpi-calculator: Calendar/Workday KPI 계산
+  - pipeline-pr1/2/3: 3-PR 오케스트레이션
+  - types: EventLogItem, DerivedKPI, JsonPatchOp, ValidationResult
+
+**Event Sourcing 원칙**:
+1. **Immutable SSOT**: `plan.*` 필드 절대 수정 금지
+2. **Append-only Events**: `event_log_refs[]`, `history_events[]`
+3. **JSON Patch**: 부분 업데이트로 SSOT 안전성
+4. **ISO 8601+TZ**: 모든 timestamp는 `2026-01-26T08:00:00+04:00` 형식
+
+**Gantt 통합**:
+- `lib/gantt/event-sourcing-mapper.ts`: Activity + Events → Enhanced VisItems
+  - Plan bar (기본)
+  - Actual bar (START/END 이벤트 기반, variance class)
+  - HOLD periods (HOLD/RESUME 페어링, reason_tag별 스타일)
+  - MILESTONE markers (ARRIVE/DEPART 포인트)
+- `lib/data/event-log-loader.ts`: Event log 로더 (localStorage cache 1-hour TTL + static JSON fallback)
+
+**UI Controls**:
+- `timeline-controls.tsx`: Event Overlay Toggles (Show Actual/Hold/Milestone)
+- `gantt-chart.tsx`: Overlay Legend (조건부 표시)
+
+**레이어 구조 (업데이트)**:
+```
+z-20: Today Marker (SVG)
+z-10: DependencyArrowsOverlay (SVG)
+z-1:  VisTimelineGantt (vis-timeline DOM)
+      → Actual/Hold/Milestone overlays (vis-timeline items)
+z-0:  WeatherOverlay (Canvas)
+```
+
+---
+
 ## Mermaid 레퍼런스
 
 본 문서의 다이어그램은 [Mermaid](https://mermaid.js.org/) 문법으로 작성되었습니다. GitHub/GitLab, VS Code, Cursor 등에서 렌더링됩니다.
@@ -582,7 +628,7 @@ const changeImpactItems = useMemo(() => {
 
 ---
 
-**Last Updated**: 2026-02-04 (SyncInitialDate, GanttLegendDrawer, MapLegend, gantt-legend-guide 반영)
+**Last Updated**: 2026-02-05 (Phase 12 Event Sourcing 반영)
 
 ## Refs
 

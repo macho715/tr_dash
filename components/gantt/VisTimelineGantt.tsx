@@ -22,6 +22,7 @@ export interface VisTimelineGanttHandle {
   moveToToday: (date?: Date) => void
   panLeft: () => void
   panRight: () => void
+  setWindow: (start: Date, end: Date, opts?: { animation?: boolean }) => void
 }
 
 export type TimelineView = "Day" | "Week"
@@ -35,6 +36,9 @@ type Props = {
   /** GANTTPATCH2: Event stream (ITEM_SELECTED, GANTT_READY) */
   onEvent?: (event: GanttEventBase) => void
   onItemClick?: (itemId: string) => void
+  onItemHover?: (payload: { id: string; x: number; y: number }) => void
+  onItemBlur?: () => void
+  onGroupClick?: (groupId: string) => void
   /** Bug 3: 배경 클릭 시 선택 해제 → 화면 고정 해제 */
   onDeselect?: () => void
   focusedActivityId?: string | null
@@ -59,6 +63,9 @@ export const VisTimelineGantt = forwardRef<VisTimelineGanttHandle, Props>(
       view = "Day",
       onEvent,
       onItemClick,
+      onItemHover,
+      onItemBlur,
+      onGroupClick,
       onDeselect,
       focusedActivityId,
       tripId = 1,
@@ -71,6 +78,9 @@ export const VisTimelineGantt = forwardRef<VisTimelineGanttHandle, Props>(
     const timelineRef = useRef<Timeline | null>(null)
     const tripIdRef = useRef(tripId)
     const onItemClickRef = useRef(onItemClick)
+    const onItemHoverRef = useRef(onItemHover)
+    const onItemBlurRef = useRef(onItemBlur)
+    const onGroupClickRef = useRef(onGroupClick)
     const onDeselectRef = useRef(onDeselect)
     const onEventRef = useRef(onEvent)
     const onRangeChangeRef = useRef(onRangeChange)
@@ -79,6 +89,9 @@ export const VisTimelineGantt = forwardRef<VisTimelineGanttHandle, Props>(
       tripIdRef.current = tripId
     }, [tripId])
     onItemClickRef.current = onItemClick
+    onItemHoverRef.current = onItemHover
+    onItemBlurRef.current = onItemBlur
+    onGroupClickRef.current = onGroupClick
     onDeselectRef.current = onDeselect
     onEventRef.current = onEvent
     onRangeChangeRef.current = onRangeChange
@@ -123,6 +136,9 @@ export const VisTimelineGantt = forwardRef<VisTimelineGanttHandle, Props>(
         const newEnd = new Date(win.end.getTime() + 7 * MS_PER_DAY)
         timeline.setWindow(newStart, newEnd, { animation: true })
       },
+      setWindow(start: Date, end: Date, opts?: { animation?: boolean }) {
+        timelineRef.current?.setWindow(start, end, opts ?? { animation: true })
+      },
     }), [selectedDate])
 
     useEffect(() => {
@@ -151,6 +167,12 @@ export const VisTimelineGantt = forwardRef<VisTimelineGanttHandle, Props>(
         orientation: { axis: "top", item: "top" },
         showMajorLabels: true,
         showMinorLabels: true,
+        groupTemplate: (group?: { content?: string; level?: number }) => {
+          const level = typeof group?.level === "number" ? group.level : -1
+          const levelClass = level >= 0 ? `group-level-${level}` : ""
+          const label = group?.content ?? ""
+          return `<div class="custom-group ${levelClass}">${label}</div>`
+        },
       }
 
       const timeline = new Timeline(
@@ -177,6 +199,20 @@ export const VisTimelineGantt = forwardRef<VisTimelineGanttHandle, Props>(
           onEventRef.current?.(createItemSelectedEvent(itemId, tripIdRef.current, itemId))
         } else {
           onDeselectRef.current?.()
+        }
+      })
+      timeline.on("itemover", (props: { item?: string | number; event?: MouseEvent }) => {
+        const id = props.item != null ? String(props.item) : null
+        if (!id || !props.event) return
+        onItemHoverRef.current?.({ id, x: props.event.pageX, y: props.event.pageY })
+      })
+      timeline.on("itemout", () => {
+        onItemBlurRef.current?.()
+      })
+      timeline.on("click", (props: { group?: string | number; item?: string | number }) => {
+        if (props.item != null) return
+        if (props.group != null) {
+          onGroupClickRef.current?.(String(props.group))
         }
       })
       timeline.on("rangechange", emitRange)

@@ -15,7 +15,14 @@
     "sync:tide": "python scripts/sync_tide_to_dashboard.py",
     "sync:agent": "python scripts/sync_agent_to_dashboard.py",
     "validate:ssot": "python scripts/validate_optionc.py tests/fixtures/option_c_baseline.json",
-    "schema:smoke": "tsx scripts/schema-smoke.ts"
+    "schema:smoke": "tsx scripts/schema-smoke.ts",
+    "tdd:red": "tsx scripts/tdd-workflow.ts red",
+    "tdd:green": "tsx scripts/tdd-workflow.ts green",
+    "tdd:refactor": "tsx scripts/tdd-workflow.ts refactor",
+    "tdd:cycle": "tsx scripts/tdd-workflow.ts cycle",
+    "tdd:verify": "tsx scripts/tdd-workflow.ts verify",
+    "tdd:watch": "tsx scripts/tdd-workflow.ts watch",
+    "prepare": "command -v husky >/dev/null 2>&1 && husky install || true"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -61,6 +68,7 @@
     "lucide-react": "^0.454.0",
     "next": "16.0.10",
     "next-themes": "^0.4.6",
+    "radix-ui": "^1.4.3",
     "react": "19.2.0",
     "react-day-picker": "9.8.0",
     "react-dom": "19.2.0",
@@ -78,9 +86,13 @@
     "zod": "3.25.76"
   },
   "devDependencies": {
+    "@deck.gl/core": "^9.2.6",
+    "@deck.gl/layers": "^9.2.6",
+    "@deck.gl/mapbox": "^9.2.6",
     "@tailwindcss/postcss": "^4.1.9",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
+    "@types/leaflet": "^1.9.21",
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
@@ -90,13 +102,15 @@
     "eslint-config-next": "^16.1.6",
     "jsdom": "^28.0.0",
     "json-schema-to-ts": "^3.1.1",
+    "maplibre-gl": "^5.17.0",
     "postcss": "^8.5",
     "tailwindcss": "^4.1.9",
     "tsx": "^4.21.0",
     "tw-animate-css": "1.3.3",
     "typescript": "^5",
     "vercel": "^50.10.0",
-    "vitest": "^4.0.18"
+    "vitest": "^4.0.18",
+    "zustand": "^5.0.11"
   },
   "prettier": {
     "semi": false,

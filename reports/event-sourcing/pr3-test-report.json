@@ -1,0 +1,110 @@
+{
+  "timestamp": "2026-02-05T18:56:18.977Z",
+  "total_activities_with_kpi": 3,
+  "kpi_results": {
+    "A1000": {
+      "cal": {
+        "actual_duration_hr": 10,
+        "planned_duration_hr": 24,
+        "variance_hr": -14,
+        "delay_cal_hr": 0,
+        "delay_breakdown_hr": {}
+      },
+      "wd": {
+        "workday_duration": 0,
+        "workday_efficiency": 0
+      }
+    },
+    "A1100": {
+      "cal": {
+        "actual_duration_hr": 0,
+        "planned_duration_hr": 12,
+        "variance_hr": 0,
+        "delay_cal_hr": 0,
+        "delay_breakdown_hr": {}
+      },
+      "wd": {
+        "workday_duration": 0,
+        "workday_efficiency": 0
+      }
+    },
+    "A1121": {
+      "cal": {
+        "actual_duration_hr": 0,
+        "planned_duration_hr": 24,
+        "variance_hr": 0,
+        "delay_cal_hr": 0,
+        "delay_breakdown_hr": {}
+      },
+      "wd": {
+        "workday_duration": 0,
+        "workday_efficiency": 0
+      }
+    }
+  },
+  "kpi_patches": [
+    {
+      "op": "add",
+      "path": "/entities/activities/A1000/derived_kpi",
+      "value": {
+        "cal": {
+          "actual_duration_hr": 10,
+          "planned_duration_hr": 24,
+          "variance_hr": -14,
+          "delay_cal_hr": 0,
+          "delay_breakdown_hr": {}
+        },
+        "wd": {
+          "workday_duration": 0,
+          "workday_efficiency": 0
+        }
+      }
+    },
+    {
+      "op": "add",
+      "path": "/entities/activities/A1100/derived_kpi",
+      "value": {
+        "cal": {
+          "actual_duration_hr": 0,
+          "planned_duration_hr": 12,
+          "variance_hr": 0,
+          "delay_cal_hr": 0,
+          "delay_breakdown_hr": {}
+        },
+        "wd": {
+          "workday_duration": 0,
+          "workday_efficiency": 0
+        }
+      }
+    },
+    {
+      "op": "add",
+      "path": "/entities/activities/A1121/derived_kpi",
+      "value": {
+        "cal": {
+          "actual_duration_hr": 0,
+          "planned_duration_hr": 24,
+          "variance_hr": 0,
+          "delay_cal_hr": 0,
+          "delay_breakdown_hr": {}
+        },
+        "wd": {
+          "workday_duration": 0,
+          "workday_efficiency": 0
+        }
+      }
+    }
+  ],
+  "summary": {
+    "avg_variance_hr": -4.666666666666667,
+    "total_delay_hr": 0,
+    "delay_breakdown_total": {}
+  },
+  "high_variance_alerts": [
+    {
+      "activity_id": "A1000",
+      "variance_hr": -14,
+      "severity": "high"
+    }
+  ]
+}
