@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * MapPanel interaction tests (Phase 5 T5.5)
  *
@@ -6,6 +7,7 @@
  * - Activity selection highlights route segment
  */
 
+import '@testing-library/jest-dom/vitest'
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { MapPanel } from '../MapPanel'

@@ -112,7 +112,8 @@ function findFirstActivityInVoyageRange(
   return null
 }
 
-function normalizeTripMatchValue(value: string): string {
+function normalizeTripMatchValue(value: string | undefined | null): string {
+  if (!value) return ""
   return value.toLowerCase().replace(/[^a-z0-9]/g, "")
 }
 

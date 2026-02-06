@@ -31,13 +31,8 @@ function parseVoyageDate(dateStr: string): Date {
 export function VoyageCards({ onSelectVoyage, selectedVoyage }: VoyageCardsProps) {
   const { selectedDate } = useDate()
 
-  const filteredVoyages = voyages.filter((v) => {
-    const loadOutDate = parseVoyageDate(v.loadOut)
-    const jackDownDate = parseVoyageDate(v.jackDown)
-    return selectedDate >= loadOutDate && selectedDate <= jackDownDate
-  })
-
-  const displayVoyages = filteredVoyages.length > 0 ? filteredVoyages : voyages
+  // Show all voyages always (removed filtering)
+  const displayVoyages = voyages
 
   function getVoyageStatus(v: Voyage): MapSegmentStatus {
     const loadOut = parseVoyageDate(v.loadOut)
@@ -52,11 +47,6 @@ export function VoyageCards({ onSelectVoyage, selectedVoyage }: VoyageCardsProps
       <h2 className="text-foreground text-base font-bold mb-5 flex items-center gap-2 tracking-tight">
         <Ship className="w-5 h-5 text-cyan-400" />
         7 Voyages Overview
-        {displayVoyages.length < voyages.length && (
-          <span className="text-slate-500 text-xs font-normal">
-            ({displayVoyages.length} of {voyages.length} visible)
-          </span>
-        )}
         <span className="flex-1 h-px bg-gradient-to-r from-accent/40 to-transparent ml-3" />
       </h2>
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">

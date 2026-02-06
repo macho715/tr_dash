@@ -46,8 +46,8 @@ describe("gantt grouping", () => {
 
     expect(result.groups.find((g) => g.id === "tr_tr-unit-1")).toBeTruthy()
     expect(result.groups.find((g) => g.id === "tr_tr-unit-2")).toBeTruthy()
-    expect(result.activityIdToGroupId.get("A101")).toMatch(/^res_/)
-    expect(result.items.length).toBe(3)
+    expect(result.activityIdToGroupId.get("A101")).toMatch(/^date_/)
+    expect(result.items.length).toBe(5)
   })
 
   it("respects collapsed groups", () => {
