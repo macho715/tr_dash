@@ -478,6 +478,77 @@ export default function Page() {
     evidenceRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
   }
 
+  const handleActualUpdate = async (
+    activityId: string,
+    payload: { actualStart: string | null; actualEnd: string | null }
+  ) => {
+    const response = await fetch(`/api/activities/${activityId}/actual`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        actualStart: payload.actualStart,
+        actualEnd: payload.actualEnd,
+      }),
+    })
+
+    if (!response.ok) {
+      const data = (await response.json().catch(() => null)) as { error?: string } | null
+      throw new Error(data?.error || "Failed to update actual dates")
+    }
+
+    const data = (await response.json()) as {
+      activity: Activity
+      historyEvent?: { event_id: string }
+      transition?: { success: boolean; blocker_code?: string; reason?: string }
+      transitionEvent?: { event_id: string } | null
+    }
+
+    const actualStartIso = data.activity?.actual?.start_ts ?? payload.actualStart
+    const actualEndIso = data.activity?.actual?.end_ts ?? payload.actualEnd
+    const actualStartDate = actualStartIso ? actualStartIso.slice(0, 10) : undefined
+    const actualEndDate = actualEndIso ? actualEndIso.slice(0, 10) : undefined
+
+    setActivities((prev) =>
+      prev.map((activity) => {
+        if (activity.activity_id !== activityId) return activity
+        const nextStatus = actualEndDate
+          ? "done"
+          : actualStartDate
+            ? "in_progress"
+            : activity.status
+        return {
+          ...activity,
+          actual_start: actualStartDate,
+          actual_finish: actualEndDate,
+          status: nextStatus,
+        }
+      })
+    )
+
+    setSsot((prev) => {
+      if (!prev) return prev
+      const nextActivities = {
+        ...prev.entities.activities,
+        [activityId]: data.activity,
+      }
+      const nextHistory = [
+        ...(prev.history_events ?? []),
+        ...(data.transitionEvent ? [data.transitionEvent as any] : []),
+        ...(data.historyEvent ? [data.historyEvent as any] : []),
+      ]
+      return {
+        ...prev,
+        entities: {
+          ...prev.entities,
+          activities: nextActivities,
+        },
+        history_events: nextHistory,
+      }
+    })
+
+    return { transition: data.transition }
+  }
+
   const viewMode = useViewModeOptional()
   const selectedTripId = viewMode?.state.selectedTripId ?? null
   const canApplyReflow = viewMode?.canApplyReflow ?? true
@@ -796,6 +867,7 @@ export default function Page() {
                       }
                       conflicts={conflicts}
                       onClose={() => setSelectedActivityId(null)}
+                      onActualUpdate={handleActualUpdate}
                       onCollisionClick={(col) => {
                         setSelectedCollision(col)
                         if (col.activity_id) setSelectedActivityId(col.activity_id)

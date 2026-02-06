@@ -1,6 +1,7 @@
 "use client"
 
 import { ChevronLeft, ChevronRight, Filter, Maximize2, ZoomIn, ZoomOut, RotateCcw } from "lucide-react"
+import { GanttLegendDrawer } from "./GanttLegend"
 
 const views = ["Day", "Week"] as const
 /** P1-3: Display labels in English, internal values remain Day/Week (Gantt logic compatible) */
@@ -165,7 +166,7 @@ export function TimelineControls({
               type="button"
               onClick={z.onReset}
               className="rounded p-1.5 text-slate-400 hover:bg-orange-500/20 hover:text-orange-300"
-              title="Reset Gantt View"
+              title="Reset Gantt View (Ctrl/⌘+Shift+R)"
             >
               <RotateCcw className="h-4 w-4" />
             </button>
@@ -324,6 +325,9 @@ export function TimelineControls({
         </>
       )}
       <div className="ml-auto flex flex-wrap items-center gap-2">
+        {/* Gantt Legend Drawer */}
+        <GanttLegendDrawer />
+        
         <input
           value={jumpDate}
           onChange={(event) => onJumpDateChange(event.target.value)}

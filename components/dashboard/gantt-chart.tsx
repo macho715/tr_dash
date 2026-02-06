@@ -5,8 +5,10 @@ import React from "react"
 import dynamic from "next/dynamic"
 import { useEffect, useMemo, useRef, useState, forwardRef, useImperativeHandle } from "react"
 import { Calendar } from "lucide-react"
+import { toast } from "sonner"
 import {
   legendItems,
+  getSmartInitialDate,
   PROJECT_START,
   PROJECT_END,
   TOTAL_DAYS,
@@ -585,6 +587,8 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
   }
 
   const handleResetGantt = () => {
+    const initialDate = getSmartInitialDate()
+
     // 1. Reset view to Day
     onViewChange?.("Day")
 
@@ -603,10 +607,36 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
     // 6. Disable heatmap
     setHeatmapEnabled(false)
 
-    // 7. Fit timeline
+    // 7. Reset jump date
+    onJumpDateChange?.("")
+
+    // 8. Reset weather overlay
+    setWeatherOverlayEnabled(false)
+    setWeatherOverlayOpacityValue(weatherOverlayOpacity)
+
+    // 9. Clear selections and sync Global Control Bar date cursor
+    onActivityDeselect?.()
+    setSelectedDate(initialDate)
+    viewMode?.setDateCursor?.(initialDate.toISOString())
+
+    // 10. Clear popover/tooltip states
+    setCollisionPopover(null)
+    setTooltip({ visible: false, x: 0, y: 0, activity: null })
+    setHoverCard(null)
+    setLegendDrawerItem(null)
+
+    // 11. Reset event log state
+    setEventLogByActivity(new Map())
+    setEventLogLoading(false)
+    setEventLogAttempted(false)
+
+    // 12. Fit timeline and show success feedback
     if (visTimelineRef.current) {
       setTimeout(() => {
         visTimelineRef.current?.fit()
+        toast.success("Gantt view reset to initial state", {
+          duration: 2000,
+        })
       }, 100)
     }
   }
@@ -646,6 +676,18 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
       hoverHideTimeoutRef.current = null
     }, 120)
   }
+
+  // Keyboard shortcut: Ctrl/Cmd+Shift+R to reset Gantt
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'R') {
+        e.preventDefault()
+        handleResetGantt()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, []) // handleResetGantt는 stable하므로 deps 불필요
 
   useEffect(() => {
     if (!groupedVisData) return

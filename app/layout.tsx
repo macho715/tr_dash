@@ -1,6 +1,7 @@
 import React from "react"
 import type { Metadata, Viewport } from 'next'
 import { Plus_Jakarta_Sans, JetBrains_Mono } from 'next/font/google'
+import { Toaster } from "sonner"
 import { AnalyticsWrapper } from "@/components/analytics-wrapper"
 import './globals.css'
 import 'vis-timeline/styles/vis-timeline-graph2d.min.css'
@@ -51,6 +52,7 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <body className={`${plusJakarta.variable} ${jetbrainsMono.variable} font-sans antialiased`}>
         {children}
+        <Toaster position="top-right" theme="dark" richColors />
         <AnalyticsWrapper />
       </body>
     </html>

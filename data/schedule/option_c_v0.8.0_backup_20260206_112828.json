@@ -6853,7 +6853,8 @@
         "transformer_id": "TR_01",
         "tr_unit_id": "TR_01",
         "planned_start": "2026-01-28T00:00:00+04:00",
-        "planned_finish": "2026-02-10T23:59:59+04:00",
+        "planned_finish": "2026-03-14T23:59:59+04:00",
+        "state": "planned",
         "activities": [
           "A1002",
           "A1004",
@@ -6872,7 +6873,13 @@
           "A1140",
           "A1141",
           "A1181",
-          "A1150"
+          "A1150",
+          "A1003",
+          "A1013",
+          "A1023",
+          "A1033",
+          "A1043",
+          "A1053"
         ]
       },
       "TRIP_02": {
@@ -6880,10 +6887,10 @@
         "trip_number": 2,
         "transformer_id": "TR_02",
         "tr_unit_id": "TR_02",
-        "planned_start": "2026-01-29T00:00:00+04:00",
+        "planned_start": "2026-02-07T00:00:00+04:00",
         "planned_finish": "2026-02-17T23:59:59+04:00",
+        "state": "planned",
         "activities": [
-          "A1003",
           "A2029",
           "A2030",
           "A2040",
@@ -6908,8 +6915,8 @@
         "tr_unit_id": "TR_03",
         "planned_start": "2026-02-14T00:00:00+04:00",
         "planned_finish": "2026-02-24T23:59:59+04:00",
+        "state": "planned",
         "activities": [
-          "A1013",
           "A2180",
           "A2190",
           "A2200",
@@ -6934,8 +6941,8 @@
         "tr_unit_id": "TR_04",
         "planned_start": "2026-02-21T00:00:00+04:00",
         "planned_finish": "2026-03-03T23:59:59+04:00",
+        "state": "planned",
         "activities": [
-          "A1023",
           "A2340",
           "A2350",
           "A2360",
@@ -6960,8 +6967,8 @@
         "tr_unit_id": "TR_05",
         "planned_start": "2026-02-28T00:00:00+04:00",
         "planned_finish": "2026-03-10T23:59:59+04:00",
+        "state": "planned",
         "activities": [
-          "A1033",
           "A2500",
           "A2510",
           "A2520",
@@ -6986,8 +6993,8 @@
         "tr_unit_id": "TR_06",
         "planned_start": "2026-03-07T00:00:00+04:00",
         "planned_finish": "2026-03-17T23:59:59+04:00",
+        "state": "planned",
         "activities": [
-          "A1043",
           "A2650",
           "A2660",
           "A2670",
@@ -7012,8 +7019,8 @@
         "tr_unit_id": "TR_07",
         "planned_start": "2026-03-14T00:00:00+04:00",
         "planned_finish": "2026-03-24T23:59:59+04:00",
+        "state": "planned",
         "activities": [
-          "A1053",
           "A2800",
           "A2810",
           "A2820",
@@ -7047,7 +7054,7 @@
         "tr_number": 2,
         "name": "AGI TR Unit 2",
         "weight_tons": 350,
-        "bay_id": "TR Bay 3",
+        "bay_id": "TR Bay 2",
         "trip_ids": [
           "TRIP_02"
         ]
@@ -7057,7 +7064,7 @@
         "tr_number": 3,
         "name": "AGI TR Unit 3",
         "weight_tons": 350,
-        "bay_id": "TR Bay 2",
+        "bay_id": "TR Bay 3",
         "trip_ids": [
           "TRIP_03"
         ]
@@ -7067,7 +7074,7 @@
         "tr_number": 4,
         "name": "AGI TR Unit 4",
         "weight_tons": 350,
-        "bay_id": "TR Bay 1",
+        "bay_id": "TR Bay 4",
         "trip_ids": [
           "TRIP_04"
         ]

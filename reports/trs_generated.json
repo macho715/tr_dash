@@ -1,0 +1,72 @@
+{
+  "TR_01": {
+    "tr_id": "TR_01",
+    "tr_number": 1,
+    "name": "AGI TR Unit 1",
+    "weight_tons": 350,
+    "bay_id": "TR Bay 4",
+    "trip_ids": [
+      "TRIP_01"
+    ]
+  },
+  "TR_02": {
+    "tr_id": "TR_02",
+    "tr_number": 2,
+    "name": "AGI TR Unit 2",
+    "weight_tons": 350,
+    "bay_id": "TR Bay 3",
+    "trip_ids": [
+      "TRIP_02"
+    ]
+  },
+  "TR_03": {
+    "tr_id": "TR_03",
+    "tr_number": 3,
+    "name": "AGI TR Unit 3",
+    "weight_tons": 350,
+    "bay_id": "TR Bay 2",
+    "trip_ids": [
+      "TRIP_03"
+    ]
+  },
+  "TR_04": {
+    "tr_id": "TR_04",
+    "tr_number": 4,
+    "name": "AGI TR Unit 4",
+    "weight_tons": 350,
+    "bay_id": "TR Bay 1",
+    "trip_ids": [
+      "TRIP_04"
+    ]
+  },
+  "TR_05": {
+    "tr_id": "TR_05",
+    "tr_number": 5,
+    "name": "AGI TR Unit 5",
+    "weight_tons": 350,
+    "bay_id": "TR Bay 5",
+    "trip_ids": [
+      "TRIP_05"
+    ]
+  },
+  "TR_06": {
+    "tr_id": "TR_06",
+    "tr_number": 6,
+    "name": "AGI TR Unit 6",
+    "weight_tons": 350,
+    "bay_id": "TR Bay 6",
+    "trip_ids": [
+      "TRIP_06"
+    ]
+  },
+  "TR_07": {
+    "tr_id": "TR_07",
+    "tr_number": 7,
+    "name": "AGI TR Unit 7",
+    "weight_tons": 350,
+    "bay_id": "TR Bay 7",
+    "trip_ids": [
+      "TRIP_07"
+    ]
+  }
+}

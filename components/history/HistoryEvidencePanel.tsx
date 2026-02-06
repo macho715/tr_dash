@@ -6,7 +6,7 @@ import { EvidenceTab } from '@/components/evidence/EvidenceTab'
 import { CompareDiffPanel } from '@/components/compare/CompareDiffPanel'
 import { TripCloseoutForm } from '@/components/history/TripCloseoutForm'
 import type { OptionC } from '@/src/types/ssot'
-import { getHistoryEvents, getEvidenceItems, appendHistoryEvent, appendEvidenceItem, subscribe } from '@/lib/store/trip-store'
+import { getHistoryEvents, getEvidenceItems, appendEvidenceItem, subscribe } from '@/lib/store/trip-store'
 
 export type HistoryEvidenceTab = "history" | "evidence" | "compare" | "closeout"
 
@@ -67,16 +67,76 @@ export function HistoryEvidencePanel({
     : null
 
   const onAddHistory = useCallback(
-    (eventType: string, message: string) => {
-      appendHistoryEvent({
-        event_type: eventType,
-        message,
-        activity_id: selectedActivityId ?? undefined,
-        trip_id: ssot?.entities?.trips ? Object.keys(ssot.entities.trips)[0] : undefined,
+    async (data: { eventType: string; entityType: string; entityId: string; message: string }) => {
+      const response = await fetch('/api/history', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          eventType: data.eventType,
+          entityRef: {
+            entity_type: data.entityType,
+            entity_id: data.entityId,
+          },
+          details: { message: data.message },
+          actor: 'user',
+        }),
+      })
+
+      if (!response.ok) {
+        const error = (await response.json().catch(() => null)) as { error?: string } | null
+        throw new Error(error?.error || 'Failed to add history event')
+      }
+
+      const result = (await response.json()) as { historyEvent: any }
+      setSsot((prev) => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          history_events: [...(prev.history_events ?? []), result.historyEvent],
+        }
       })
     },
-    [selectedActivityId, ssot]
+    []
   )
+
+  const onDeleteHistory = useCallback(async (eventId: string) => {
+    const response = await fetch(`/api/history/${eventId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        deleted: true,
+        actor: "user",
+      }),
+    })
+
+    if (!response.ok) {
+      const error = (await response.json().catch(() => null)) as { error?: string } | null
+      throw new Error(error?.error || "Failed to delete history event")
+    }
+
+    // Refresh SSOT
+    const refreshed = await fetch('/api/ssot').then((r) => (r.ok ? r.json() : null))
+    if (refreshed) setSsot(refreshed)
+  }, [])
+
+  const onRestoreHistory = useCallback(async (eventId: string) => {
+    const response = await fetch(`/api/history/${eventId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        deleted: false,
+      }),
+    })
+
+    if (!response.ok) {
+      const error = (await response.json().catch(() => null)) as { error?: string } | null
+      throw new Error(error?.error || "Failed to restore history event")
+    }
+
+    // Refresh SSOT
+    const refreshed = await fetch('/api/ssot').then((r) => (r.ok ? r.json() : null))
+    if (refreshed) setSsot(refreshed)
+  }, [])
 
   const onAddEvidence = useCallback(
     (item: { uri: string; evidence_type: string; title?: string; activityId: string; tripId?: string; trId?: string }) => {
@@ -153,7 +213,10 @@ export function HistoryEvidencePanel({
           filterEventType={filterEventType}
           selectedActivityId={selectedActivityId}
           onAddEvent={onAddHistory}
+          onDeleteEvent={onDeleteHistory}
+          onRestoreEvent={onRestoreHistory}
           canAdd={true}
+          canDelete={true}
         />
       )}
       {activeTab === 'evidence' && (

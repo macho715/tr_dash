@@ -216,10 +216,57 @@ export function ganttRowsToVisData(
       const isWhatIf = reflowMetadata?.type === "what_if"
       const className = isWhatIf ? "ghost-bar-what-if" : "ghost-bar-reflow"
       
+      // Enhanced tooltip with Before/After/Delta information
       let title = `Reflow preview: ${change.old_start} → ${change.new_start}`
       if (isWhatIf && reflowMetadata?.scenario) {
         const { reason, delay_days, confidence } = reflowMetadata.scenario
-        title = `What-If: ${reason || "Manual delay"} (${delay_days > 0 ? "+" : ""}${delay_days} days, ${Math.round((confidence || 0) * 100)}% confidence)`
+        const deltaDays = delay_days || 0
+        const affectedCount = reflowMetadata.affected_count
+        const conflictCount = reflowMetadata.conflict_count
+        
+        // Build detailed tooltip
+        const lines = [
+          `╔═══════════════════════════════════════╗`,
+          `║  🔮 WHAT-IF SIMULATION                 ║`,
+          `╚═══════════════════════════════════════╝`,
+          ``,
+          `📋 Activity: ${change.activity_id}`,
+          ``,
+          `━━━ 📅 Original Plan ━━━`,
+          `  Start:  ${change.old_start}`,
+          `  Finish: ${change.old_finish}`,
+          ``,
+          `━━━ 🔮 Preview (What-If) ━━━`,
+          `  Start:  ${change.new_start}`,
+          `  Finish: ${change.new_finish}`,
+          ``,
+          `━━━ 📊 Changes (Δ) ━━━`,
+          `  Δ ${deltaDays > 0 ? '+' : ''}${deltaDays} days`,
+          ``,
+          `━━━ ℹ️  Scenario ━━━`,
+          `  Reason: ${reason || "Manual delay"}`,
+          `  Confidence: ${Math.round((confidence || 0) * 100)}%`,
+        ]
+        
+        if (affectedCount !== undefined || conflictCount !== undefined) {
+          lines.push(``, `━━━ ⚠️  Impact ━━━`)
+          if (affectedCount !== undefined) {
+            lines.push(`  Affected: ${affectedCount} activities`)
+          }
+          if (conflictCount !== undefined) {
+            const icon = conflictCount > 0 ? '🔴' : '✅'
+            lines.push(`  ${icon} Conflicts: ${conflictCount}`)
+          }
+        }
+        
+        lines.push(
+          ``,
+          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+          `💡 This is a preview only`,
+          `   Click "Apply" to commit changes`
+        )
+        
+        title = lines.join('\n')
       }
 
       items.push({

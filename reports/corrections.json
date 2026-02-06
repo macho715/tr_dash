@@ -1,0 +1,103 @@
+{
+  "summary": {
+    "generated_at": "2026-02-06T11:06:31.934978Z",
+    "source": "data\\schedule\\option_c_v0.8.0.json",
+    "trip_id": "TRIP_01",
+    "trip_01_activity_count": 24,
+    "matched_count": 24,
+    "unmatched_count": 0,
+    "correction_count": 6
+  },
+  "corrections": [
+    {
+      "activity_id": "A1003",
+      "title": "Beam Replacement AGI TR Unit 2 (TR Bay 3) - Two 5t forklifts required",
+      "current_trip_id": "TRIP_01",
+      "current_tr_unit_id": "TR_01",
+      "current_tr_ids": [
+        "TR_01"
+      ],
+      "correct_trip_id": "TRIP_02",
+      "correct_tr_unit_id": "TR_02",
+      "correct_tr_ids": [
+        "TR_02"
+      ],
+      "matched_unit_number": 2
+    },
+    {
+      "activity_id": "A1013",
+      "title": "Beam Replacement AGI TR Unit 3 (TR Bay 2) - Two 5t forklifts required",
+      "current_trip_id": "TRIP_01",
+      "current_tr_unit_id": "TR_01",
+      "current_tr_ids": [
+        "TR_01"
+      ],
+      "correct_trip_id": "TRIP_03",
+      "correct_tr_unit_id": "TR_03",
+      "correct_tr_ids": [
+        "TR_03"
+      ],
+      "matched_unit_number": 3
+    },
+    {
+      "activity_id": "A1023",
+      "title": "Beam Replacement AGI TR Unit 4 (TR Bay 1) - Two 5t forklifts required",
+      "current_trip_id": "TRIP_01",
+      "current_tr_unit_id": "TR_01",
+      "current_tr_ids": [
+        "TR_01"
+      ],
+      "correct_trip_id": "TRIP_04",
+      "correct_tr_unit_id": "TR_04",
+      "correct_tr_ids": [
+        "TR_04"
+      ],
+      "matched_unit_number": 4
+    },
+    {
+      "activity_id": "A1033",
+      "title": "Beam Replacement AGI TR Unit 5 (TR Bay 5) - Two 5t forklifts required",
+      "current_trip_id": "TRIP_01",
+      "current_tr_unit_id": "TR_01",
+      "current_tr_ids": [
+        "TR_01"
+      ],
+      "correct_trip_id": "TRIP_05",
+      "correct_tr_unit_id": "TR_05",
+      "correct_tr_ids": [
+        "TR_05"
+      ],
+      "matched_unit_number": 5
+    },
+    {
+      "activity_id": "A1043",
+      "title": "Beam Replacement AGI TR Unit 6 (TR Bay 6) - Two 5t forklifts required",
+      "current_trip_id": "TRIP_01",
+      "current_tr_unit_id": "TR_01",
+      "current_tr_ids": [
+        "TR_01"
+      ],
+      "correct_trip_id": "TRIP_06",
+      "correct_tr_unit_id": "TR_06",
+      "correct_tr_ids": [
+        "TR_06"
+      ],
+      "matched_unit_number": 6
+    },
+    {
+      "activity_id": "A1053",
+      "title": "Beam Replacement AGI TR Unit 7 (TR Bay 7) - Two 5t forklifts required",
+      "current_trip_id": "TRIP_01",
+      "current_tr_unit_id": "TR_01",
+      "current_tr_ids": [
+        "TR_01"
+      ],
+      "correct_trip_id": "TRIP_07",
+      "correct_tr_unit_id": "TR_07",
+      "correct_tr_ids": [
+        "TR_07"
+      ],
+      "matched_unit_number": 7
+    }
+  ]
+}

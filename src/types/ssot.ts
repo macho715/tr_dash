@@ -396,6 +396,10 @@ export interface HistoryEvent {
   target?: { type: string; id: string };
   details: Record<string, any>;
   payload?: Record<string, any>;
+  /** Part 2: Soft delete fields (append-only compliance) */
+  deleted?: boolean;
+  deleted_at?: string;
+  deleted_by?: string;
 }
 
 // ============================================================================

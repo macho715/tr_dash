@@ -5,6 +5,7 @@ import type { SlackResult } from "@/lib/utils/slack-calc"
 import { ActivityHeader } from "./sections/ActivityHeader"
 import { StateSection } from "./sections/StateSection"
 import { PlanVsActualSection } from "./sections/PlanVsActualSection"
+import { ActualInputSection } from "./sections/ActualInputSection"
 import { ResourcesSection } from "./sections/ResourcesSection"
 import { ConstraintsSection } from "./sections/ConstraintsSection"
 import { CollisionTray } from "./CollisionTray"
@@ -15,6 +16,12 @@ type DetailPanelProps = {
   conflicts: ScheduleConflict[]
   onClose: () => void
   onCollisionClick: (collision: ScheduleConflict) => void
+  onActualUpdate?: (
+    activityId: string,
+    payload: { actualStart: string | null; actualEnd: string | null }
+  ) => Promise<{
+    transition?: { success: boolean; blocker_code?: string; reason?: string }
+  } | void>
 }
 
 /**
@@ -28,6 +35,7 @@ export function DetailPanel({
   conflicts,
   onClose,
   onCollisionClick,
+  onActualUpdate,
 }: DetailPanelProps) {
   if (!activity || !activity.activity_id) {
     return (
@@ -62,6 +70,11 @@ export function DetailPanel({
           <div className="pt-3">
             <PlanVsActualSection activity={activity} slackResult={slackResult} />
           </div>
+          {onActualUpdate && (
+            <div className="pt-3">
+              <ActualInputSection activity={activity} onSave={onActualUpdate} />
+            </div>
+          )}
           <div className="pt-3">
             <ResourcesSection activity={activity} />
           </div>

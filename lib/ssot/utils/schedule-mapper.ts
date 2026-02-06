@@ -40,6 +40,8 @@ export function mapOptionCToScheduleActivity(
   let plannedStart = ""
   let plannedFinish = ""
   let duration = 0
+  let actualStart: string | undefined
+  let actualFinish: string | undefined
 
   if (typeof raw.plan === "object" && raw.plan !== null) {
     // Contract v0.8.0 format
@@ -55,6 +57,22 @@ export function mapOptionCToScheduleActivity(
     duration = typeof raw.duration === "number" ? raw.duration : 0
   }
 
+  if (typeof raw.actual === "object" && raw.actual !== null) {
+    const actual = raw.actual as Record<string, unknown>
+    actualStart = typeof actual.start_ts === "string" ? actual.start_ts.split("T")[0] : undefined
+    actualFinish = typeof actual.end_ts === "string" ? actual.end_ts.split("T")[0] : undefined
+  } else {
+    actualStart = typeof raw.actual_start === "string" ? raw.actual_start : undefined
+    actualFinish = typeof raw.actual_finish === "string" ? raw.actual_finish : undefined
+  }
+
+  const status =
+    typeof raw.status === "string"
+      ? raw.status
+      : typeof raw.state === "string"
+        ? mapStateToStatus(raw.state)
+        : undefined
+
   return {
     ...(raw as ScheduleActivity),
     activity_id: activityId,
@@ -64,11 +82,27 @@ export function mapOptionCToScheduleActivity(
     duration,
     planned_start: plannedStart,
     planned_finish: plannedFinish,
+    actual_start: actualStart,
+    actual_finish: actualFinish,
+    status,
     _is_summary: isSummary,
     tr_unit_id: trUnitId,
     anchor_type: anchorType,
     resource_tags: resourceTags.length > 0 ? resourceTags : undefined,
     voyage_id: voyageId,
+  }
+}
+
+function mapStateToStatus(state: string): ScheduleActivity["status"] | undefined {
+  switch (state) {
+    case "completed":
+      return "done"
+    case "in_progress":
+      return "in_progress"
+    case "blocked":
+      return "blocked"
+    default:
+      return "planned"
   }
 }
 

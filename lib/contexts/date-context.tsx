@@ -1,7 +1,7 @@
 "use client"
 
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
-import { PROJECT_START } from "@/lib/dashboard-data"
+import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from "react"
+import { PROJECT_START, getSmartInitialDate } from "@/lib/dashboard-data"
 
 // Fallback for SSR hydration; client syncs to smart initial via SyncInitialDate
 const INITIAL_DATE = new Date("2026-01-26T12:00:00.000Z")
@@ -9,6 +9,7 @@ const INITIAL_DATE = new Date("2026-01-26T12:00:00.000Z")
 interface DateContextType {
   selectedDate: Date
   setSelectedDate: (date: Date) => void
+  resetToInitialDate: () => void
   dayNumber: number
   formattedDate: string
 }
@@ -21,6 +22,11 @@ export function DateProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     setMounted(true)
+  }, [])
+
+  const resetToInitialDate = useCallback(() => {
+    const smartDate = getSmartInitialDate()
+    setSelectedDate(smartDate)
   }, [])
 
   const effectiveDate = mounted ? selectedDate : INITIAL_DATE
@@ -42,6 +48,7 @@ export function DateProvider({ children }: { children: ReactNode }) {
       value={{
         selectedDate: effectiveDate,
         setSelectedDate,
+        resetToInitialDate,
         dayNumber: Math.max(1, dayNumber),
         formattedDate,
       }}

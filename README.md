@@ -6,8 +6,8 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue)](https://www.typescriptlang.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.1-38bdf8)](https://tailwindcss.com/)
 
-**최종 업데이트**: 2026-02-05  
-**최신 작업 반영**: Gantt Reset 버튼 추가 & Activity 디버깅 강화 ([docs/GANTT_RESET_AND_DEBUG.md](docs/GANTT_RESET_AND_DEBUG.md)). SSOT 파일 출처 가드 구현 완료 (option_c_v0.8.0.json 우선, 폴백 메커니즘, activities 유효성 검사, 테스트 7/7 ✅). [docs/plan/ssot-source-guard-implementation.md](docs/plan/ssot-source-guard-implementation.md), [docs/WORK_LOG_20260202.md](docs/WORK_LOG_20260202.md)
+**최종 업데이트**: 2026-02-06  
+**최신 작업 반영**: **4대 기능 + SSOT Trip/TR 정합성 수정 완료 ✅** ([docs/WORK_LOG_20260206_COMPLETE.md](docs/WORK_LOG_20260206_COMPLETE.md)). (1) Actual 날짜 입력/관리 (P0), (2) History 데이터 입력/삭제 (Soft Delete, P1), (3) What-if 시뮬레이션 검증 (Ghost bar, P2), (4) 일정 변경 표시 개선 (Gantt Legend, Enhanced Tooltip, P2), (5) SSOT Trip/TR 정합성 수정 (6개 activities 재배치, trips/trs 엔티티 생성, P0). 총 18시간 작업, 27개 파일 +2,664 LOC, validate_optionc.py PASS ✅. 다음: 브라우저 UI 테스트 진행 예정.
 
 ---
 
@@ -20,15 +20,16 @@ HVDC TR Transport Dashboard는 **7개의 Transformer Unit**을 **LCT BUSHRA**로
 ### 주요 기능
 
 - **실시간 KPI 모니터링**: 총 일수, 항차 수, SPMT 세트, TR Unit 추적
-- **Gantt 차트**: 7개 항차의 시각적 일정 관리 (Jan 26 - Mar 22, 2026). **조건부 엔진**: `NEXT_PUBLIC_GANTT_ENGINE=vis` 시 vis-timeline(`VisTimelineGantt`), 미설정 시 커스텀 Gantt. Vis 사용 시 Day/Week 뷰, Selected Date 커서(UTC). **Phase 6**: Selected Date UTC(YYYY-MM-DD) 정렬 — Gantt 축과 일치. **UX**: 액티비티 클릭 시 해당 항목으로 스크롤 + Gantt 섹션 노출; 6종 액티비티 모두 막대(bar) 표시(동일일 최소 1일 길이); 액티비티 드래그로 일정 이동 가능. **A3 (2026-02-04)**: Row-level Mapper Caching (LRU 200) — 재렌더링 30% 개선. **B5 (2026-02-04)**: Dependency Type 시각화 (FS/SS/FF/SF) — SVG overlay, lag 라벨, 4가지 타입 구분. **Weather Overlay (2026-02-04)**: Canvas 배경 레이어 (z-0), NO_GO/NEAR_LIMIT 날씨 시각화, Opacity 슬라이더 (5-40%), UI 토글 (🌦️/🌤️), Range culling, RAF throttle (10fps).
-- **스케줄 재계산 엔진**: 의존성 기반 자동 일정 조정
+- **Gantt 차트**: 7개 항차의 시각적 일정 관리 (Jan 26 - Mar 22, 2026). **조건부 엔진**: `NEXT_PUBLIC_GANTT_ENGINE=vis` 시 vis-timeline(`VisTimelineGantt`), 미설정 시 커스텀 Gantt. Vis 사용 시 Day/Week 뷰, Selected Date 커서(UTC). **Phase 6**: Selected Date UTC(YYYY-MM-DD) 정렬 — Gantt 축과 일치. **UX**: 액티비티 클릭 시 해당 항목으로 스크롤 + Gantt 섹션 노출; 6종 액티비티 모두 막대(bar) 표시(동일일 최소 1일 길이); 액티비티 드래그로 일정 이동 가능. **A3 (2026-02-04)**: Row-level Mapper Caching (LRU 200) — 재렌더링 30% 개선. **B5 (2026-02-04)**: Dependency Type 시각화 (FS/SS/FF/SF) — SVG overlay, lag 라벨, 4가지 타입 구분. **Weather Overlay (2026-02-04)**: Canvas 배경 레이어 (z-0), NO_GO/NEAR_LIMIT 날씨 시각화, Opacity 슬라이더 (5-40%), UI 토글 (🌦️/🌤️), Range culling, RAF throttle (10fps). **🆕 Gantt Legend (2026-02-06)**: 8가지 bar 유형 범례 (Planned/Actual/Collision/Preview/Compare/Weather/Hold/Milestone), Collapsible drawer, Compact/Expanded 모드.
+- **스케줄 재계산 엔진**: 의존성 기반 자동 일정 조정. **🆕 What-if 시뮬레이션 (2026-02-06)**: 일정 변경 Preview, Ghost bar 표시, Impact Metrics (affected activities, conflicts, ETA change), Enhanced Tooltip (Before/After/Delta/Scenario).
 - **Preview 패널**: 변경 사항 미리보기 및 충돌 검사
 - **Compare Mode**: baseline vs compare delta overlay, Gantt ghost bars. **Compare Diff 패널**: Phase 6에서 Baseline snapshot / Compare as-of 시점 UI 표시.
 - **날짜 변경 UI**: Calendar + 직접 입력(YYYY-MM-DD). **Phase 6**: `dateToIsoUtc`, `toUtcNoon`으로 UTC 기준 정렬.
 - **StoryHeader·2열 레이아웃**: 좌열 Map+Detail, 우열 Timeline (tr-three-column-layout). Phase 6에서 Location/Schedule/Verification, Map/Timeline 라벨. **MapLegend**(TR 상태·충돌 범례), **GanttLegendDrawer**(범례 클릭→정의·의사결정 영향 2-click), **SyncInitialDate**(초기 날짜 동기화).
 - **Global Control Bar**: Trip/TR 선택, **View 버튼**(클릭 시 Detailed Voyage Schedule 스크롤), Date Cursor, View Mode. **Phase 6**: API 실패 시 voyages fallback, TR 7개 전부 노출(7 of 7 visible).
 - **항차 상세 정보**: Load-out, Sail-away, Load-in, Turning, Jack-down 일정
-- **History/Evidence (append-only)**: History 입력, Evidence 링크 추가, localStorage 저장
+- **🆕 Actual 날짜 입력 (2026-02-06)**: Live mode에서 activity별 Actual Start/End datetime 입력, State transition (ready → in_progress → completed), History 이벤트 자동 생성, Gantt Actual bar 표시 (초록).
+- **🆕 History/Evidence 관리 (2026-02-06)**: Manual history event 추가 (AddHistoryModal), Soft delete (Append-only 준수), Restore 기능, Deleted 이벤트 표시 (opacity-50, "Deleted" 배지), SSOT append-only 유지.
 - **Trip Report Export**: MD/JSON 보고서 다운로드
 - **Next Trip Readiness**: Ready/Not Ready 배지, 마일스톤/증빙/블로커 체크리스트
 
