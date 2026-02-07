@@ -1,8 +1,18 @@
 "use client"
 
+import { useMemo } from "react"
 import { CheckCircle2, Circle, CircleDot } from "lucide-react"
+import type { ScheduleActivity } from "@/lib/ssot/schedule"
+import { useDate } from "@/lib/contexts/date-context"
+import { useViewModeOptional } from "@/src/lib/stores/view-mode-store"
+import type { ViewMode } from "@/src/lib/stores/view-mode-store"
+import { voyages } from "@/lib/dashboard-data"
+import {
+  calculateMilestonesForVoyage,
+  type MilestoneStatus,
+} from "@/lib/utils/milestone-calculator"
 
-const milestones = [
+const staticMilestones = [
   { label: "Load-out", status: "done" },
   { label: "Sail-away", status: "in-progress" },
   { label: "Load-in", status: "pending" },
@@ -22,7 +32,44 @@ const statusIcons: Record<string, JSX.Element> = {
   pending: <Circle className="h-4 w-4" />,
 }
 
-export function MilestoneTracker() {
+type Voyage = (typeof voyages)[number]
+
+type MilestoneTrackerProps = {
+  voyage?: Voyage | null
+  activities?: ScheduleActivity[]
+  selectedDate?: Date
+  viewMode?: ViewMode
+}
+
+const DYNAMIC_FLAG = process.env.NEXT_PUBLIC_DYNAMIC_MILESTONES === "true"
+
+export function MilestoneTracker({
+  voyage,
+  activities,
+  selectedDate,
+  viewMode,
+}: MilestoneTrackerProps) {
+  const { selectedDate: contextDate } = useDate()
+  const viewModeContext = useViewModeOptional()
+
+  const effectiveDate = selectedDate ?? contextDate
+  const effectiveViewMode = viewMode ?? viewModeContext?.state.mode ?? "live"
+
+  const dynamicMilestones = useMemo(() => {
+    if (!DYNAMIC_FLAG || !voyage || !activities) return null
+    return calculateMilestonesForVoyage(
+      voyage.voyage,
+      activities,
+      effectiveDate,
+      effectiveViewMode
+    )
+  }, [voyage, activities, effectiveDate, effectiveViewMode])
+
+  const milestones = (dynamicMilestones ?? staticMilestones) as {
+    label: string
+    status: MilestoneStatus
+  }[]
+
   return (
     <section className="rounded-2xl border border-accent/15 bg-card/80 p-5 backdrop-blur-lg">
       <div className="mb-4 text-sm font-semibold text-foreground">Milestone Tracker</div>

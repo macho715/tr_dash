@@ -31,6 +31,7 @@ import { ApprovalModeBanner } from "@/components/approval/ApprovalModeBanner"
 import { CompareModeBanner } from "@/components/compare/CompareModeBanner"
 import { HistoryEvidencePanel, type HistoryEvidenceTab } from "@/components/history/HistoryEvidencePanel"
 import { ReadinessPanel } from "@/components/dashboard/ReadinessPanel"
+import { UnifiedCommandPalette } from "@/components/ops/UnifiedCommandPalette"
 import { calculateSlack } from "@/lib/utils/slack-calc"
 import { OverviewSection } from "@/components/dashboard/sections/overview-section"
 import { KPISection } from "@/components/dashboard/sections/kpi-section"
@@ -73,6 +74,8 @@ type SectionItem = {
 
 /** patchmain #11: ScrollSpy offset (header + summary bar height) */
 const SCROLL_SPY_OFFSET = 120
+const UNIFIED_COMMAND_PALETTE_ENABLED =
+  process.env.NEXT_PUBLIC_UNIFIED_COMMAND_PALETTE === "true"
 
 function parseVoyageDate(dateStr: string): Date {
   const monthMap: Record<string, number> = {
@@ -185,6 +188,8 @@ export default function Page() {
     conflicts: ImpactReport["conflicts"]
     nextActivities: ScheduleActivity[]
     scenario?: WhatIfScenario
+    affected_count?: number
+    conflict_count?: number
   } | null>(null)
   const [whatIfMetrics, setWhatIfMetrics] = useState<WhatIfMetrics | null>(null)
   const [showWhatIfPanel, setShowWhatIfPanel] = useState(false)
@@ -442,6 +447,9 @@ export default function Page() {
 
   const focusTimelineActivity = (activityId: string) => {
     setFocusedActivityId(activityId)
+    setSelectedActivityId(activityId)
+    const activity = activities.find((a) => a.activity_id === activityId)
+    setShowWhatIfPanel(Boolean(activity))
     ganttRef.current?.scrollToActivity(activityId)
     const ganttSection = document.getElementById("gantt")
     ganttSection?.scrollIntoView({ behavior: "smooth", block: "start" })
@@ -483,6 +491,9 @@ export default function Page() {
     activityId: string,
     payload: { actualStart: string | null; actualEnd: string | null }
   ) => {
+    if (!activityId || typeof activityId !== "string" || !activityId.trim()) {
+      throw new Error("No activity selected. Select an activity from the Gantt or Map first.")
+    }
     const response = await fetch(`/api/activities/${activityId}/actual`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -525,6 +536,8 @@ export default function Page() {
         }
       })
     )
+    setReflowPreview(null)
+    setWhatIfMetrics(null)
 
     setSsot((prev) => {
       if (!prev) return prev
@@ -659,6 +672,8 @@ export default function Page() {
         conflicts: result.impact_report.conflicts,
         nextActivities: result.activities,
         scenario,
+        affected_count: affectedCount,
+        conflict_count: newConflicts,
       })
     } catch (error) {
       console.error("What-If simulation failed:", error)
@@ -684,6 +699,14 @@ export default function Page() {
         </a>
 
         <DashboardHeader />
+        {UNIFIED_COMMAND_PALETTE_ENABLED ? (
+          <UnifiedCommandPalette
+            activities={activities}
+            setActivities={setActivities}
+            onFocusActivity={focusTimelineActivity}
+            viewMode={viewMode?.state.mode}
+          />
+        ) : null}
         {ssotError && (
           <div
             className="rounded-lg border border-amber-500/50 bg-amber-500/10 px-4 py-2 text-sm text-amber-800 dark:text-amber-200"
@@ -719,11 +742,12 @@ export default function Page() {
               onEvidenceClick={handleEvidenceClick}
             />
                 <OverviewSection
-              activities={activities}
-              onApplyActivities={handleApplyPreview}
-              onSetActivities={setActivities}
-              onFocusActivity={(id) => ganttRef.current?.scrollToActivity(id)}
-            />
+                  activities={activities}
+                  selectedVoyage={selectedVoyage}
+                  onApplyActivities={handleApplyPreview}
+                  onSetActivities={setActivities}
+                  onFocusActivity={(id) => ganttRef.current?.scrollToActivity(id)}
+                />
             <SectionNav activeSection={activeSection} sections={sections} />
 
             <div className="flex flex-1 flex-col min-h-0 space-y-6">
@@ -798,7 +822,12 @@ export default function Page() {
                       conflicts={conflicts}
                       onCollisionClick={(col) => {
                         setSelectedCollision(col)
-                        if (col.activity_id) setSelectedActivityId(col.activity_id)
+                        if (col.activity_id) {
+                          setSelectedActivityId(col.activity_id)
+                          setFocusedActivityId(col.activity_id)
+                          ganttRef.current?.scrollToActivity(col.activity_id)
+                          setShowWhatIfPanel(true)
+                        }
                       }}
                       focusedActivityId={focusedActivityId}
                       projectEndDate={PROJECT_END_DATE}
@@ -819,14 +848,16 @@ export default function Page() {
                               metadata: reflowPreview.scenario
                                 ? {
                                     type: "what_if" as const,
-                                    scenario: {
-                                      reason: reflowPreview.scenario.reason,
-                                      confidence: reflowPreview.scenario.confidence,
-                                      delay_days: reflowPreview.scenario.delay_days,
-                                      activity_name: reflowPreview.scenario.activity_name,
-                                    },
-                                  }
-                                : undefined,
+                                  scenario: {
+                                    reason: reflowPreview.scenario.reason,
+                                    confidence: reflowPreview.scenario.confidence,
+                                    delay_days: reflowPreview.scenario.delay_days,
+                                    activity_name: reflowPreview.scenario.activity_name,
+                                  },
+                                  affected_count: reflowPreview.affected_count,
+                                  conflict_count: reflowPreview.conflict_count,
+                                }
+                              : undefined,
                             }
                           : null
                       }
@@ -871,7 +902,12 @@ export default function Page() {
                       onActualUpdate={handleActualUpdate}
                       onCollisionClick={(col) => {
                         setSelectedCollision(col)
-                        if (col.activity_id) setSelectedActivityId(col.activity_id)
+                        if (col.activity_id) {
+                          setSelectedActivityId(col.activity_id)
+                          setFocusedActivityId(col.activity_id)
+                          ganttRef.current?.scrollToActivity(col.activity_id)
+                          setShowWhatIfPanel(true)
+                        }
                       }}
                     />
                     <WhyPanel

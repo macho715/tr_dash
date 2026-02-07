@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest"
 import type { ScheduleActivity } from "@/lib/ssot/schedule"
 import { applyGanttFilters, buildGroupedVisData } from "@/lib/gantt/grouping"
 import type { SlackResult } from "@/lib/utils/slack-calc"
+import { parseUTCDate } from "@/lib/ssot/schedule"
 
 function makeActivity(partial: Partial<ScheduleActivity>): ScheduleActivity {
   return {
@@ -116,5 +117,88 @@ describe("gantt grouping", () => {
 
     expect(filtered.find((a) => a.activity_id === "A101")).toBeTruthy()
     expect(filtered.find((a) => a.activity_id === "A102")).toBeFalsy()
+  })
+
+  it("creates dual what-if ghost bars and highlights affected activity", () => {
+    const activities: ScheduleActivity[] = [
+      makeActivity({
+        activity_id: "A301",
+        activity_name: "Loadout",
+        tr_unit_id: "TR-1",
+        anchor_type: "LOADOUT",
+        planned_start: "2026-01-05",
+        planned_finish: "2026-01-06",
+      }),
+    ]
+
+    const result = buildGroupedVisData({
+      activities,
+      reflowPreview: {
+        changes: [
+          {
+            activity_id: "A301",
+            old_start: "2026-01-05",
+            new_start: "2026-01-07",
+            old_finish: "2026-01-06",
+            new_finish: "2026-01-08",
+            delta_days: 2,
+          },
+        ],
+        metadata: {
+          type: "what_if",
+          affected_count: 1,
+          conflict_count: 0,
+          scenario: {
+            reason: "Weather",
+            delay_days: 2,
+            confidence: 0.8,
+          },
+        },
+      },
+    })
+
+    const plan = result.items.find((item) => item.id === "A301")
+    expect(plan?.className).toContain("what-if-affected")
+    expect(result.items.find((item) => item.id === "reflow_ghost_old_A301")).toBeTruthy()
+    expect(result.items.find((item) => item.id === "reflow_ghost_new_A301")).toBeTruthy()
+  })
+
+  it("renders actual overlay and applies history gate/clamp", () => {
+    const activities: ScheduleActivity[] = [
+      makeActivity({
+        activity_id: "A401",
+        activity_name: "With Actual",
+        tr_unit_id: "TR-1",
+        anchor_type: "LOADOUT",
+        planned_start: "2026-01-01",
+        planned_finish: "2026-01-02",
+        actual_start: "2026-01-03",
+        actual_finish: "2026-01-10",
+      }),
+      makeActivity({
+        activity_id: "A402",
+        activity_name: "Future Actual",
+        tr_unit_id: "TR-1",
+        anchor_type: "TURNING",
+        planned_start: "2026-01-03",
+        planned_finish: "2026-01-04",
+        actual_start: "2026-01-09",
+      }),
+    ]
+
+    const result = buildGroupedVisData({
+      activities,
+      actualOverlay: {
+        enabled: true,
+        selectedDate: parseUTCDate("2026-01-05"),
+        isHistoryMode: true,
+      },
+    })
+
+    const actualA401 = result.items.find((item) => item.id === "actual__A401")
+    expect(actualA401).toBeTruthy()
+    expect(actualA401?.end).toEqual(parseUTCDate("2026-01-05"))
+    expect(actualA401?.className).toContain("actual-bar")
+    expect(result.items.find((item) => item.id === "actual__A402")).toBeFalsy()
   })
 })

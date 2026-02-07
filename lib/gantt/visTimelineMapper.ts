@@ -39,6 +39,8 @@ export interface VisTimelineData {
 
 export interface GhostBarMetadata {
   type: "reflow" | "what_if" | "baseline" | "drag" | "weather"
+  affected_count?: number
+  conflict_count?: number
   scenario?: {
     reason?: string
     confidence?: number
@@ -269,16 +271,42 @@ export function ganttRowsToVisData(
         title = lines.join('\n')
       }
 
-      items.push({
-        id: `reflow_ghost_${change.activity_id}`,
-        group: groupId,
-        content: isWhatIf ? `(What-If) ${change.activity_id}` : `(Reflow) ${change.activity_id}`,
-        start,
-        end,
-        type: "range",
-        className,
-        title,
-      })
+      if (isWhatIf) {
+        const oldStart = parseUTCDate(change.old_start)
+        let oldEnd = parseUTCDate(change.old_finish)
+        if (oldEnd.getTime() <= oldStart.getTime()) oldEnd = addUTCDays(oldStart, 1)
+        items.push({
+          id: `reflow_ghost_old_${change.activity_id}`,
+          group: groupId,
+          content: `(What-If Before) ${change.activity_id}`,
+          start: oldStart,
+          end: oldEnd,
+          type: "range",
+          className: "ghost-bar-what-if-old",
+          title: `Original: ${change.old_start} → ${change.old_finish}`,
+        })
+        items.push({
+          id: `reflow_ghost_new_${change.activity_id}`,
+          group: groupId,
+          content: `(What-If After) ${change.activity_id}`,
+          start,
+          end,
+          type: "range",
+          className: "ghost-bar-what-if-new",
+          title,
+        })
+      } else {
+        items.push({
+          id: `reflow_ghost_${change.activity_id}`,
+          group: groupId,
+          content: `(Reflow) ${change.activity_id}`,
+          start,
+          end,
+          type: "range",
+          className,
+          title,
+        })
+      }
     }
   }
 

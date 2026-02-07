@@ -2,7 +2,7 @@ import type { ScheduleActivity, AnchorType } from "@/lib/ssot/schedule"
 import type { CompareResult } from "@/lib/compare/types"
 import type { DateChange } from "@/lib/ssot/schedule"
 import type { WeatherDelayChange } from "@/lib/weather/weather-delay-preview"
-import { parseUTCDate, addUTCDays } from "@/lib/ssot/schedule"
+import { parseUTCDate, addUTCDays, diffUTCDays, toUtcNoon } from "@/lib/ssot/schedule"
 import type { VisGroup, VisItem } from "@/lib/gantt/visTimelineMapper"
 import type { SlackResult } from "@/lib/utils/slack-calc"
 import type { EventLogItem } from "@/lib/ops/event-sourcing/types"
@@ -21,6 +21,12 @@ export type GroupedVisData = {
   items: VisItem[]
   activityIdToGroupId: Map<string, string>
   parentGroupIds: Set<string>
+}
+
+type ActualOverlayOptions = {
+  enabled?: boolean
+  selectedDate: Date
+  isHistoryMode?: boolean
 }
 
 const PHASE_LABELS: Record<AnchorType, string> = {
@@ -141,6 +147,7 @@ export function buildGroupedVisData(params: {
   collapsedGroupIds?: Set<string>
   eventLogByActivity?: Map<string, EventLogItem[]>
   eventOverlay?: EventOverlayOptions
+  actualOverlay?: ActualOverlayOptions
 }): GroupedVisData {
   const {
     activities,
@@ -151,7 +158,26 @@ export function buildGroupedVisData(params: {
     collapsedGroupIds = new Set<string>(),
     eventLogByActivity,
     eventOverlay,
+    actualOverlay,
   } = params
+
+  const reflowChanges = Array.isArray(reflowPreview)
+    ? reflowPreview
+    : reflowPreview?.changes || null
+  const reflowMetadata = Array.isArray(reflowPreview) ? undefined : reflowPreview?.metadata
+  const isWhatIfPreview = reflowMetadata?.type === "what_if"
+  const changedActivityIds = new Set(
+    (reflowChanges ?? [])
+      .filter(
+        (change) =>
+          change.old_start !== change.new_start || change.old_finish !== change.new_finish
+      )
+      .map((change) => change.activity_id)
+  )
+  const selectedDateNoon = toUtcNoon(actualOverlay?.selectedDate ?? new Date())
+  const selectedDateIso = selectedDateNoon.toISOString().slice(0, 10)
+  const renderActualOverlay =
+    actualOverlay?.enabled !== false && !(eventOverlay?.showActual ?? false)
 
   // Build TR → Date+Phase structure (2 levels instead of 3)
   const trMap = new Map<string, Map<string, ScheduleActivity[]>>()
@@ -253,6 +279,8 @@ export function buildGroupedVisData(params: {
         const start = parseUTCDate(activity.planned_start)
         const end = ensureEndAfterStart(start, parseUTCDate(activity.planned_finish))
         const typeClass = `gantt-type-${mapAnchorToType(activity.anchor_type)}`
+        const whatIfClass =
+          isWhatIfPreview && changedActivityIds.has(activityId) ? " what-if-affected" : ""
         items.push({
           id: activityId,
           group: datePhaseId, // Activities directly under Date+Phase
@@ -260,9 +288,47 @@ export function buildGroupedVisData(params: {
           start,
           end,
           type: "range",
-          className: typeClass,
+          className: `${typeClass}${whatIfClass}`,
           title: buildLabel(activity),
         })
+
+        if (renderActualOverlay && activity.actual_start) {
+          const actualStartIso = activity.actual_start.slice(0, 10)
+          if (actualOverlay?.isHistoryMode && actualStartIso > selectedDateIso) {
+            continue
+          }
+
+          let actualEndIso = activity.actual_finish?.slice(0, 10) ?? selectedDateIso
+          if (actualOverlay?.isHistoryMode && actualEndIso > selectedDateIso) {
+            actualEndIso = selectedDateIso
+          }
+          if (actualEndIso < actualStartIso) {
+            actualEndIso = actualStartIso
+          }
+
+          const actualStart = parseUTCDate(actualStartIso)
+          const actualEnd = ensureEndAfterStart(actualStart, parseUTCDate(actualEndIso))
+
+          let varianceClass = "variance-progress"
+          if (activity.actual_finish) {
+            const varianceDays = diffUTCDays(activity.planned_start, actualStartIso)
+            if (varianceDays > 0) varianceClass = "variance-positive"
+            if (varianceDays < 0) varianceClass = "variance-negative"
+            if (varianceDays === 0) varianceClass = ""
+          }
+          const varianceSuffix = varianceClass ? ` ${varianceClass}` : ""
+
+          items.push({
+            id: `actual__${activityId}`,
+            group: datePhaseId,
+            content: `(Actual) ${activityId}`,
+            start: actualStart,
+            end: actualEnd,
+            type: "range",
+            className: `actual-bar${varianceSuffix}`,
+            title: `Actual: ${actualStartIso} → ${actualEndIso}`,
+          })
+        }
       }
     }
   }
@@ -312,11 +378,6 @@ export function buildGroupedVisData(params: {
     }
   }
 
-  const reflowChanges = Array.isArray(reflowPreview)
-    ? reflowPreview
-    : reflowPreview?.changes || null
-  const reflowMetadata = Array.isArray(reflowPreview) ? undefined : reflowPreview?.metadata
-
   if (reflowChanges?.length) {
     for (const change of reflowChanges) {
       const groupId = activityIdToGroupId.get(change.activity_id)
@@ -324,23 +385,59 @@ export function buildGroupedVisData(params: {
       if (change.old_start === change.new_start && change.old_finish === change.new_finish) {
         continue
       }
-      const start = parseUTCDate(change.new_start)
-      const end = ensureEndAfterStart(start, parseUTCDate(change.new_finish))
-      const isWhatIf = reflowMetadata?.type === "what_if"
-      const className = isWhatIf ? "ghost-bar-what-if" : "ghost-bar-reflow"
+      const newStart = parseUTCDate(change.new_start)
+      const newEnd = ensureEndAfterStart(newStart, parseUTCDate(change.new_finish))
+      const isWhatIf = isWhatIfPreview
       let title = `Reflow preview: ${change.old_start} → ${change.new_start}`
       if (isWhatIf && reflowMetadata?.scenario) {
         const { reason, delay_days, confidence } = reflowMetadata.scenario
-        title = `What-If: ${reason || "Manual delay"} (${delay_days && delay_days > 0 ? "+" : ""}${delay_days} days, ${Math.round((confidence || 0) * 100)}% confidence)`
+        const deltaLabel = `${delay_days && delay_days > 0 ? "+" : ""}${delay_days ?? 0} days`
+        const confidenceLabel = `${Math.round((confidence || 0) * 100)}% confidence`
+        const affectedLabel =
+          typeof reflowMetadata.affected_count === "number"
+            ? `Affected: ${reflowMetadata.affected_count}`
+            : ""
+        const conflictLabel =
+          typeof reflowMetadata.conflict_count === "number"
+            ? `Conflicts: ${reflowMetadata.conflict_count}`
+            : ""
+        title = `What-If: ${reason || "Manual delay"} (${deltaLabel}, ${confidenceLabel})${affectedLabel ? `\n${affectedLabel}` : ""}${conflictLabel ? `\n${conflictLabel}` : ""}`
       }
+
+      if (isWhatIf) {
+        const oldStart = parseUTCDate(change.old_start)
+        const oldEnd = ensureEndAfterStart(oldStart, parseUTCDate(change.old_finish))
+        items.push({
+          id: `reflow_ghost_old_${change.activity_id}`,
+          group: groupId,
+          content: `(What-If Before) ${change.activity_id}`,
+          start: oldStart,
+          end: oldEnd,
+          type: "range",
+          className: "ghost-bar-what-if-old",
+          title: `Original: ${change.old_start} → ${change.old_finish}`,
+        })
+        items.push({
+          id: `reflow_ghost_new_${change.activity_id}`,
+          group: groupId,
+          content: `(What-If After) ${change.activity_id}`,
+          start: newStart,
+          end: newEnd,
+          type: "range",
+          className: "ghost-bar-what-if-new",
+          title,
+        })
+        continue
+      }
+
       items.push({
         id: `reflow_ghost_${change.activity_id}`,
         group: groupId,
-        content: isWhatIf ? `(What-If) ${change.activity_id}` : `(Reflow) ${change.activity_id}`,
-        start,
-        end,
+        content: `(Reflow) ${change.activity_id}`,
+        start: newStart,
+        end: newEnd,
         type: "range",
-        className,
+        className: "ghost-bar-reflow",
         title,
       })
     }

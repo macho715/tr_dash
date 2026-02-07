@@ -81,7 +81,27 @@ const BADGE_DEFS: LegendDefinition[] = [
   { id: "Compare", kind: "meta", label: "Compare (shifted)", shortLabel: "[Compare]", definition: "비교 모드에서 기준 대비 이동(shift)된 활동.", impact: "변경 영향 검토 후 Apply 여부 결정." },
 ]
 
-export const GANTT_LEGEND_DEFINITIONS: LegendDefinition[] = [...STAGE_DEFS, ...BADGE_DEFS]
+// Phase 1: Special entries for grouped legends (Activity Types, Weather Overlay)
+const SPECIAL_DEFS: LegendDefinition[] = [
+  { 
+    id: "activity-types", 
+    kind: "stage", 
+    label: "Activity Types", 
+    shortLabel: "Activity Types", 
+    definition: "간트 차트의 6가지 Activity Type 색상: Mobilization (보라), Load-out (청록), Sea Transport (주황), Load-in (녹색), Turning (분홍), Jack-down (파랑).", 
+    impact: "각 단계별 일정 진행 상황을 시각적으로 구분. 색상 클릭 시 해당 단계 상세 설명 확인." 
+  },
+  { 
+    id: "weather-overlay", 
+    kind: "meta", 
+    label: "Weather Overlay", 
+    shortLabel: "Weather", 
+    definition: "기상 오버레이. NO_GO (빨강): 해상 이송 불가 조건 (파고/풍속 한계 초과). NEAR_LIMIT (주황): 한계 근접 조건 (주의 필요).", 
+    impact: "NO_GO 구간 감지 시 일정 이동 필수. NEAR_LIMIT 구간은 대기 시간 고려." 
+  },
+]
+
+export const GANTT_LEGEND_DEFINITIONS: LegendDefinition[] = [...STAGE_DEFS, ...BADGE_DEFS, ...SPECIAL_DEFS]
 
 const byId = new Map<string, LegendDefinition>()
 GANTT_LEGEND_DEFINITIONS.forEach((d) => byId.set(d.id, d))

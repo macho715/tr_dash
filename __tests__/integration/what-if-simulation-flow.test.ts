@@ -131,6 +131,8 @@ describe("What-If Simulation - Browser Flow", () => {
       // When: Ghost bar metadata 생성
       const ghostMetadata = {
         type: "what_if" as const,
+        affected_count: 2,
+        conflict_count: 1,
         scenario: {
           reason: scenario.reason,
           confidence: scenario.confidence,
@@ -144,17 +146,18 @@ describe("What-If Simulation - Browser Flow", () => {
       expect(ghostMetadata.scenario.reason).toBe("SPMT breakdown")
       expect(ghostMetadata.scenario.delay_days).toBe(3)
       expect(ghostMetadata.scenario.confidence).toBe(0.85)
+      expect(ghostMetadata.affected_count).toBe(2)
+      expect(ghostMetadata.conflict_count).toBe(1)
     })
 
     it("should apply correct CSS class for What-If ghost bars", () => {
-      // Given: Ghost bar 타입
-      const ghostType = "what_if"
+      // Given/When: 듀얼 고스트 바 클래스
+      const oldClassName = "ghost-bar-what-if-old"
+      const newClassName = "ghost-bar-what-if-new"
 
-      // When: CSS class 결정
-      const className = ghostType === "what_if" ? "ghost-bar-what-if" : "ghost-bar-reflow"
-
-      // Then: 주황색 스타일이 적용되어야 함
-      expect(className).toBe("ghost-bar-what-if")
+      // Then: old/new 각각의 스타일이 적용되어야 함
+      expect(oldClassName).toBe("ghost-bar-what-if-old")
+      expect(newClassName).toBe("ghost-bar-what-if-new")
     })
   })
 
@@ -254,6 +257,8 @@ describe("What-If Simulation - Browser Flow", () => {
       // 5. Ghost Bars 메타데이터 생성
       const ghostMetadata = {
         type: "what_if" as const,
+        affected_count: 2,
+        conflict_count: 0,
         scenario: {
           reason: scenario.reason,
           confidence: scenario.confidence,
@@ -262,6 +267,8 @@ describe("What-If Simulation - Browser Flow", () => {
         },
       }
       expect(ghostMetadata.type).toBe("what_if")
+      expect(ghostMetadata.affected_count).toBe(2)
+      expect(ghostMetadata.conflict_count).toBe(0)
 
       // 6. Metrics 계산
       const metrics: WhatIfMetrics = {

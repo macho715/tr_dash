@@ -98,7 +98,7 @@ export function TimelineControls({
 
   return (
     <div className="mb-5 flex flex-wrap items-center gap-3 rounded-xl border border-accent/15 bg-glass px-4 py-3 text-xs text-slate-300">
-      {/* Task 9: Zoom/Pan/Fit/Today - vis-timeline controls */}
+      {/* Task 9: Zoom/Fit/Today - vis-timeline controls (Pan removed - use keyboard/mouse) */}
       {hasZoomControls && (
         <div className="flex items-center gap-1 border-r border-slate-700/60 pr-3">
           {z.onZoomIn && (
@@ -119,26 +119,6 @@ export function TimelineControls({
               title="Zoom Out"
             >
               <ZoomOut className="h-4 w-4" />
-            </button>
-          )}
-          {z.onPanLeft && (
-            <button
-              type="button"
-              onClick={z.onPanLeft}
-              className="rounded p-1.5 text-slate-400 hover:bg-cyan-500/20 hover:text-cyan-300"
-              title="Pan Left"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-          )}
-          {z.onPanRight && (
-            <button
-              type="button"
-              onClick={z.onPanRight}
-              className="rounded p-1.5 text-slate-400 hover:bg-cyan-500/20 hover:text-cyan-300"
-              title="Pan Right"
-            >
-              <ChevronRight className="h-4 w-4" />
             </button>
           )}
           {z.onFit && (

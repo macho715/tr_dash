@@ -226,4 +226,52 @@ describe("ganttRowsToVisData", () => {
     expect(ghost).toBeTruthy()
     expect(ghost?.className).toBe("ghost-bar-weather-propagated")
   })
+
+  it("adds dual what-if ghost bars with impact metadata in title", () => {
+    const rows: GanttRow[] = [
+      {
+        name: "Test",
+        isHeader: false,
+        activities: [
+          {
+            start: "2026-02-07",
+            end: "2026-02-10",
+            type: "mobilization",
+            label: "A6000: Test activity",
+          },
+        ],
+      },
+    ]
+    const reflowPreview = {
+      changes: [
+        {
+          activity_id: "A6000",
+          old_start: "2026-02-07",
+          new_start: "2026-02-09",
+          old_finish: "2026-02-10",
+          new_finish: "2026-02-12",
+          delta_days: 2,
+        },
+      ],
+      metadata: {
+        type: "what_if" as const,
+        affected_count: 3,
+        conflict_count: 1,
+        scenario: {
+          reason: "SPMT breakdown",
+          delay_days: 2,
+          confidence: 0.85,
+        },
+      },
+    }
+
+    const result = ganttRowsToVisData(rows, null, { reflowPreview })
+
+    const oldGhost = result.items.find((item) => item.id === "reflow_ghost_old_A6000")
+    const newGhost = result.items.find((item) => item.id === "reflow_ghost_new_A6000")
+    expect(oldGhost?.className).toBe("ghost-bar-what-if-old")
+    expect(newGhost?.className).toBe("ghost-bar-what-if-new")
+    expect(newGhost?.title).toContain("Affected: 3 activities")
+    expect(newGhost?.title).toContain("Conflicts: 1")
+  })
 })

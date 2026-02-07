@@ -2,6 +2,7 @@
 import type { ScheduleActivity } from "@/lib/ssot/schedule";
 
 const KEY = "agi_ops_recent_commands_v1";
+const PALETTE_KEY = "agi_ops_recent_palette_v1";
 
 export type HistoryState = {
   past: ScheduleActivity[][];
@@ -48,6 +49,36 @@ export function loadRecentCommands(): string[] {
   try {
     const raw = localStorage.getItem(KEY);
     return raw ? (JSON.parse(raw) as string[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+export type RecentPaletteItem = {
+  kind: "command" | "activity" | "quick" | "recent";
+  id: string;
+  label: string;
+  timestamp: number;
+};
+
+export function saveRecentPaletteItem(item: RecentPaletteItem) {
+  try {
+    const raw = localStorage.getItem(PALETTE_KEY);
+    const arr = raw ? (JSON.parse(raw) as RecentPaletteItem[]) : [];
+    const next = [
+      item,
+      ...arr.filter((x) => !(x.kind === item.kind && x.id === item.id)),
+    ].slice(0, 10);
+    localStorage.setItem(PALETTE_KEY, JSON.stringify(next));
+  } catch {
+    // ignore
+  }
+}
+
+export function loadRecentPaletteItems(): RecentPaletteItem[] {
+  try {
+    const raw = localStorage.getItem(PALETTE_KEY);
+    return raw ? (JSON.parse(raw) as RecentPaletteItem[]) : [];
   } catch {
     return [];
   }

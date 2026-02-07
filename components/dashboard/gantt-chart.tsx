@@ -285,6 +285,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
   const { selectedDate, setSelectedDate } = useDate()
   const viewMode = useViewModeOptional()
   const canEdit = viewMode?.canEdit ?? true
+  const isHistoryMode = viewMode?.state.mode === "history"
   const [legendDrawerItem, setLegendDrawerItem] = useState<LegendDefinition | null>(null)
   const [collisionPopover, setCollisionPopover] = useState<{
     x: number
@@ -453,6 +454,11 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
       collapsedGroupIds: collapsedGroups,
       eventLogByActivity: eventOverlayEnabled ? eventLogByActivity : undefined,
       eventOverlay: eventOverlayEnabled ? eventOverlays : undefined,
+      actualOverlay: {
+        enabled: true,
+        selectedDate,
+        isHistoryMode,
+      },
     })
     return result
   }, [
@@ -466,10 +472,14 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
     eventOverlayEnabled,
     eventLogByActivity,
     eventOverlays,
+    selectedDate,
+    isHistoryMode,
   ])
 
   const isGhostItemId = (id: string) =>
     id.startsWith("ghost_") ||
+    id.startsWith("reflow_ghost_old_") ||
+    id.startsWith("reflow_ghost_new_") ||
     id.startsWith("reflow_ghost_") ||
     id.startsWith("weather_ghost_") ||
     id.startsWith("weather_prop_ghost_")
@@ -479,6 +489,8 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
 
   const normalizeItemId = (id: string) => {
     if (id.startsWith("ghost_")) return id.slice(6)
+    if (id.startsWith("reflow_ghost_old_")) return id.slice(17)
+    if (id.startsWith("reflow_ghost_new_")) return id.slice(17)
     if (id.startsWith("reflow_ghost_")) return id.slice(13)
     if (id.startsWith("weather_ghost_")) return id.slice(14)
     if (id.startsWith("weather_prop_ghost_")) return id.slice(20)
@@ -884,25 +896,22 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
         </div>
       )}
 
-      {/* Legend — P1-4: 클릭 시 Drawer(태그 정의·의사결정 영향) */}
+      {/* Legend — Badge icons + Info (Activity Types moved to Drawer for space) */}
       <div className="flex flex-wrap gap-5 p-4 bg-glass rounded-xl mb-5 border border-accent/15">
-        {legendItems.map((item) => {
-          const def = getLegendDefinition(item.type)
-          return (
-            <button
-              key={item.type}
-              type="button"
-              onClick={() => def && setLegendDrawerItem(def)}
-              className="flex items-center gap-2.5 text-xs font-medium text-slate-400 hover:text-cyan-300 hover:underline focus:outline-none focus:ring-2 focus:ring-cyan-500/50 rounded min-h-[24px] min-w-[24px]"
-              title="Click for description"
-            >
-              <div
-                className={cn("w-7 h-3.5 rounded shadow-md", legendColors[item.type])}
-              />
-              {item.label}
-            </button>
-          )
-        })}
+        <div className="flex items-center gap-2 text-xs text-slate-400">
+          <button
+            type="button"
+            onClick={() => {
+              const activityTypeDef = getLegendDefinition("activity-types")
+              if (activityTypeDef) setLegendDrawerItem(activityTypeDef)
+            }}
+            className="flex items-center gap-2 hover:text-cyan-300 hover:underline focus:outline-none focus:ring-2 focus:ring-cyan-500/50 rounded px-2 py-1"
+            title="Click to view Activity Types legend"
+          >
+            <span className="text-xs font-medium">Activity Types</span>
+            <span className="text-[10px] text-slate-500">(6)</span>
+          </button>
+        </div>
         <span className="text-slate-500">|</span>
         <div className="flex flex-wrap gap-2 text-xs font-medium text-slate-500">
           {(["W", "PTW", "CERT", "LNK", "BRG", "RES"] as const).map((key) => {
@@ -970,48 +979,47 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
         {useVisEngine && weatherForecast && weatherLimits && (
           <>
             <span className="text-slate-500">|</span>
-            <div className="flex items-center gap-3 text-xs text-slate-400">
+            <div className="flex items-center gap-2 text-xs text-slate-400">
               <button
                 type="button"
                 onClick={() => setWeatherOverlayEnabled((prev) => !prev)}
-                className="flex items-center gap-2 text-xs font-medium text-slate-400 hover:text-cyan-300 hover:underline focus:outline-none focus:ring-2 focus:ring-cyan-500/50 rounded min-h-[24px] min-w-[24px]"
+                className="flex items-center gap-2 text-xs font-medium text-slate-400 hover:text-cyan-300 hover:underline focus:outline-none focus:ring-2 focus:ring-cyan-500/50 rounded px-2 py-1"
                 title="Toggle Weather Overlay"
               >
                 <span>{weatherOverlayEnabled ? "🌦️" : "🌤️"}</span>
                 <span>Weather Overlay</span>
               </button>
               {weatherOverlayEnabled && (
-                <div className="hidden items-center gap-3 md:flex">
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-1">
-                      <span className="inline-block h-3 w-5 rounded border border-red-500/30 bg-red-500/15" />
-                      <span>NO_GO</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <span className="inline-block h-3 w-5 rounded border border-amber-400/30 bg-amber-400/10" />
-                      <span>NEAR_LIMIT</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <label htmlFor="weather-opacity" className="text-xs text-slate-400">
-                      Opacity
-                    </label>
-                    <input
-                      id="weather-opacity"
-                      type="range"
-                      min={10}
-                      max={30}
-                      step={5}
-                      value={Math.round(weatherOverlayOpacityValue * 100)}
-                      onChange={(e) =>
-                        setWeatherOverlayOpacityValue(Number(e.target.value) / 100)
-                      }
-                      className="h-1 w-20 accent-cyan-400"
-                    />
-                    <span className="text-[11px] text-slate-500">
-                      {Math.round(weatherOverlayOpacityValue * 100)}%
-                    </span>
-                  </div>
+                <div className="flex items-center gap-2 ml-2">
+                  <label htmlFor="weather-opacity" className="text-xs text-slate-400">
+                    Opacity
+                  </label>
+                  <input
+                    id="weather-opacity"
+                    type="range"
+                    min={10}
+                    max={30}
+                    step={5}
+                    value={Math.round(weatherOverlayOpacityValue * 100)}
+                    onChange={(e) =>
+                      setWeatherOverlayOpacityValue(Number(e.target.value) / 100)
+                    }
+                    className="h-1 w-20 accent-cyan-400"
+                  />
+                  <span className="text-[11px] text-slate-500">
+                    {Math.round(weatherOverlayOpacityValue * 100)}%
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const weatherDef = getLegendDefinition("weather-overlay")
+                      if (weatherDef) setLegendDrawerItem(weatherDef)
+                    }}
+                    className="text-xs text-slate-500 hover:text-cyan-300 hover:underline ml-1"
+                    title="View Weather Legend"
+                  >
+                    [Legend]
+                  </button>
                 </div>
               )}
             </div>
