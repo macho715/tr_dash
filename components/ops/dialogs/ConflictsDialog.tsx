@@ -13,17 +13,27 @@ export function ConflictsDialog({
   onClose: () => void;
   activities: ScheduleActivity[];
 }) {
+  const dialogTitleId = "conflicts-dialog-title";
+  const dialogDescId = "conflicts-dialog-desc";
   if (!open) return null;
   const conflicts = detectResourceConflicts(activities);
 
   return (
     <div className="fixed inset-0 z-50">
       <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="absolute left-1/2 top-10 w-full max-w-2xl -translate-x-1/2 rounded-2xl border border-cyan-500/30 bg-slate-900/95 p-6 shadow-2xl">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={dialogTitleId}
+        aria-describedby={dialogDescId}
+        className="absolute left-1/2 top-10 w-full max-w-2xl -translate-x-1/2 rounded-2xl border border-cyan-500/30 bg-slate-900/95 p-6 shadow-2xl"
+      >
         <div className="flex items-start justify-between">
           <div>
             <div className="text-xs text-slate-400">Conflicts</div>
-            <div className="text-lg font-semibold text-slate-50">Detected Conflicts</div>
+            <div id={dialogTitleId} className="text-lg font-semibold text-slate-50">
+              Detected Conflicts
+            </div>
           </div>
           <button
             type="button"
@@ -33,6 +43,9 @@ export function ConflictsDialog({
             Close
           </button>
         </div>
+        <p id={dialogDescId} className="mt-2 text-xs text-slate-400">
+          Read-only conflict check based on current schedule activities.
+        </p>
 
         <div className="mt-4 max-h-[60vh] overflow-auto">
           {conflicts.length === 0 ? (

@@ -61,16 +61,19 @@ describe("UnifiedCommandPalette", () => {
 
     fireEvent.keyDown(window, { key: "k", ctrlKey: true });
 
-    expect(screen.getByPlaceholderText("Search or command…")).toBeTruthy();
+    expect(screen.getByPlaceholderText(/Search command\/activity/i)).toBeTruthy();
     expect(screen.getByText("Commands")).toBeTruthy();
     expect(screen.getByText("Quick Actions")).toBeTruthy();
+    expect(screen.getByText(/\/shift/i)).toBeTruthy();
+    expect(screen.getByText(/pivot=2026-02-01 delta=\+3/i)).toBeTruthy();
+    expect(screen.getByText(/ACT-001 2026-02-15/i)).toBeTruthy();
   });
 
   it("returns activity matches for fuzzy query", async () => {
     renderPalette();
     fireEvent.keyDown(window, { key: "k", ctrlKey: true });
 
-    const input = screen.getByPlaceholderText("Search or command…");
+    const input = screen.getByPlaceholderText(/Search command\/activity/i);
     fireEvent.input(input, { target: { value: "loadng tr2" } });
 
     await waitFor(() => {

@@ -33,6 +33,15 @@ type EngineArgs = {
   canApply?: boolean;
 };
 
+/**
+ * Central command engine for AGI schedule operations.
+ *
+ * Responsibilities:
+ * - Build deterministic previews from shift/bulk commands.
+ * - Apply previewed changes to activity state when `canApply` is true.
+ * - Manage local undo/redo history snapshots for applied changes.
+ * - Export preview data as patch/full JSON.
+ */
 export function useAgiCommandEngine({ activities, setActivities, canApply = true }: EngineArgs) {
   const [history, setHistory] = useState<HistoryState>(() => initHistory());
 
@@ -45,6 +54,7 @@ export function useAgiCommandEngine({ activities, setActivities, canApply = true
     []
   );
 
+  /** Preview a reflow for one selected activity start date change. */
   const previewShiftByActivity = useCallback(
     (activityId: string, newStart: string): PreviewResult => {
       const result = reflowSchedule(activities, activityId, newStart, DEFAULT_REFLOW_OPTIONS);
@@ -93,6 +103,10 @@ export function useAgiCommandEngine({ activities, setActivities, canApply = true
     [activities, buildPreview]
   );
 
+  /**
+   * Apply a preview to live activities.
+   * Returns false when preview is missing or apply is blocked by mode.
+   */
   const applyPreview = useCallback(
     (preview: PreviewResult | null) => {
       if (!preview || !canApply) return false;
@@ -130,6 +144,10 @@ export function useAgiCommandEngine({ activities, setActivities, canApply = true
     downloadJSON("schedule_full.json", makeFullJSON(preview.nextActivities));
   }, []);
 
+  /**
+   * Execute a parsed slash command.
+   * SHIFT/BULK may return a preview, other commands act on history/export side effects.
+   */
   const executeCommand = useCallback(
     (cmd: AgiCommand, raw: string): { preview?: PreviewResult } => {
       switch (cmd.kind) {

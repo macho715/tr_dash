@@ -37,6 +37,23 @@ updated: 2026-02-03
 
 ---
 
+## 3.1 Unified Command Palette
+
+- **열기**: `Ctrl/⌘+K`
+- **검색**: Activity ID/이름/anchor/tr/voyage fuzzy 검색
+- **핵심 명령어**:
+  - `/shift pivot=2026-02-01 delta=+3`
+  - `/shift pivot=2026-02-01 new=2026-02-05`
+  - `/bulk` (Bulk Anchors 입력 후 Preview)
+  - `/conflicts`, `/export`, `/undo`, `/redo`, `/reset`
+- **자연어 입력 예시**:
+  - `move loadout forward 3 days`
+  - `delay voyage 2 by 2`
+- **안전 원칙**: Preview 확인 후 Apply, Apply/Undo/Redo는 live mode에서만 사용
+- **접근성**: 다이얼로그는 스크린리더를 위한 제목/설명 연결과 오류 알림(`aria-invalid`, `role="alert"`)을 제공
+
+---
+
 ## 4. 트러블슈팅
 
 - **날짜가 Gantt와 안 맞음**: Selected Date는 UTC(YYYY-MM-DD). DatePicker 라벨·tooltip 확인.

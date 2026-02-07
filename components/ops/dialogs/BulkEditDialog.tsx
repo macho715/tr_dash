@@ -95,6 +95,9 @@ export function BulkEditDialog({
   initialAnchors,
   initialLabel,
 }: Props) {
+  const dialogTitleId = "bulk-dialog-title";
+  const dialogDescId = "bulk-dialog-desc";
+  const dialogErrorId = "bulk-dialog-error";
   const [bulkText, setBulkText] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
   const [activeTemplate, setActiveTemplate] = React.useState<string | null>(null);
@@ -144,15 +147,24 @@ export function BulkEditDialog({
       .filter((c) => diffDays(c.beforeStart, c.afterStart) >= CRITICAL_SHIFT_DAYS)
       .map((c) => c.activityId)
   );
+  const describedBy = error ? `${dialogDescId} ${dialogErrorId}` : dialogDescId;
 
   return (
     <div className="fixed inset-0 z-50">
       <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="absolute left-1/2 top-10 w-full max-w-3xl -translate-x-1/2 rounded-2xl border border-cyan-500/30 bg-slate-900/95 p-6 shadow-2xl">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={dialogTitleId}
+        aria-describedby={describedBy}
+        className="absolute left-1/2 top-10 w-full max-w-3xl -translate-x-1/2 rounded-2xl border border-cyan-500/30 bg-slate-900/95 p-6 shadow-2xl"
+      >
         <div className="flex items-start justify-between">
           <div>
             <div className="text-xs text-slate-400">Bulk Edit</div>
-            <div className="text-lg font-semibold text-slate-50">Bulk Anchors</div>
+            <div id={dialogTitleId} className="text-lg font-semibold text-slate-50">
+              Bulk Anchors
+            </div>
           </div>
           <button
             type="button"
@@ -162,6 +174,9 @@ export function BulkEditDialog({
             Close
           </button>
         </div>
+        <p id={dialogDescId} className="mt-2 text-xs text-slate-400">
+          Paste anchor rows, preview changes, then apply in live mode.
+        </p>
 
         <div className="mt-4 grid gap-3">
           <div className="text-xs text-slate-400">Quick Templates</div>
@@ -197,9 +212,16 @@ ACT-001 2026-02-15
 ACT-023=2026-02-18`}
             value={bulkText}
             onChange={(e) => setBulkText(e.target.value)}
+            aria-label="Bulk Anchors Input"
+            aria-invalid={error ? "true" : "false"}
+            aria-describedby={describedBy}
           />
 
-          {error ? <div className="text-xs text-rose-300">{error}</div> : null}
+          {error ? (
+            <div id={dialogErrorId} role="alert" className="text-xs text-rose-300">
+              {error}
+            </div>
+          ) : null}
 
           <div className="flex flex-wrap gap-2">
             <button

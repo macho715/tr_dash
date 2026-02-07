@@ -16,16 +16,26 @@ export function ExportDialog({
   onExportPatch: (preview: PreviewResult | null) => void;
   onExportFull: (preview: PreviewResult | null) => void;
 }) {
+  const dialogTitleId = "export-dialog-title";
+  const dialogDescId = "export-dialog-desc";
   if (!open) return null;
 
   return (
     <div className="fixed inset-0 z-50">
       <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="absolute left-1/2 top-10 w-full max-w-md -translate-x-1/2 rounded-2xl border border-cyan-500/30 bg-slate-900/95 p-6 shadow-2xl">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={dialogTitleId}
+        aria-describedby={dialogDescId}
+        className="absolute left-1/2 top-10 w-full max-w-md -translate-x-1/2 rounded-2xl border border-cyan-500/30 bg-slate-900/95 p-6 shadow-2xl"
+      >
         <div className="flex items-start justify-between">
           <div>
             <div className="text-xs text-slate-400">Export</div>
-            <div className="text-lg font-semibold text-slate-50">Export Schedule</div>
+            <div id={dialogTitleId} className="text-lg font-semibold text-slate-50">
+              Export Schedule
+            </div>
           </div>
           <button
             type="button"
@@ -35,6 +45,9 @@ export function ExportDialog({
             Close
           </button>
         </div>
+        <p id={dialogDescId} className="mt-2 text-xs text-slate-400">
+          Export the current preview as patch or full schedule JSON.
+        </p>
 
         {!preview ? (
           <div className="mt-4 text-sm text-slate-400">No preview available. Run a preview first.</div>

@@ -50,6 +50,9 @@ export function ShiftScheduleDialog({
   onApplyPreview,
   canApply,
 }: Props) {
+  const dialogTitleId = "shift-dialog-title";
+  const dialogDescId = "shift-dialog-desc";
+  const dialogErrorId = "shift-dialog-error";
   const [newStart, setNewStart] = React.useState("");
   const [pivotDate, setPivotDate] = React.useState("");
   const [deltaDays, setDeltaDays] = React.useState("");
@@ -123,15 +126,22 @@ export function ShiftScheduleDialog({
       .filter((c) => diffDays(c.beforeStart, c.afterStart) >= CRITICAL_SHIFT_DAYS)
       .map((c) => c.activityId)
   );
+  const describedBy = error ? `${dialogDescId} ${dialogErrorId}` : dialogDescId;
 
   return (
     <div className="fixed inset-0 z-50">
       <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="absolute left-1/2 top-10 w-full max-w-3xl -translate-x-1/2 rounded-2xl border border-cyan-500/30 bg-slate-900/95 p-6 shadow-2xl">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={dialogTitleId}
+        aria-describedby={describedBy}
+        className="absolute left-1/2 top-10 w-full max-w-3xl -translate-x-1/2 rounded-2xl border border-cyan-500/30 bg-slate-900/95 p-6 shadow-2xl"
+      >
         <div className="flex items-start justify-between">
           <div>
             <div className="text-xs text-slate-400">Shift Schedule</div>
-            <div className="text-lg font-semibold text-slate-50">
+            <div id={dialogTitleId} className="text-lg font-semibold text-slate-50">
               {mode === "activity" ? "Change Activity Start" : "Shift After Pivot"}
             </div>
           </div>
@@ -143,6 +153,9 @@ export function ShiftScheduleDialog({
             Close
           </button>
         </div>
+        <p id={dialogDescId} className="mt-2 text-xs text-slate-400">
+          Preview schedule impact first, then apply in live mode when approved.
+        </p>
 
         {mode === "activity" ? (
           <div className="mt-4 space-y-3">
@@ -158,6 +171,9 @@ export function ShiftScheduleDialog({
                 type="date"
                 value={newStart}
                 onChange={(e) => setNewStart(e.target.value)}
+                aria-label="New Start Date"
+                aria-invalid={error ? "true" : "false"}
+                aria-describedby={describedBy}
                 className="rounded-lg border border-slate-700/60 bg-slate-900/60 px-3 py-2 text-sm text-slate-100"
               />
               <button
@@ -191,6 +207,9 @@ export function ShiftScheduleDialog({
                 type="date"
                 value={pivotDate}
                 onChange={(e) => setPivotDate(e.target.value)}
+                aria-label="Pivot Date"
+                aria-invalid={error ? "true" : "false"}
+                aria-describedby={describedBy}
                 className="mt-1 w-full rounded-lg border border-slate-700/60 bg-slate-900/60 px-3 py-2 text-sm text-slate-100"
               />
             </label>
@@ -200,6 +219,9 @@ export function ShiftScheduleDialog({
                 type="number"
                 value={deltaDays}
                 onChange={(e) => setDeltaDays(e.target.value)}
+                aria-label="Delta Days"
+                aria-invalid={error ? "true" : "false"}
+                aria-describedby={describedBy}
                 className="mt-1 w-full rounded-lg border border-slate-700/60 bg-slate-900/60 px-3 py-2 text-sm text-slate-100"
                 placeholder="+3"
               />
@@ -210,6 +232,9 @@ export function ShiftScheduleDialog({
                 type="date"
                 value={newDate}
                 onChange={(e) => setNewDate(e.target.value)}
+                aria-label="New Pivot Date"
+                aria-invalid={error ? "true" : "false"}
+                aria-describedby={describedBy}
                 className="mt-1 w-full rounded-lg border border-slate-700/60 bg-slate-900/60 px-3 py-2 text-sm text-slate-100"
               />
             </label>
@@ -224,7 +249,11 @@ export function ShiftScheduleDialog({
           </div>
         )}
 
-        {error ? <div className="mt-3 text-xs text-rose-300">{error}</div> : null}
+        {error ? (
+          <div id={dialogErrorId} role="alert" className="mt-3 text-xs text-rose-300">
+            {error}
+          </div>
+        ) : null}
 
         <div className="mt-4 flex flex-wrap gap-2">
           <button

@@ -19,13 +19,21 @@ import { ExportDialog } from "./dialogs/ExportDialog";
 import { HelpDialog } from "./dialogs/HelpDialog";
 
 const COMMANDS = [
-  { id: "/shift", label: "Shift Schedule", description: "Shift after pivot" },
-  { id: "/bulk", label: "Bulk Edit", description: "Apply multiple anchors" },
+  {
+    id: "/shift",
+    label: "Shift Schedule",
+    description: "Example: /shift pivot=2026-02-01 delta=+3 (or new=2026-02-05)",
+  },
+  {
+    id: "/bulk",
+    label: "Bulk Edit",
+    description: "Example anchors: ACT-001 2026-02-15 or ACT-001=2026-02-15",
+  },
   { id: "/conflicts", label: "Show Conflicts", description: "Detect schedule conflicts" },
   { id: "/export", label: "Export Schedule", description: "Export patch/full JSON" },
-  { id: "/undo", label: "Undo Last Change", description: "Revert last apply" },
-  { id: "/redo", label: "Redo", description: "Re-apply last undone change" },
-  { id: "/reset", label: "Reset History", description: "Clear undo/redo history" },
+  { id: "/undo", label: "Undo Last Change", description: "Undo last Apply (live mode only)" },
+  { id: "/redo", label: "Redo", description: "Redo most recent undone Apply (live mode only)" },
+  { id: "/reset", label: "Reset History", description: "Clear local undo/redo stack only" },
   { id: "/help", label: "Help", description: "Show help and tips" },
 ];
 
@@ -328,9 +336,12 @@ export function UnifiedCommandPalette({ activities, setActivities, onFocusActivi
           value={query}
           onValueChange={setQuery}
           onKeyDown={onInputKeyDown}
-          placeholder="Search or command…"
+          placeholder="Search command/activity (e.g. /shift pivot=2026-02-01 delta=+3, move loadout forward 3 days)"
           className="w-full rounded-lg border border-slate-700/60 bg-slate-900/60 px-3 py-2 text-sm text-slate-100"
         />
+        <div className="mt-2 px-1 text-[11px] text-slate-500">
+          Tab autocomplete · ? help · Enter execute (/...=...)
+        </div>
         <Command.List className="mt-3 max-h-[60vh] overflow-auto text-sm">
           {query === "" && recent.length > 0 ? (
             <Command.Group heading="Recent" className="mb-3 text-xs text-slate-400">
