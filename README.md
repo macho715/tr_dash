@@ -6,8 +6,8 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue)](https://www.typescriptlang.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.1-38bdf8)](https://tailwindcss.com/)
 
-**최종 업데이트**: 2026-02-10  
-**최신 작업 반영**: **AI Command Phase 1 업그레이드 완료 ✅** ([docs/WORK_LOG_20260210_AI_UPGRADE.md](docs/WORK_LOG_20260210_AI_UPGRADE.md), [docs/NL_COMMAND_INTERFACE_COMPLETE.md](docs/NL_COMMAND_INTERFACE_COMPLETE.md)). Ollama(EXAONE) 우선 provider, confirm-first 실행, ambiguity 재질의(`clarification`) 흐름, intent 스모크 12케이스(한/영 + ambiguity) PASS.
+**최종 업데이트**: 2026-02-11  
+**최신 작업 반영**: **AI Command Phase 1** — NL command API (`POST /api/nl-command`), Unified Command Palette(**Ctrl+K** → 입력창 상단·자동 포커스, **Standard Mode** 클릭 시 **AI Command Mode**), `AIExplainDialog` confirm-first, intent 파싱·ambiguity 재질의. [docs/WORK_LOG_20260210_AI_UPGRADE.md](docs/WORK_LOG_20260210_AI_UPGRADE.md), [docs/NL_COMMAND_INTERFACE_COMPLETE.md](docs/NL_COMMAND_INTERFACE_COMPLETE.md), [docs/AI_FEATURES.md](docs/AI_FEATURES.md).
 
 ---
 
@@ -32,7 +32,7 @@ HVDC TR Transport Dashboard는 **7개의 Transformer Unit**을 **LCT BUSHRA**로
 - **🆕 History/Evidence 관리 (2026-02-06)**: Manual history event 추가 (AddHistoryModal), Soft delete (Append-only 준수), Restore 기능, Deleted 이벤트 표시 (opacity-50, "Deleted" 배지), SSOT append-only 유지.
 - **Trip Report Export**: MD/JSON 보고서 다운로드
 - **Next Trip Readiness**: Ready/Not Ready 배지, 마일스톤/증빙/블로커 체크리스트
-- **🆕 AI Command Interface (2026-02-10)**: Unified Command Palette AI 모드, 6개 intent(`shift_activities|prepare_bulk|explain_conflict|set_mode|apply_preview|unclear`) 파싱, `AIExplainDialog` 확인 후 실행(자동 실행 없음), ambiguity 옵션 선택 시 재질의.
+- **🆕 AI Command Interface (2026-02-10)**: **Ctrl+K**로 Command Palette 열기 → 맨 위 입력창에 명령/자연어 입력. **Standard Mode** 버튼 클릭 시 **AI Command Mode**로 전환 후 예: "Move all Voyage 3 forward 5 days" 입력 → Enter → `POST /api/nl-command`로 intent 파싱 → `AIExplainDialog`에서 확인 후 실행. 6개 intent, ambiguity 시 재질의. `OPENAI_API_KEY` 필요 시 설정.
 
 ---
 
@@ -64,12 +64,13 @@ npm install
 
 | 변수 | 설명 |
 |------|------|
+| `NEXT_PUBLIC_UNIFIED_COMMAND_PALETTE=true` | Command Palette 사용 (Ctrl+K). 미설정 시 팔레트 비노출. |
 | `NEXT_PUBLIC_GANTT_ENGINE=vis` | vis-timeline(VisTimelineGantt) 사용. 미설정 시 CSS/SVG 기반 커스텀 Gantt. |
 | `PORT=3001` | 개발 서버 포트 (기본 3000). |
+| `OPENAI_API_KEY` | AI Command Mode 자연어 파싱용 (`/api/nl-command`). 설정 시 OpenAI 사용. |
 | `AI_PROVIDER=ollama` | AI provider 우선순위 지정 (`ollama` 권장). |
 | `OLLAMA_MODEL=exaone3.5:7.8b` | Ollama 모델명 (로컬 EXAONE 권장값). |
 | `OLLAMA_BASE_URL=http://127.0.0.1:11434` | Ollama API 엔드포인트. |
-| `OPENAI_API_KEY` | OpenAI fallback 사용 시 필요 (선택). |
 
 ```bash
 # config/env.example을 복사하여 .env.local 생성
