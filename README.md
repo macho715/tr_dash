@@ -6,8 +6,8 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue)](https://www.typescriptlang.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.1-38bdf8)](https://tailwindcss.com/)
 
-**최종 업데이트**: 2026-02-06  
-**최신 작업 반영**: **4대 기능 + SSOT Trip/TR 정합성 수정 완료 ✅** ([docs/WORK_LOG_20260206_COMPLETE.md](docs/WORK_LOG_20260206_COMPLETE.md)). (1) Actual 날짜 입력/관리 (P0), (2) History 데이터 입력/삭제 (Soft Delete, P1), (3) What-if 시뮬레이션 검증 (Ghost bar, P2), (4) 일정 변경 표시 개선 (Gantt Legend, Enhanced Tooltip, P2), (5) SSOT Trip/TR 정합성 수정 (6개 activities 재배치, trips/trs 엔티티 생성, P0). 총 18시간 작업, 27개 파일 +2,664 LOC, validate_optionc.py PASS ✅. 다음: 브라우저 UI 테스트 진행 예정.
+**최종 업데이트**: 2026-02-10  
+**최신 작업 반영**: **AI Command Phase 1 업그레이드 완료 ✅** ([docs/WORK_LOG_20260210_AI_UPGRADE.md](docs/WORK_LOG_20260210_AI_UPGRADE.md), [docs/NL_COMMAND_INTERFACE_COMPLETE.md](docs/NL_COMMAND_INTERFACE_COMPLETE.md)). Ollama(EXAONE) 우선 provider, confirm-first 실행, ambiguity 재질의(`clarification`) 흐름, intent 스모크 12케이스(한/영 + ambiguity) PASS.
 
 ---
 
@@ -32,6 +32,7 @@ HVDC TR Transport Dashboard는 **7개의 Transformer Unit**을 **LCT BUSHRA**로
 - **🆕 History/Evidence 관리 (2026-02-06)**: Manual history event 추가 (AddHistoryModal), Soft delete (Append-only 준수), Restore 기능, Deleted 이벤트 표시 (opacity-50, "Deleted" 배지), SSOT append-only 유지.
 - **Trip Report Export**: MD/JSON 보고서 다운로드
 - **Next Trip Readiness**: Ready/Not Ready 배지, 마일스톤/증빙/블로커 체크리스트
+- **🆕 AI Command Interface (2026-02-10)**: Unified Command Palette AI 모드, 6개 intent(`shift_activities|prepare_bulk|explain_conflict|set_mode|apply_preview|unclear`) 파싱, `AIExplainDialog` 확인 후 실행(자동 실행 없음), ambiguity 옵션 선택 시 재질의.
 
 ---
 
@@ -65,6 +66,10 @@ npm install
 |------|------|
 | `NEXT_PUBLIC_GANTT_ENGINE=vis` | vis-timeline(VisTimelineGantt) 사용. 미설정 시 CSS/SVG 기반 커스텀 Gantt. |
 | `PORT=3001` | 개발 서버 포트 (기본 3000). |
+| `AI_PROVIDER=ollama` | AI provider 우선순위 지정 (`ollama` 권장). |
+| `OLLAMA_MODEL=exaone3.5:7.8b` | Ollama 모델명 (로컬 EXAONE 권장값). |
+| `OLLAMA_BASE_URL=http://127.0.0.1:11434` | Ollama API 엔드포인트. |
+| `OPENAI_API_KEY` | OpenAI fallback 사용 시 필요 (선택). |
 
 ```bash
 # config/env.example을 복사하여 .env.local 생성
@@ -128,6 +133,7 @@ tr_dashboard/
 ├── app/                    # Next.js App Router
 │   ├── layout.tsx         # 루트 레이아웃 (메타데이터, 폰트)
 │   ├── page.tsx           # 홈 페이지 (조립자)
+│   ├── api/nl-command/    # AI 자연어 명령 파싱 API
 │   └── globals.css        # Deep Ocean Theme 스타일
 ├── components/
 │   ├── layout/
@@ -163,6 +169,7 @@ tr_dashboard/
 │   ├── gantt/             # visTimelineMapper, contract (vis-timeline)
 │   ├── gantt-legend-guide.ts  # P1-4 Gantt 범례 정의 (LegendDefinition)
 │   ├── ops/               # agi (applyShift, adapters), agi-schedule (pipeline-runner)
+│   │   └── ai-intent.ts   # AI intent/result 타입 SSOT
 │   ├── compare/           # compare-loader (Phase 10)
 │   ├── baseline/          # baseline-compare, freeze-policy
 │   ├── store/             # trip-store (History/Evidence append-only)
@@ -176,8 +183,37 @@ tr_dashboard/
 ├── docs/                  # LAYOUT.md, SYSTEM_ARCHITECTURE.md, WORK_LOG_*, INDEX.md
 ├── tools/
 │   └── detect_pm_and_scripts.mjs
+├── scripts/
+│   └── smoke-nl-intent.ts # KO/EN intent + ambiguity 재질의 스모크
 └── .cursor/               # rules/, skills/, agents/
 ```
+
+### AI 명령 실행 흐름 (요약)
+
+```mermaid
+flowchart LR
+  subgraph UI
+    A[Ctrl+K] --> B[Command Palette]
+    B --> C[AI 모드 토글]
+    C --> D[자연어 입력]
+    D --> E[Enter]
+  end
+  E --> F[POST /api/nl-command]
+  F --> G{OPENAI_API_KEY}
+  G -->|유효| H[Intent 파싱]
+  G -->|없음/무효| I[401/500]
+  H --> J[AIExplainDialog]
+  J --> K{Confirm?}
+  K -->|Yes| L[실행]
+  K -->|No| M[취소]
+  L --> N[Preview / Apply]
+```
+
+1. Palette에서 AI 모드로 자연어 입력
+2. `POST /api/nl-command`로 intent 파싱
+3. `AIExplainDialog`에서 risk/confidence/action 검토
+4. 사용자 `Confirm & Continue` 시에만 실행
+5. ambiguity는 옵션 클릭으로 `clarification` 재질의 후 재판단
 
 ---
 
@@ -294,6 +330,9 @@ npx prettier --check .
 
 # 빌드 테스트
 pnpm run build
+
+# AI intent 스모크 테스트 (한/영 12케이스)
+pnpm run smoke:nl-intent
 ```
 
 ### 코드 품질 도구
@@ -659,5 +698,8 @@ Private project - Samsung C&T × Mammoet. 자세한 내용은 [LICENSE](LICENSE)
 - [docs/manual/User_Guide.md](docs/manual/User_Guide.md) — 사용자 매뉴얼
 - [docs/plan/plan_patchmain_14.md](docs/plan/plan_patchmain_14.md) — patchmain 14-item (2026-02-04)
 - [docs/WORK_LOG_20260202.md](docs/WORK_LOG_20260202.md) — Phase 4~11 작업 이력
+- [docs/WORK_LOG_20260210_AI_UPGRADE.md](docs/WORK_LOG_20260210_AI_UPGRADE.md) — AI Phase 1 작업 이력
 - [docs/BUGFIX_APPLIED_20260202.md](docs/BUGFIX_APPLIED_20260202.md) — Phase 6 Bugfix
+- [docs/NL_COMMAND_INTERFACE_IMPLEMENTATION_REPORT.md](docs/NL_COMMAND_INTERFACE_IMPLEMENTATION_REPORT.md) — NL Command 구현 리포트
+- [docs/NL_COMMAND_INTERFACE_COMPLETE.md](docs/NL_COMMAND_INTERFACE_COMPLETE.md) — NL Command 현재 상태
 - [docs/INDEX.md](docs/INDEX.md) — 문서 인덱스

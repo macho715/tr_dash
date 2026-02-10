@@ -1,14 +1,14 @@
 ---
 doc_id: system-architecture
 refs: [../patch.md, ../AGENTS.md, LAYOUT.md, plan/plan_patchmain_14.md]
-updated: 2026-02-04
+updated: 2026-02-10
 ---
 
 # HVDC TR Transport Dashboard - 시스템 아키텍처
 
-**버전**: 1.8  
-**최종 업데이트**: 2026-02-05  
-**최신 작업 반영**: 2026-02-05 — Gantt Reset 버튼 & Activity 디버깅 강화 (Phase 13 완료). Timeline controls에 Reset 버튼 추가, Activity 로딩 디버깅 로그. Event Sourcing Overlay Pipeline 구현 완료 (Event Log → Actual/Hold/Milestone → Gantt 오버레이. 3-PR: ID Resolution/JSON Patch/KPI Calc. Plan 불변, actual만 갱신). [WORK_LOG_20260202.md](WORK_LOG_20260202.md). Weather Overlay (2026-02-04). [weather-overlay-implementation-plan.md](plan/weather-overlay-implementation-plan.md)  
+**버전**: 1.9  
+**최종 업데이트**: 2026-02-10  
+**최신 작업 반영**: 2026-02-10 — AI Command Phase 1 업그레이드. Ollama(EXAONE) 우선 provider + OpenAI fallback, confirm-first 실행(`AIExplainDialog`), ambiguity 재질의(`clarification`) 흐름, intent 스모크 12케이스 PASS. [WORK_LOG_20260210_AI_UPGRADE.md](WORK_LOG_20260210_AI_UPGRADE.md), [NL_COMMAND_INTERFACE_IMPLEMENTATION_REPORT.md](NL_COMMAND_INTERFACE_IMPLEMENTATION_REPORT.md)
 **프로젝트**: HVDC TR Transport - AGI Site Logistics Dashboard  
 **SSOT**: patch.md, option_c.json (AGENTS.md)
 
@@ -65,6 +65,7 @@ HVDC TR Transport Dashboard는 **7개의 Transformer Unit**을 **LCT BUSHRA**로
 | **P1-4 GanttLegendDrawer** | 범례 태그 클릭 → 우측 Drawer에 정의·의사결정 영향 표시. `lib/gantt-legend-guide.ts`(LegendDefinition: stage/constraint/collision/meta) 기반. 2-click 내 도달. |
 | **MapLegend** | `MapPanel` 좌하단 오버레이. TR 상태(Planned/Ready/In progress/Completed/Blocked/Delayed) 색상·충돌(Blocking/Warning) 배지. patch §4.1, `lib/ssot/map-status-colors.ts` 연동. |
 | **Vis Gantt 패치·UX** | [visganttpatch.md](../visganttpatch.md) 참조. `gantt-chart.tsx`의 `useVisEngine`(= `NEXT_PUBLIC_GANTT_ENGINE` trim/toLowerCase `"vis"`)으로 vis-timeline(VisTimelineGantt) vs 자체 렌더 전환. `.env.local` 예: `NEXT_PUBLIC_GANTT_ENGINE=vis`, `PORT=3001`. `lib/gantt/visTimelineMapper.ts`: GanttRow → Vis groups/items, 동일일 막대 보정(min 1-day). VisTimelineGantt: DataSet, customTime(Selected Date), editable/draggable. 액티비티 클릭 → scrollToActivity + #gantt scrollIntoView. |
+| **AI Phase 1 (2026-02-10)** | `app/api/nl-command/route.ts`: intent 파싱 API(6 intents), provider order(ollama 우선), 정책 가드(422), `clarification` 재질의 지원. `UnifiedCommandPalette`는 review-first(`pendingAiAction`→`AIExplainDialog`→Confirm)로 실행. ambiguity 옵션 클릭 시 재질의 재호출. |
 
 ---
 
@@ -357,14 +358,39 @@ ScheduleActivity[]
 
 **흐름**: 
 ```
-Collision 배지 클릭 
+Collision 배지 클릭
   → WhyPanel 표시 (root cause + suggested_actions)
-  → suggested_action 클릭 
+  → suggested_action 클릭
   → reflowSchedule 실행
   → ReflowPreviewPanel 표시 (변경 사항 + 충돌)
-  → Apply 버튼 
+  → Apply 버튼
   → Activities 상태 업데이트
 ```
+
+### 6.1 NL Command Interface (Phase 1, 2026-02-10)
+
+**책임**: 자연어 명령을 SSOT 제약 하에서 안전하게 실행 가능한 intent로 변환하고, 사용자 확인 후에만 반영.
+
+**구성 요소**:
+- API: `app/api/nl-command/route.ts`
+  - 입력: `query`, `activities`, `clarification?`
+  - 출력: `intent`, `parameters`, `ambiguity`, `confidence`, `risk_level`, `requires_confirmation`
+  - 정책: `apply_preview.preview_ref === "current"`, `set_mode` enum 검증
+  - provider: `AI_PROVIDER=ollama` 시 Ollama 우선, OpenAI fallback
+- UI: `components/ops/UnifiedCommandPalette.tsx`
+  - `runAiCommand(query, clarification?)`
+  - confirm-first 흐름: 결과 즉시 실행 금지
+  - `executeAiIntent`에서 모드/권한 가드 재확인
+- Review Dialog: `components/ops/dialogs/AIExplainDialog.tsx`
+  - intent/risk/confidence/차단사유 표시
+  - ambiguity 옵션 버튼 -> 재질의 콜백
+
+**실행 시퀀스**:
+1. 사용자 입력
+2. `/api/nl-command` 파싱
+3. `AIExplainDialog` 리뷰
+4. Confirm 시 intent dispatcher 실행
+5. ambiguity일 경우 옵션 선택 -> `clarification` 재질의
 
 ### 7. State Machine & Evidence Gates (Phase 3)
 
@@ -628,7 +654,7 @@ z-0:  WeatherOverlay (Canvas)
 
 ---
 
-**Last Updated**: 2026-02-05 (Phase 12 Event Sourcing 반영)
+**Last Updated**: 2026-02-10 (AI Command Phase 1 반영)
 
 ## Refs
 
@@ -638,5 +664,6 @@ z-0:  WeatherOverlay (Canvas)
 - [README.md](../README.md)
 - [plan_patchmain_14.md](plan/plan_patchmain_14.md) — patchmain 14-item (2026-02-04)
 - [WORK_LOG_20260202.md](WORK_LOG_20260202.md), [BUGFIX_APPLIED_20260202.md](BUGFIX_APPLIED_20260202.md) — 최신 작업 반영
+- [WORK_LOG_20260210_AI_UPGRADE.md](WORK_LOG_20260210_AI_UPGRADE.md), [NL_COMMAND_INTERFACE_IMPLEMENTATION_REPORT.md](NL_COMMAND_INTERFACE_IMPLEMENTATION_REPORT.md) — AI Phase 1 반영
 - [plan_patchm1_m5.md](plan/plan_patchm1_m5.md)
 - [map-integration-ideas.md](plan/map-integration-ideas.md) — 지도 번들·히트맵·지오펜스 통합

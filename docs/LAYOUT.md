@@ -1,14 +1,14 @@
 ---
 doc_id: layout
 refs: [../patch.md, ../AGENTS.md, SYSTEM_ARCHITECTURE.md, plan/plan_patchmain_14.md]
-updated: 2026-02-04
+updated: 2026-02-10
 ---
 
 # HVDC TR Transport Dashboard - Layout 문서
 
-> **버전**: 1.8.0  
-> **최종 업데이트**: 2026-02-05  
-> **최신 작업 반영**: 2026-02-05 — Gantt Reset 버튼 & Activity 디버깅 강화 (Phase 13 완료). Timeline controls에 Reset 버튼 추가, Activity 로딩 디버깅 로그. Event Sourcing Overlay Pipeline 구현 완료 (Event Log → Actual/Hold/Milestone → Gantt 오버레이. 3-PR: ID Resolution/JSON Patch/KPI Calc. Plan 불변, actual만 갱신). [WORK_LOG_20260202.md](WORK_LOG_20260202.md). Weather Overlay (Canvas z-0, Range culling, Opacity 슬라이더, UI 토글 🌦️/🌤️, RAF throttle 10fps, 테스트 2/2 ✅). [weather-overlay-implementation-plan.md](plan/weather-overlay-implementation-plan.md)  
+> **버전**: 1.9.0  
+> **최종 업데이트**: 2026-02-10  
+> **최신 작업 반영**: 2026-02-10 — AI Command Phase 1 업그레이드. Unified Command Palette AI 모드, confirm-first 실행(`AIExplainDialog`), ambiguity 옵션 기반 재질의(`clarification`) 반영. [WORK_LOG_20260210_AI_UPGRADE.md](WORK_LOG_20260210_AI_UPGRADE.md), [NL_COMMAND_INTERFACE_COMPLETE.md](NL_COMMAND_INTERFACE_COMPLETE.md)  
 > **프로젝트**: HVDC TR Transport Dashboard - AGI Site  
 > **SSOT**: patch.md, option_c.json (AGENTS.md)
 
@@ -42,6 +42,7 @@ HVDC TR Transport Dashboard는 **Al Ghallan Island (AGI) Site**의 7개 Transfor
 - **Sticky Navigation**: 섹션 간 빠른 이동
 - **Dark Mode**: Deep Ocean 테마 적용
 - **AGI Operations**: 스케줄 업데이트 및 명령 처리
+- **AI Command Palette (Phase 1)**: 자연어 명령 입력 -> intent 리뷰 -> Confirm 후 실행. ambiguity는 옵션 버튼으로 재질의.
 
 ---
 
@@ -199,6 +200,7 @@ graph TB
 2. **MilestoneTracker**: 마일스톤 추적
 3. **AgiOpsDock**: AGI 명령 처리 인터페이스
 4. **AgiScheduleUpdaterBar**: 스케줄 업데이트 바
+5. **UnifiedCommandPalette** (`components/ops/UnifiedCommandPalette.tsx`): AI/Standard 통합 명령 팔레트
 
 **Props**:
 - `activities`: 스케줄 활동 배열
@@ -207,6 +209,11 @@ graph TB
 - `onSetActivities`: 활동 설정 핸들러
 - `onOpsCommand`: AGI 명령 실행 핸들러
 - `onFocusActivity`: 활동 포커스 핸들러
+
+**AI 동작 레이아웃 포인트 (2026-02-10)**:
+- 입력: Palette 상단 `Command.Input` (오픈 시 포커스 우선)
+- 리뷰: `AIExplainDialog` 모달에서 intent/risk/confidence 확인
+- 실행: `Confirm & Continue` 이후에만 의도별 다이얼로그(`BulkEditDialog`, `ConflictsDialog`) 또는 모드 전환 수행
 
 ### 6. SectionNav (`components/dashboard/section-nav.tsx`)
 
@@ -907,7 +914,7 @@ sequenceDiagram
 ---
 
 **문서 작성일**: 2025-01-31  
-**최종 업데이트**: 2026-02-05 (Phase 12 Event Sourcing Overlay 반영)  
+**최종 업데이트**: 2026-02-10 (AI Command Phase 1 반영)  
 **프로젝트**: HVDC TR Transport Dashboard  
 
 ## Refs
@@ -917,5 +924,7 @@ sequenceDiagram
 - [README.md](../README.md) — 프로젝트 개요
 - [plan_patchmain_14.md](plan/plan_patchmain_14.md) — patchmain 14-item (2026-02-04)
 - [WORK_LOG_20260202.md](WORK_LOG_20260202.md) — Phase 6/7/10/11, 2026-02-04 patchmain 작업 요약
+- [WORK_LOG_20260210_AI_UPGRADE.md](WORK_LOG_20260210_AI_UPGRADE.md) — AI 업그레이드 작업 요약
+- [NL_COMMAND_INTERFACE_COMPLETE.md](NL_COMMAND_INTERFACE_COMPLETE.md) — NL Command 현재 상태
 - [BUGFIX_APPLIED_20260202.md](BUGFIX_APPLIED_20260202.md) — Bug #1~5,#7 적용
 - [map-integration-ideas.md](plan/map-integration-ideas.md) — 지도 번들·히트맵·지오펜스 통합 아이디어

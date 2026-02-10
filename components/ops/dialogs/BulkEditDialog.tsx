@@ -101,21 +101,30 @@ export function BulkEditDialog({
   const [bulkText, setBulkText] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
   const [activeTemplate, setActiveTemplate] = React.useState<string | null>(null);
+  const appliedInitialPresetKeyRef = React.useRef<string | null>(null);
 
   React.useEffect(() => {
     if (!open) {
       setError(null);
+      appliedInitialPresetKeyRef.current = null;
     }
   }, [open]);
 
   React.useEffect(() => {
-    if (open && initialAnchors && initialAnchors.length > 0) {
-      const lines = initialAnchors.map((a) => `${a.activityId} ${a.newStart}`).join("\n");
-      setBulkText(lines);
-      setActiveTemplate(initialLabel ?? null);
-      const p = onPreview(initialAnchors);
-      setPreview(p);
-    }
+    if (!open || !initialAnchors || initialAnchors.length === 0) return;
+
+    const presetKey = `${initialLabel ?? ""}::${initialAnchors
+      .map((a) => `${a.activityId}:${a.newStart}`)
+      .join("|")}`;
+
+    if (appliedInitialPresetKeyRef.current === presetKey) return;
+
+    appliedInitialPresetKeyRef.current = presetKey;
+    const lines = initialAnchors.map((a) => `${a.activityId} ${a.newStart}`).join("\n");
+    setBulkText(lines);
+    setActiveTemplate(initialLabel ?? null);
+    const p = onPreview(initialAnchors);
+    setPreview(p);
   }, [open, initialAnchors, initialLabel, onPreview, setPreview]);
 
   if (!open) return null;

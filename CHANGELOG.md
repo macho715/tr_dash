@@ -9,6 +9,23 @@
 
 ### Added
 
+- **AI Command Phase 1 업그레이드 (2026-02-10)**: Unified Command Palette AI 실행 흐름 고도화.
+  - `/api/nl-command` intent 계약 확장: `shift_activities|prepare_bulk|explain_conflict|set_mode|apply_preview|unclear`
+  - Provider 전략: `AI_PROVIDER=ollama` 시 Ollama(EXAONE) 우선, OpenAI fallback
+  - 응답 표준 필드: `confidence`, `risk_level`, `requires_confirmation=true` 강제
+  - 정책 가드(422): `apply_preview.preview_ref === "current"`, `set_mode` enum 검증
+  - 파일: `app/api/nl-command/route.ts`, `lib/ops/ai-intent.ts`
+- **AI 리뷰/확인 실행 플로우 (2026-02-10)**:
+  - AI 결과 즉시 실행 금지, `AIExplainDialog` 확인 후 `Confirm & Continue`에서만 실행
+  - intent별 dispatcher(`executeAiIntent`) 추가: bulk/conflict/mode/apply 분기
+  - 파일: `components/ops/UnifiedCommandPalette.tsx`, `components/ops/dialogs/AIExplainDialog.tsx`
+- **Ambiguity 재질의 지원 (2026-02-10)**:
+  - 다이얼로그 ambiguity 옵션 버튼 선택 시 `clarification` 포함 재호출
+  - 파일: `components/ops/dialogs/AIExplainDialog.tsx`, `components/ops/UnifiedCommandPalette.tsx`, `app/api/nl-command/route.ts`
+- **AI 검증 자산 추가 (2026-02-10)**:
+  - UI/API 테스트 보강 + 한/영 스모크(12케이스) 추가
+  - 파일: `components/ops/__tests__/AIExplainDialog.test.tsx`, `components/ops/__tests__/UnifiedCommandPalette.ai-mode.test.tsx`, `app/api/nl-command/__tests__/route.test.ts`, `scripts/smoke-nl-intent.ts`
+
 - **StoryHeader SSOT 통합 (2026-02-04)**: TR/Activity 선택 시 Where/When/What/Evidence 자동 갱신. SSOT 타입 (`Activity`, `ActivityState`, `OptionC`) + derived-calc (`calculateCurrentActivityForTR`, `calculateCurrentLocationForTR`) + evidence-gate (`checkEvidenceGate`) import. `selectedTrId`, `ssot` state 추가. `storyHeaderData` 파생 계산 (`useMemo`). TR 선택 와이어링 (`handleActivityClick`, Map callbacks). ReadinessPanel에 `ssot` prop 전달. 파일: `app/page.tsx` (+175/-116). Ref: `docs/plan/story-header-ssot-integration.md`.
 - **Trip 매칭 개선 (2026-02-04)**: ReadinessPanel의 Trip 선택 정확도 향상. `normalizeTripMatchValue()` (정규화), `matchTripIdForVoyage()` (Voyage → Trip 매칭), `readinessTripId` 파생 (ViewMode → Voyage 매칭 → null). 6가지 토큰 지원 (voyage/voy/trip/tr/tr unit/trUnit). 파일: `app/page.tsx`. Ref: `docs/plan/trip-matching-improvement.md`.
 - **Map Geofence Layer (Phase 1) (2026-02-04)**: Semi-transparent boundary polygons around key locations (LOC_MZP, LOC_AGI)
@@ -26,6 +43,9 @@
 
 ### Changed
 
+- **문서 동기화 (2026-02-10)**: AI 기능 전용 문서 및 핵심 문서 최신화.
+  - 신규: `docs/AI_FEATURES.md`, `docs/WORK_LOG_20260210_AI_UPGRADE.md`
+  - 갱신: `docs/NL_COMMAND_INTERFACE_IMPLEMENTATION_REPORT.md`, `docs/NL_COMMAND_INTERFACE_COMPLETE.md`, `docs/INDEX.md`, `README.md`, `docs/SYSTEM_ARCHITECTURE.md`, `docs/LAYOUT.md`
 - **VisTimelineGantt**: onRangeChange, onRender callbacks 추가 (overlay 동기화).
 - **gantt-chart.tsx**: visContainerRef (positioned container), DependencyArrowsOverlay 통합, visRenderTick state, Weather Overlay 토글 + 슬라이더.
 - **StoryHeader SSOT 연동**: 선택된 TR/Activity 기준으로 Location, Schedule, Evidence 요약을 파생 계산하도록 갱신.

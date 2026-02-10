@@ -80,4 +80,40 @@ describe("UnifiedCommandPalette", () => {
       expect(screen.getByText(/A2030: Loading of AGI TR Unit 2 on SPMT/)).toBeTruthy();
     });
   });
+
+  it("focuses input immediately when palette opens", async () => {
+    renderPalette();
+
+    fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+
+    const input = screen.getByPlaceholderText(/Search command\/activity/i);
+    await waitFor(() => {
+      expect(document.activeElement).toBe(input);
+    });
+  });
+
+  it("renders input before mode toggle button in DOM order", () => {
+    renderPalette();
+    fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+
+    const input = screen.getByPlaceholderText(/Search command\/activity/i);
+    const toggleButton = screen.getByRole("button", { name: /Standard Mode/i });
+
+    const relation = input.compareDocumentPosition(toggleButton);
+    expect(relation & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("keeps input auto-focus after toggling AI mode and reopening", async () => {
+    renderPalette();
+    fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+
+    fireEvent.click(screen.getByRole("button", { name: /Standard Mode/i }));
+    fireEvent.keyDown(window, { key: "Escape" });
+    fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+
+    const input = screen.getByPlaceholderText(/Press Enter to send to AI/i);
+    await waitFor(() => {
+      expect(document.activeElement).toBe(input);
+    });
+  });
 });

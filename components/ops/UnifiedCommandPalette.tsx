@@ -9,6 +9,7 @@ import type { ViewMode } from "@/src/lib/stores/view-mode-store";
 import { useViewModeOptional } from "@/src/lib/stores/view-mode-store";
 import { parseAgiCommand } from "@/lib/ops/agi/parseCommand";
 import type { PreviewResult } from "@/lib/ops/agi/types";
+import type { AiIntentResult, ShiftFilter } from "@/lib/ops/ai-intent";
 import { useAgiCommandEngine } from "@/lib/ops/agi/useAgiCommandEngine";
 import { loadRecentPaletteItems, saveRecentPaletteItem, type RecentPaletteItem } from "@/lib/ops/agi/history";
 import { toast } from "sonner";
@@ -17,6 +18,7 @@ import { BulkEditDialog } from "./dialogs/BulkEditDialog";
 import { ConflictsDialog } from "./dialogs/ConflictsDialog";
 import { ExportDialog } from "./dialogs/ExportDialog";
 import { HelpDialog } from "./dialogs/HelpDialog";
+import { AIExplainDialog } from "./dialogs/AIExplainDialog";
 
 const COMMANDS = [
   {
@@ -38,6 +40,7 @@ const COMMANDS = [
 ];
 
 type Anchor = { activityId: string; newStart: string };
+type AiDecision = "reviewing" | "approved" | "cancelled";
 
 type QuickAction = {
   id: string;
@@ -92,6 +95,13 @@ function applyDelta(anchors: Anchor[], delta: number): Anchor[] {
     const iso = base.toISOString().slice(0, 10);
     return { ...a, newStart: iso };
   });
+}
+
+function addDays(dateStr: string, days: number): string {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const base = new Date(Date.UTC(y, m - 1, d));
+  base.setUTCDate(base.getUTCDate() + days);
+  return base.toISOString().slice(0, 10);
 }
 
 function parseNaturalSuggestion(query: string, activities: ScheduleActivity[]): { label: string; anchors: Anchor[]; description: string } | null {
@@ -191,8 +201,15 @@ export function UnifiedCommandPalette({ activities, setActivities, onFocusActivi
   const [open, setOpen] = React.useState(false);
   const [query, setQuery] = React.useState("");
   const [recent, setRecent] = React.useState<RecentPaletteItem[]>([]);
+  
+  // AI Mode state (NEW for Idea 2)
+  const [aiMode, setAiMode] = React.useState(false);
+  const [aiLoading, setAiLoading] = React.useState(false);
+  const [pendingAiAction, setPendingAiAction] = React.useState<AiIntentResult | null>(null);
+  const [aiDecision, setAiDecision] = React.useState<AiDecision>("cancelled");
+  const inputRef = React.useRef<HTMLInputElement | null>(null);
 
-  const [dialog, setDialog] = React.useState<"activity" | "pivot" | "bulk" | "conflicts" | "export" | "help" | null>(null);
+  const [dialog, setDialog] = React.useState<"activity" | "pivot" | "bulk" | "conflicts" | "export" | "help" | "ai-explain" | null>(null);
   const [selectedActivity, setSelectedActivity] = React.useState<ScheduleActivity | null>(null);
   const [preview, setPreview] = React.useState<PreviewResult | null>(null);
   const [bulkPreset, setBulkPreset] = React.useState<{ anchors: Anchor[]; label: string } | null>(null);
@@ -200,9 +217,22 @@ export function UnifiedCommandPalette({ activities, setActivities, onFocusActivi
 
   const engine = useAgiCommandEngine({ activities, setActivities, canApply });
 
+  const focusInput = React.useCallback(() => {
+    if (!inputRef.current || aiLoading) return;
+    requestAnimationFrame(() => {
+      if (!inputRef.current || aiLoading) return;
+      inputRef.current.focus();
+    });
+  }, [aiLoading]);
+
   React.useEffect(() => {
     setRecent(loadRecentPaletteItems());
   }, []);
+
+  React.useEffect(() => {
+    if (!open || aiLoading) return;
+    focusInput();
+  }, [open, aiLoading, focusInput]);
 
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -237,6 +267,75 @@ export function UnifiedCommandPalette({ activities, setActivities, onFocusActivi
     if (!query || query.startsWith("/")) return null;
     return parseNaturalSuggestion(query, activities);
   }, [query, activities]);
+
+  const anchorsFromFilter = React.useCallback(
+    (filter: ShiftFilter | undefined, deltaDays: number) => {
+      const safeFilter = filter || {};
+      const affected = activities.filter((a) => {
+        const matchVoyage = !safeFilter.voyage_ids || safeFilter.voyage_ids.includes(a.voyage_id);
+        const matchTR = !safeFilter.tr_unit_ids || safeFilter.tr_unit_ids.includes(a.tr_unit_id);
+        const matchAnchor =
+          !safeFilter.anchor_types || safeFilter.anchor_types.includes(a.anchor_type || "");
+        const matchId =
+          !safeFilter.activity_ids || safeFilter.activity_ids.includes(a.activity_id || "");
+        return matchVoyage && matchTR && matchAnchor && matchId;
+      });
+      return affected.map((a) => ({
+        activityId: a.activity_id as string,
+        newStart: addDays(a.planned_start, deltaDays),
+      }));
+    },
+    [activities]
+  );
+
+  const getAiExecutionGuard = React.useCallback(
+    (aiResult: AiIntentResult | null): { canExecute: boolean; blockReason?: string; actionSummary: string } => {
+      if (!aiResult) {
+        return { canExecute: false, blockReason: "No AI action to execute.", actionSummary: "No action" };
+      }
+
+      if (aiResult.intent === "shift_activities") {
+        return { canExecute: true, actionSummary: "Create bulk preset from activity filter and open Bulk Edit preview." };
+      }
+      if (aiResult.intent === "prepare_bulk") {
+        return { canExecute: true, actionSummary: "Open Bulk Edit with AI-provided anchors." };
+      }
+      if (aiResult.intent === "explain_conflict") {
+        return { canExecute: true, actionSummary: "Open conflicts dialog and show conflict analysis guidance." };
+      }
+      if (aiResult.intent === "set_mode") {
+        const mode = aiResult.parameters?.mode;
+        if (!mode) {
+          return { canExecute: false, blockReason: "Missing target mode.", actionSummary: "Switch view mode" };
+        }
+        return { canExecute: true, actionSummary: `Switch view mode to ${mode} (read-only restrictions still apply).` };
+      }
+      if (aiResult.intent === "apply_preview") {
+        if (!canApply || resolvedMode !== "live") {
+          return {
+            canExecute: false,
+            blockReason: "Apply is blocked outside live mode or without reflow permission.",
+            actionSummary: "Apply current preview",
+          };
+        }
+        if (!preview) {
+          return {
+            canExecute: false,
+            blockReason: "No preview exists. Generate preview first.",
+            actionSummary: "Apply current preview",
+          };
+        }
+        return { canExecute: true, actionSummary: "Apply current preview to schedule in live mode." };
+      }
+
+      return {
+        canExecute: false,
+        blockReason: "Intent is informational or unclear; no direct execution.",
+        actionSummary: "No execution",
+      };
+    },
+    [canApply, preview, resolvedMode]
+  );
 
   const onSelectActivity = (a: ScheduleActivity) => {
     if (!a.activity_id) return;
@@ -297,7 +396,148 @@ export function UnifiedCommandPalette({ activities, setActivities, onFocusActivi
     setOpen(false);
   };
 
+  const executeAiIntent = React.useCallback(
+    (aiResult: AiIntentResult) => {
+      if (aiResult.intent === "shift_activities") {
+        const deltaDays = aiResult.parameters?.action?.delta_days ?? 0;
+        const anchors = anchorsFromFilter(aiResult.parameters?.filter, deltaDays);
+        if (anchors.length === 0) {
+          toast.warning("No matching activities found for this AI command.");
+          return;
+        }
+        setBulkPreset({ anchors, label: aiResult.explanation });
+        setDialog("bulk");
+        setOpen(false);
+        toast.success(`AI prepared bulk preview for ${anchors.length} activities.`);
+        return;
+      }
+
+      if (aiResult.intent === "prepare_bulk") {
+        const anchors = Array.isArray(aiResult.parameters?.anchors)
+          ? aiResult.parameters.anchors.filter((a): a is Anchor => Boolean(a?.activityId && a?.newStart))
+          : [];
+        if (anchors.length === 0) {
+          toast.warning("AI did not provide valid anchors.");
+          return;
+        }
+        setBulkPreset({ anchors, label: aiResult.parameters?.label || aiResult.explanation });
+        setDialog("bulk");
+        setOpen(false);
+        toast.success(`AI prepared ${anchors.length} anchors.`);
+        return;
+      }
+
+      if (aiResult.intent === "explain_conflict") {
+        setDialog("conflicts");
+        setOpen(false);
+        toast.info(aiResult.explanation);
+        return;
+      }
+
+      if (aiResult.intent === "set_mode") {
+        const targetMode = aiResult.parameters?.mode;
+        if (!targetMode) {
+          toast.warning("AI mode change request is missing target mode.");
+          return;
+        }
+        viewModeContext?.setMode(targetMode);
+        setOpen(false);
+        setDialog(null);
+        if (targetMode === "approval" || targetMode === "history") {
+          toast.info(`Switched to ${targetMode}. This mode is read-only.`);
+        } else {
+          toast.success(`Switched to ${targetMode} mode.`);
+        }
+        return;
+      }
+
+      if (aiResult.intent === "apply_preview") {
+        if (!canApply || resolvedMode !== "live") {
+          toast.warning("Apply is blocked outside live mode.");
+          return;
+        }
+        if (!preview) {
+          toast.warning("No preview to apply.");
+          return;
+        }
+        const ok = engine.applyPreview(preview);
+        if (ok) {
+          toast.success("Preview applied.");
+        } else {
+          toast.error("Failed to apply preview.");
+        }
+        setOpen(false);
+        setDialog(null);
+        return;
+      }
+
+      setDialog(null);
+      toast.info(aiResult.explanation);
+    },
+    [anchorsFromFilter, canApply, engine, preview, resolvedMode, viewModeContext]
+  );
+
+  const runAiCommand = React.useCallback(
+    async (queryText: string, clarification?: string) => {
+      if (!queryText.trim() || aiLoading) return;
+
+      setAiLoading(true);
+      try {
+        const response = await fetch("/api/nl-command", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: queryText, activities, clarification }),
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          toast.error(`AI Command failed: ${error.error || "Unknown error"}`);
+          return;
+        }
+
+        const result = (await response.json()) as AiIntentResult;
+        setPendingAiAction(result);
+        setAiDecision("reviewing");
+        setDialog("ai-explain");
+        toast.info("AI command parsed. Review and confirm before execution.");
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : "Unknown error";
+        console.error("[AI Command] Error:", error);
+        toast.error(`AI Command error: ${message}`);
+      } finally {
+        setAiLoading(false);
+      }
+    },
+    [activities, aiLoading]
+  );
+
+  const onAICommand = React.useCallback(() => {
+    void runAiCommand(query);
+  }, [query, runAiCommand]);
+
+  const onSelectAmbiguity = React.useCallback(
+    (option: string) => {
+      if (!query.trim()) return;
+      toast.info(`Clarification selected: ${option}`);
+      void runAiCommand(query, option);
+    },
+    [query, runAiCommand]
+  );
+
   const onInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    // Ensure delete keys are handled by the input itself (avoid cmdk/root interception).
+    if (e.key === "Backspace" || e.key === "Delete") {
+      e.stopPropagation();
+      return;
+    }
+
+    // AI Mode: Enter triggers LLM parsing
+    if (e.key === "Enter" && aiMode && query && !query.startsWith("/")) {
+      e.preventDefault();
+      onAICommand();
+      return;
+    }
+
     if (e.key === "Tab" && query.startsWith("/")) {
       e.preventDefault();
       const next = COMMANDS.find((c) => c.id.startsWith(query));
@@ -319,28 +559,67 @@ export function UnifiedCommandPalette({ activities, setActivities, onFocusActivi
     }
   };
 
+  const aiGuard = React.useMemo(
+    () => getAiExecutionGuard(pendingAiAction),
+    [getAiExecutionGuard, pendingAiAction]
+  );
+
   return (
     <>
       <Command.Dialog
         open={open}
         onOpenChange={setOpen}
         shouldFilter={false}
-        className="fixed left-1/2 top-10 w-full max-w-2xl -translate-x-1/2 rounded-2xl border border-cyan-500/30 bg-slate-900/95 p-4 shadow-2xl"
+        contentClassName="overflow-visible"
+        className="fixed left-1/2 top-10 z-[100] w-full max-w-2xl -translate-x-1/2 rounded-2xl border border-cyan-500/30 bg-slate-900/95 p-4 shadow-2xl"
       >
         <Dialog.Title className="sr-only">Unified Command Palette</Dialog.Title>
         <Dialog.Description className="sr-only">
-          Search commands, activities, quick actions, and recent items.
+          Search commands, activities, quick actions, and recent items. AI mode available for complex natural language commands.
         </Dialog.Description>
-        <Command.Input
-          autoFocus
-          value={query}
-          onValueChange={setQuery}
-          onKeyDown={onInputKeyDown}
-          placeholder="Search command/activity (e.g. /shift pivot=2026-02-01 delta=+3, move loadout forward 3 days)"
-          className="w-full rounded-lg border border-slate-700/60 bg-slate-900/60 px-3 py-2 text-sm text-slate-100"
-        />
+        
+        {/* Input row: ensure visible and focusable */}
+        <div className="min-h-[2.75rem] flex shrink-0 items-center">
+          <Command.Input
+            ref={inputRef}
+            autoFocus
+            value={query}
+            onValueChange={setQuery}
+            onKeyDown={onInputKeyDown}
+            placeholder={
+              aiMode
+                ? "Try: 'Move all Voyage 3 forward 5 days but keep PTW windows' (Press Enter to send to AI)"
+                : "Search command/activity (e.g. /shift pivot=2026-02-01 delta=+3, move loadout forward 3 days)"
+            }
+            className="flex-1 min-w-0 w-full rounded-lg border border-slate-700/60 bg-slate-900/60 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500"
+            disabled={aiLoading}
+            aria-label="Command or natural language input"
+          />
+        </div>
         <div className="mt-2 px-1 text-[11px] text-slate-500">
-          Tab autocomplete · ? help · Enter execute (/...=...)
+          {aiMode 
+            ? `✨ AI will parse your command and require confirmation (${aiDecision})`
+            : "Tab autocomplete · ? help · Enter execute (/...=...)"}
+        </div>
+        {/* AI Mode Toggle (NEW) */}
+        <div className="mt-2 flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() => setAiMode(!aiMode)}
+            className={`flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium transition-colors ${
+              aiMode
+                ? "bg-gradient-to-r from-purple-500/20 to-cyan-500/20 text-purple-300"
+                : "bg-slate-800/60 text-slate-400 hover:bg-slate-700/60"
+            }`}
+          >
+            <span className="text-sm">{aiMode ? "✨" : "🔧"}</span>
+            {aiMode ? "AI Command Mode" : "Standard Mode"}
+          </button>
+          {aiMode && (
+            <span className="text-[10px] text-purple-400">
+              Powered by GPT-4 {aiLoading && "· Processing..."}
+            </span>
+          )}
         </div>
         <Command.List className="mt-3 max-h-[60vh] overflow-auto text-sm">
           {query === "" && recent.length > 0 ? (
@@ -477,6 +756,25 @@ export function UnifiedCommandPalette({ activities, setActivities, onFocusActivi
       />
 
       <HelpDialog open={dialog === "help"} onClose={() => setDialog(null)} />
+
+      <AIExplainDialog
+        open={dialog === "ai-explain"}
+        aiResult={pendingAiAction}
+        canExecute={aiGuard.canExecute}
+        actionSummary={aiGuard.actionSummary}
+        blockReason={aiGuard.blockReason}
+        onSelectAmbiguity={onSelectAmbiguity}
+        onCancel={() => {
+          setAiDecision("cancelled");
+          setDialog(null);
+          setPendingAiAction(null);
+        }}
+        onConfirm={(result) => {
+          setAiDecision("approved");
+          executeAiIntent(result);
+          setPendingAiAction(null);
+        }}
+      />
     </>
   );
 }
