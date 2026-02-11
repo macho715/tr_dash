@@ -39,6 +39,7 @@ import { AlertsSection } from "@/components/dashboard/sections/alerts-section"
 import { VoyagesSection } from "@/components/dashboard/sections/voyages-section"
 import { ScheduleSection } from "@/components/dashboard/sections/schedule-section"
 import { GanttSection } from "@/components/dashboard/sections/gantt-section"
+import { WaterTidePanel } from "@/components/dashboard/sections/water-tide-section"
 import { WidgetErrorBoundary, WidgetErrorFallback } from "@/components/dashboard/WidgetErrorBoundary"
 import { scheduleActivities } from "@/lib/data/schedule-data"
 import { voyages, PROJECT_END_DATE } from "@/lib/dashboard-data"
@@ -71,6 +72,7 @@ type SectionItem = {
   label: string
   count?: number
 }
+type DetailTab = "detail" | "tide"
 
 /** patchmain #11: ScrollSpy offset (header + summary bar height) */
 const SCROLL_SPY_OFFSET = 120
@@ -162,6 +164,7 @@ export default function Page() {
   const [selectedCollision, setSelectedCollision] = useState<ScheduleConflict | null>(null)
   const [selectedActivityId, setSelectedActivityId] = useState<string | null>(null)
   const [focusedActivityId, setFocusedActivityId] = useState<string | null>(null)
+  const [activeDetailTab, setActiveDetailTab] = useState<DetailTab>("tide")
   const [selectedTrId, setSelectedTrId] = useState<string | null>(null)
   const conflicts = useMemo(() => detectResourceConflicts(activities), [activities])
   const baselineConflicts = useMemo(
@@ -330,6 +333,7 @@ export default function Page() {
 
   const handleWhenWhatClick = () => {
     if (!selectedActivityId) return
+    setActiveDetailTab("detail")
     const detailSection = document.getElementById("detail")
     detailSection?.scrollIntoView({ behavior: "smooth", block: "start" })
     setFocusedActivityId(selectedActivityId)
@@ -347,6 +351,7 @@ export default function Page() {
     if (ssot) {
       const activityId = calculateCurrentActivityForTR(ssot, trId)
       if (activityId) {
+        setActiveDetailTab("detail")
         setSelectedActivityId(activityId)
         setFocusedActivityId(activityId)
         ganttRef.current?.scrollToActivity(activityId)
@@ -397,6 +402,7 @@ export default function Page() {
       { id: "voyages", label: "Voyages", count: voyages.length },
       { id: "schedule", label: "Schedule", count: activities.length },
       { id: "gantt", label: "Gantt" },
+      { id: "water-tide", label: "Water Tide" },
     ],
     [activities.length, conflicts.length]
   )
@@ -423,6 +429,7 @@ export default function Page() {
   const handleActivityClick = (activityId: string, start: string) => {
     setWhatIfMetrics(null)
     setReflowPreview(null)
+    setActiveDetailTab("detail")
     setSelectedActivityId(activityId)
     setFocusedActivityId(activityId)
     const trId = findTrIdForActivity(activityId)
@@ -446,6 +453,7 @@ export default function Page() {
   }
 
   const focusTimelineActivity = (activityId: string) => {
+    setActiveDetailTab("detail")
     setFocusedActivityId(activityId)
     setSelectedActivityId(activityId)
     const activity = activities.find((a) => a.activity_id === activityId)
@@ -466,6 +474,7 @@ export default function Page() {
   }
 
   const openActivityFromGantt = (activityId: string) => {
+    setActiveDetailTab("detail")
     const activity = activities.find((a) => a.activity_id === activityId)
     if (activity) {
       handleActivityClick(activityId, activity.planned_start)
@@ -688,6 +697,22 @@ export default function Page() {
     setWhatIfMetrics(null)
   }
 
+  useEffect(() => {
+    const syncWaterTideHash = () => {
+      if (window.location.hash !== "#water-tide") return
+      setActiveDetailTab("tide")
+      requestAnimationFrame(() => {
+        document.getElementById("water-tide")?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        })
+      })
+    }
+    syncWaterTideHash()
+    window.addEventListener("hashchange", syncWaterTideHash)
+    return () => window.removeEventListener("hashchange", syncWaterTideHash)
+  }, [])
+
   return (
     <DateProvider>
       <div className="relative z-10 flex min-h-screen w-full max-w-[1920px] flex-col mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -748,7 +773,13 @@ export default function Page() {
                   onSetActivities={setActivities}
                   onFocusActivity={(id) => ganttRef.current?.scrollToActivity(id)}
                 />
-            <SectionNav activeSection={activeSection} sections={sections} />
+            <SectionNav
+              activeSection={activeSection}
+              sections={sections}
+              onSectionClick={(sectionId) => {
+                if (sectionId === "water-tide") setActiveDetailTab("tide")
+              }}
+            />
 
             <div className="flex flex-1 flex-col min-h-0 space-y-6">
               <KPISection />
@@ -770,6 +801,7 @@ export default function Page() {
                         selectedActivityId={selectedActivityId ?? selectedCollision?.activity_id ?? focusedActivityId ?? null}
                         onTrClick={(trId) => setSelectedTrId(trId)}
                         onActivitySelect={(activityId) => {
+                          setActiveDetailTab("detail")
                           setSelectedActivityId(activityId)
                           setFocusedActivityId(activityId)
                           const trId = findTrIdForActivity(activityId)
@@ -818,9 +850,11 @@ export default function Page() {
                         setShowWhatIfPanel(false)
                         setWhatIfMetrics(null)
                         setReflowPreview(null)
+                        setActiveDetailTab("tide")
                       }}
                       conflicts={conflicts}
                       onCollisionClick={(col) => {
+                        setActiveDetailTab("detail")
                         setSelectedCollision(col)
                         if (col.activity_id) {
                           setSelectedActivityId(col.activity_id)
@@ -875,73 +909,114 @@ export default function Page() {
                 }
                 detailSlot={
                   <div className="space-y-3">
-                    {showWhatIfPanel && (
-                      <WhatIfPanel
-                        activity={
-                          selectedActivityId
-                            ? activities.find((a) => a.activity_id === selectedActivityId) ?? null
-                            : null
-                        }
-                        onSimulate={handleWhatIfSimulate}
-                        onCancel={handleWhatIfCancel}
-                        metrics={whatIfMetrics}
-                        isSimulating={false}
-                      />
-                    )}
-                    <DetailPanel
-                      activity={
-                        selectedActivityId
-                          ? activities.find((a) => a.activity_id === selectedActivityId) ?? null
-                          : null
-                      }
-                      slackResult={
-                        selectedActivityId ? slackMap.get(selectedActivityId) ?? null : null
-                      }
-                      conflicts={conflicts}
-                      onClose={() => setSelectedActivityId(null)}
-                      onActualUpdate={handleActualUpdate}
-                      onCollisionClick={(col) => {
-                        setSelectedCollision(col)
-                        if (col.activity_id) {
-                          setSelectedActivityId(col.activity_id)
-                          setFocusedActivityId(col.activity_id)
-                          ganttRef.current?.scrollToActivity(col.activity_id)
-                          setShowWhatIfPanel(true)
-                        }
-                      }}
-                    />
-                    <WhyPanel
-                      collision={selectedCollision}
-                      onClose={() => setSelectedCollision(null)}
-                      onViewInTimeline={handleViewInTimeline}
-                      onJumpToEvidence={handleJumpToEvidence}
-                      onRelatedActivityClick={focusTimelineActivity}
-                      onApplyAction={handleApplyAction}
-                    />
-                    {reflowPreview && (
-                      <ReflowPreviewPanel
-                        changes={reflowPreview.changes}
-                        conflicts={reflowPreview.conflicts.map((c) => ({
-                          message: c.message,
-                          severity: c.severity,
-                        }))}
-                        onApply={handleApplyPreviewFromWhy}
-                        onCancel={() => setReflowPreview(null)}
-                        canApply={canApplyReflow}
-                      />
-                    )}
-                    {undoCount > 0 && (
-                      <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200 flex items-center justify-between gap-2">
-                        <span>일정 적용됨.{undoCount > 1 ? ` 실행 취소 ${undoCount}회 가능.` : ""}</span>
-                        <button
-                          type="button"
-                          onClick={handleUndoLastApply}
-                          className="font-semibold text-cyan-300 hover:text-cyan-200 underline"
-                        >
-                          실행 취소{undoCount > 1 ? ` (${undoCount})` : ""}
-                        </button>
+                    <section id="water-tide" aria-label="Water Tide detail panel" className="space-y-3">
+                      <div className="rounded-xl border border-accent/20 bg-card/80 p-1">
+                        <div className="grid grid-cols-2 gap-1">
+                          <button
+                            type="button"
+                            onClick={() => setActiveDetailTab("detail")}
+                            className={
+                              "rounded-lg px-3 py-2 text-xs font-semibold transition-colors " +
+                              (activeDetailTab === "detail"
+                                ? "bg-cyan-500/20 text-foreground"
+                                : "text-muted-foreground hover:bg-accent/15 hover:text-foreground")
+                            }
+                          >
+                            Detail
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setActiveDetailTab("tide")}
+                            className={
+                              "rounded-lg px-3 py-2 text-xs font-semibold transition-colors " +
+                              (activeDetailTab === "tide"
+                                ? "bg-cyan-500/20 text-foreground"
+                                : "text-muted-foreground hover:bg-accent/15 hover:text-foreground")
+                            }
+                          >
+                            Tide
+                          </button>
+                        </div>
                       </div>
-                    )}
+
+                      {activeDetailTab === "tide" ? (
+                        <WaterTidePanel />
+                      ) : (
+                        <>
+                          {showWhatIfPanel && (
+                            <WhatIfPanel
+                              activity={
+                                selectedActivityId
+                                  ? activities.find((a) => a.activity_id === selectedActivityId) ?? null
+                                  : null
+                              }
+                              onSimulate={handleWhatIfSimulate}
+                              onCancel={handleWhatIfCancel}
+                              metrics={whatIfMetrics}
+                              isSimulating={false}
+                            />
+                          )}
+                          <DetailPanel
+                            activity={
+                              selectedActivityId
+                                ? activities.find((a) => a.activity_id === selectedActivityId) ?? null
+                                : null
+                            }
+                            slackResult={
+                              selectedActivityId ? slackMap.get(selectedActivityId) ?? null : null
+                            }
+                            conflicts={conflicts}
+                            onClose={() => {
+                              setSelectedActivityId(null)
+                              setActiveDetailTab("tide")
+                            }}
+                            onActualUpdate={handleActualUpdate}
+                            onCollisionClick={(col) => {
+                              setActiveDetailTab("detail")
+                              setSelectedCollision(col)
+                              if (col.activity_id) {
+                                setSelectedActivityId(col.activity_id)
+                                setFocusedActivityId(col.activity_id)
+                                ganttRef.current?.scrollToActivity(col.activity_id)
+                                setShowWhatIfPanel(true)
+                              }
+                            }}
+                          />
+                          <WhyPanel
+                            collision={selectedCollision}
+                            onClose={() => setSelectedCollision(null)}
+                            onViewInTimeline={handleViewInTimeline}
+                            onJumpToEvidence={handleJumpToEvidence}
+                            onRelatedActivityClick={focusTimelineActivity}
+                            onApplyAction={handleApplyAction}
+                          />
+                          {reflowPreview && (
+                            <ReflowPreviewPanel
+                              changes={reflowPreview.changes}
+                              conflicts={reflowPreview.conflicts.map((c) => ({
+                                message: c.message,
+                                severity: c.severity,
+                              }))}
+                              onApply={handleApplyPreviewFromWhy}
+                              onCancel={() => setReflowPreview(null)}
+                              canApply={canApplyReflow}
+                            />
+                          )}
+                          {undoCount > 0 && (
+                            <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200 flex items-center justify-between gap-2">
+                              <span>Undo available{undoCount > 1 ? " (" + undoCount + ")" : ""}</span>
+                              <button
+                                type="button"
+                                onClick={handleUndoLastApply}
+                                className="font-semibold text-cyan-300 hover:text-cyan-200 underline"
+                              >
+                                Undo{undoCount > 1 ? " (" + undoCount + ")" : ""}
+                              </button>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </section>
                   </div>
                 }
               />

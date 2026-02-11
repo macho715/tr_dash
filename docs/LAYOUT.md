@@ -928,3 +928,13 @@ sequenceDiagram
 - [NL_COMMAND_INTERFACE_COMPLETE.md](NL_COMMAND_INTERFACE_COMPLETE.md) — NL Command 현재 상태
 - [BUGFIX_APPLIED_20260202.md](BUGFIX_APPLIED_20260202.md) — Bug #1~5,#7 적용
 - [map-integration-ideas.md](plan/map-integration-ideas.md) — 지도 번들·히트맵·지오펜스 통합 아이디어
+
+## Water Tide Placement Update (2026-02-11)
+
+- Water Tide is no longer rendered as a standalone section above the main layout.
+- Water Tide now lives inside the Detail area as a `Detail | Tide` tab.
+- `#water-tide` anchor is preserved and opens the Tide tab in the Detail panel.
+- Default tab behavior:
+  - No selected activity -> `Tide`
+  - Activity selected from Gantt/Map/collision -> auto switch to `Detail`
+- SectionNav still includes `Water Tide` and routes to the preserved anchor.
