@@ -8,7 +8,7 @@ updated: 2026-02-11
 
 > **버전**: 1.10.0  
 > **최종 업데이트**: 2026-02-11  
-> **최신 작업 반영**: 2026-02-11 — Merge 정리·충돌 UX 통일, Typecheck/Lint 0 errors. Gantt/Map/Detail 충돌 클릭 → `handleCollisionCardOpen` 단일 핸들러, #water-tide 해시·Compare KPI 드릴다운 유지. MapPanel `mapInstanceKey`+`mapContentVisible`, `onCollisionClick` 공통 전달. Detail|Tide 탭, WhyPanel `onJumpToHistory`/`onOpenWhyDetail`. [CHANGELOG.md](../CHANGELOG.md), [TYPECHECK_AND_LINT_FAILURES.md](TYPECHECK_AND_LINT_FAILURES.md).  
+> **최신 작업 반영**: 2026-02-11 — Merge 정리·충돌 UX 통일, Typecheck/Lint 0 errors. Reflow: dependency cascade preview 경로(`previewScheduleReflow`) 통일. TideOverlayGantt: DANGER 시 가이던스 자동 표시, 비-DANGER 시 View guidance 버튼으로 수동 오픈. Gantt/Map/Detail 충돌 클릭 → `handleCollisionCardOpen`, #water-tide·Compare KPI 유지. [CHANGELOG.md](../CHANGELOG.md), [TYPECHECK_AND_LINT_FAILURES.md](TYPECHECK_AND_LINT_FAILURES.md).  
 > **프로젝트**: HVDC TR Transport Dashboard - AGI Site  
 > **SSOT**: patch.md, option_c.json (AGENTS.md)
 
@@ -70,7 +70,7 @@ graph TB
     
     DetailSlot --> DetailPanel[DetailPanel<br/>ActivityHeader, State, PlanVsActual, Resources, Constraints, CollisionTray]
     DetailSlot --> WhyPanel[WhyPanel<br/>2-click: root cause + suggested_actions]
-    DetailSlot --> ReflowPreview[ReflowPreviewPanel<br/>onApplyAction → reflowSchedule]
+    DetailSlot --> ReflowPreview[ReflowPreviewPanel<br/>onApplyAction → previewScheduleReflow]
     DetailSlot --> HistoryEvidence[HistoryEvidencePanel<br/>History | Evidence | Compare Diff | Trip Closeout]
     DetailSlot --> ReadinessPanel[ReadinessPanel<br/>Ready/Not Ready, milestones, missing evidence]
     DetailSlot --> NotesDecisions[NotesDecisions]

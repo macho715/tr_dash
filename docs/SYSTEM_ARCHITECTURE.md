@@ -8,7 +8,7 @@ updated: 2026-02-11
 
 **버전**: 1.10  
 **최종 업데이트**: 2026-02-11  
-**최신 작업 반영**: 2026-02-11 — Merge·Reflow 통합, Typecheck/Lint 0 errors. 권위 진입점 `schedule-reflow-manager.ts`, deprecated wrapper `schedule-reflow.ts`. freeze_lock_violations(preview 우선 + fallback). page/MapPanel 충돌 클릭 통일, #water-tide·Compare KPI 유지. History append-only tombstone. [TYPECHECK_AND_LINT_FAILURES.md](TYPECHECK_AND_LINT_FAILURES.md).
+**최신 작업 반영**: 2026-02-11 — Merge·Reflow 통합, Typecheck/Lint 0 errors. Reflow: **dependency cascade** 엔진·canonical preview 경로(`previewScheduleReflow`) 통일. TideOverlayGantt: DANGER 시 가이던스 자동, 비-DANGER 시 View guidance 버튼으로 수동 오픈. 권위 진입점 `schedule-reflow-manager.ts`, deprecated wrapper `schedule-reflow.ts`. freeze_lock_violations, page/MapPanel 충돌 클릭 통일, #water-tide·Compare KPI 유지. History append-only tombstone. [TYPECHECK_AND_LINT_FAILURES.md](TYPECHECK_AND_LINT_FAILURES.md).
 
 **프로젝트**: HVDC TR Transport - AGI Site Logistics Dashboard  
 **SSOT**: patch.md, option_c.json (AGENTS.md)
@@ -49,7 +49,7 @@ HVDC TR Transport Dashboard는 **7개의 Transformer Unit**을 **LCT BUSHRA**로
 
 | Phase | 반영 내용 (본문과 일치하도록 유지) |
 |-------|-----------------------------------|
-| **2026-02-11** | **Merge·Reflow**: page/MapPanel/schedule-reflow 충돌 해소. Reflow 단일 진입점(schedule-reflow-manager), collectFreezeLockViolations·impact.freeze_lock_violations. History tombstone. **Typecheck/Lint**: tsc·eslint 0 errors (24파일 수정). 스크립트 dev:webpack, sync:wa-events. |
+| **2026-02-11** | **Merge·Reflow**: page/MapPanel/schedule-reflow 충돌 해소. Reflow 단일 진입점(schedule-reflow-manager), **dependency cascade** preview 경로 통일(previewScheduleReflow). collectFreezeLockViolations·impact.freeze_lock_violations. History tombstone. **TideOverlayGantt**: DANGER 시 가이던스 자동, 비-DANGER 시 View guidance 버튼으로 수동 오픈. **Typecheck/Lint**: tsc·eslint 0 errors. 스크립트 dev:webpack, sync:wa-events. |
 | **Phase 13 (2026-02-05)** | **Gantt Reset 버튼 & Activity 디버깅**: Timeline controls에 Reset 버튼 추가 (⟲, 주황색 hover). handleResetGantt() — View/Filters/Highlights/Groups/Overlays/Heatmap 일괄 초기화. 디버그 로그: `[Gantt Debug]`, `[Grouping Debug]`, `[Reset]`. |
 | **Phase 12 (2026-02-05)** | **Event Sourcing Layer**: Event Log → Actual/Hold/Milestone → Gantt 오버레이. 3-PR Pipeline (ID Resolution/JSON Patch/KPI Calc). Plan 불변, actual만 갱신. lib/ops/event-sourcing/, lib/gantt/event-sourcing-mapper.ts. |
 | **Phase 12 (2026-02-05)** | Event Sourcing Overlay Pipeline: Event Log → Actual/Hold/Milestone → Gantt 오버레이. 3-PR (ID Resolution/JSON Patch/KPI Calc). Plan 불변, actual만 갱신. |

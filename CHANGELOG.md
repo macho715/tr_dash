@@ -35,6 +35,18 @@
   - **gantt-chart.tide-guidance.ts**: `composeDragTideGuidance` — 드래그 태스크 + tide windows + rule → dragSafety, nearestSafe, whatIf(+1/+2d). DANGER가 아니면 null.
   - **테스트**: `gantt-chart.tide-guidance.test.ts`(DANGER 시 nearest SAFE·what-if, SAFE 시 null, SAFE 없을 때 nearestSafe=null), `tideService.test.ts` 정합성 유지. tsc·eslint 0 유지.
   - **문서**: AGENTS.md 최신 작업 반영 라인에 Tide 고급 한 줄 요약 추가.
+- **Reflow 의존성 cascade Preview 경로 (2026-02-11)**:
+  - **dependency-cascade.ts**: 의존성 cascade 엔진 신규 추가. `applyBulkAnchors`에 전략 인자 추가, 기본값 `dependency_cascade`로 전환(applyShift.ts).
+  - **schedule-reflow-manager.ts**: canonical preview 경로를 cascade 엔진 기반으로 교체, `meta.cascade` 및 missing predecessor 진단 충돌 반영.
+  - **page.tsx**: deprecated `reflowSchedule` 제거, Drag/What-if/Action 경로에서 `previewScheduleReflow` 직접 호출로 통일.
+  - **테스트**: dependency-cascade.test.ts, schedule-preview-paths.test.ts, what-if-simulation.test.ts 추가/갱신. tsc·eslint 통과.
+- **TideOverlayGantt 가이던스 수동 오픈 (2026-02-11)**:
+  - **조건 충족(DANGER)**: 기존처럼 가이던스 패널 자동 표시.
+  - **조건 미충족**: "View guidance" 버튼(`data-testid="open-tide-guidance"`) 및 task 선택 UI로 가이던스 패널 수동 표시. `guidancePinned`, `guidanceTaskId` 상태 추가. 자동/수동 소스 표시, 동일 패널 렌더 유지.
+  - **테스트**: TideOverlayGantt.test.tsx — 비-DANGER 상태에서 버튼 클릭 시 패널 표시 검증 추가. 4 tests passed.
+- **Tide Gantt 네비게이션 (2026-02-11)**:
+  - 메인 대시보드 헤더에 **Open Tide Gantt** 버튼 추가(`components/dashboard/header.tsx`) → `/tide-gantt` 이동.
+  - `/tide-gantt` 페이지 상단에 **Back to Dashboard** 버튼 추가(`app/tide-gantt/page.tsx`) → `/` 복귀. `/`↔`/tide-gantt` 왕복 이동 가능.
 
 - **AI Command Phase 1 업그레이드 (2026-02-10)**: Unified Command Palette AI 실행 흐름 고도화.
   - `/api/nl-command` intent 계약 확장: `shift_activities|prepare_bulk|explain_conflict|set_mode|apply_preview|unclear`

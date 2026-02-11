@@ -260,8 +260,10 @@ function formatUtcDateTime(value: Date): string {
 type DangerGuidanceState = {
   taskId: string
   taskName: string
+  safety: TaskSafetyResult
   nearestSafe: TideSafeSlotSuggestion | null
   whatIf: TideShiftWhatIf[]
+  source: "auto" | "manual"
 }
 
 export function TideOverlayGantt({ className, debug = false }: TideOverlayGanttProps) {
@@ -270,6 +272,8 @@ export function TideOverlayGantt({ className, debug = false }: TideOverlayGanttP
   const [windows, setWindows] = useState<TideWindow[]>([])
   const [ganttTasks, setGanttTasks] = useState<Task[]>(() => buildBaseTasks())
   const [dangerGuidance, setDangerGuidance] = useState<DangerGuidanceState | null>(null)
+  const [guidancePinned, setGuidancePinned] = useState(false)
+  const [guidanceTaskId, setGuidanceTaskId] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -296,6 +300,12 @@ export function TideOverlayGantt({ className, debug = false }: TideOverlayGanttP
       cancelled = true
     }
   }, [])
+
+  useEffect(() => {
+    if (!guidanceTaskId && ganttTasks[0]) {
+      setGuidanceTaskId(ganttTasks[0].id)
+    }
+  }, [guidanceTaskId, ganttTasks])
 
   const safetyByTaskId = useMemo(() => {
     const result: Record<string, TaskSafetyResult> = {}
@@ -351,6 +361,35 @@ export function TideOverlayGantt({ className, debug = false }: TideOverlayGanttP
     return TideTooltip
   }, [safetyByTaskId])
 
+  const buildGuidance = (
+    task: Task,
+    safety: TaskSafetyResult,
+    source: DangerGuidanceState["source"]
+  ): DangerGuidanceState => ({
+    taskId: task.id,
+    taskName: task.name,
+    safety,
+    nearestSafe: findNearestSafeSlot(toTideTaskInput(task), windows, TIDE_RULE),
+    whatIf: buildShiftDayWhatIf(toTideTaskInput(task), windows, [1, 2], TIDE_RULE),
+    source,
+  })
+
+  const handleOpenGuidance = () => {
+    const selectedTask =
+      (guidanceTaskId ? ganttTasks.find((task) => task.id === guidanceTaskId) : null) ??
+      ganttTasks[0]
+    if (!selectedTask) return
+
+    const safety = validateTaskSafety(toTideTaskInput(selectedTask), windows, TIDE_RULE)
+    setDangerGuidance(buildGuidance(selectedTask, safety, "manual"))
+    setGuidancePinned(true)
+  }
+
+  const handleHideGuidance = () => {
+    setDangerGuidance(null)
+    setGuidancePinned(false)
+  }
+
   const handleDateChange = async (changedTask: Task) => {
     const normalized = normalizeTaskRange(changedTask.start, changedTask.end)
     const nextTask: Task = {
@@ -360,28 +399,26 @@ export function TideOverlayGantt({ className, debug = false }: TideOverlayGanttP
     }
 
     const safety = validateTaskSafety(toTideTaskInput(nextTask), windows, TIDE_RULE)
+    setGuidanceTaskId(nextTask.id)
 
     setGanttTasks((prev) => prev.map((task) => (task.id === nextTask.id ? nextTask : task)))
 
     if (safety.status === "DANGER") {
-      const nearestSafe = findNearestSafeSlot(toTideTaskInput(nextTask), windows, TIDE_RULE)
-      const whatIf = buildShiftDayWhatIf(toTideTaskInput(nextTask), windows, [1, 2], TIDE_RULE)
-      setDangerGuidance({
-        taskId: nextTask.id,
-        taskName: nextTask.name,
-        nearestSafe,
-        whatIf,
-      })
+      const guidance = buildGuidance(nextTask, safety, "auto")
+      setDangerGuidance(guidance)
+      setGuidancePinned(false)
 
-      const whatIfSummary = whatIf
+      const whatIfSummary = guidance.whatIf
         .map((option) => `+${option.shiftDays}d ${option.safety.status}`)
         .join(", ")
-      const nearestSummary = nearestSafe
-        ? `Nearest SAFE: ${formatUtcDateTime(nearestSafe.start)} (+${nearestSafe.shiftHours}h)`
+      const nearestSummary = guidance.nearestSafe
+        ? `Nearest SAFE: ${formatUtcDateTime(guidance.nearestSafe.start)} (+${guidance.nearestSafe.shiftHours}h)`
         : "Nearest SAFE: not found in 14d horizon"
       toast.warning(`${nextTask.name}: unsafe tide window`, {
         description: `${nearestSummary} | What-if: ${whatIfSummary}`,
       })
+    } else if (guidancePinned) {
+      setDangerGuidance(buildGuidance(nextTask, safety, "manual"))
     } else {
       setDangerGuidance(null)
     }
@@ -402,20 +439,22 @@ export function TideOverlayGantt({ className, debug = false }: TideOverlayGanttP
       )
     )
 
-    const nextSafety = validateTaskSafety(
-      {
-        id: taskId,
-        name: taskId,
-        start,
-        end,
-      },
-      windows,
-      TIDE_RULE
-    )
+    const nextTask = ganttTasks.find((task) => task.id === taskId)
+    const candidateTask: Task = {
+      ...(nextTask ?? { id: taskId, name: taskId, type: "task", progress: 0 }),
+      id: taskId,
+      name: nextTask?.name ?? taskId,
+      start,
+      end,
+    } as Task
+    const nextSafety = validateTaskSafety(toTideTaskInput(candidateTask), windows, TIDE_RULE)
+    setGuidanceTaskId(taskId)
 
-    if (nextSafety.status !== "DANGER") {
+    if (nextSafety.status !== "DANGER" && !guidancePinned) {
       setDangerGuidance(null)
+      return
     }
+    setDangerGuidance(buildGuidance(candidateTask, nextSafety, guidancePinned ? "manual" : "auto"))
   }
 
   if (loading) {
@@ -454,6 +493,42 @@ export function TideOverlayGantt({ className, debug = false }: TideOverlayGanttP
           <SummaryChip label="CLOSED" value={coverage.closed} />
         </div>
       </header>
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <label htmlFor="tide-guidance-task" className="text-xs text-muted-foreground">
+          Guidance task
+        </label>
+        <select
+          id="tide-guidance-task"
+          data-testid="tide-guidance-task-select"
+          value={guidanceTaskId ?? ""}
+          onChange={(event) => setGuidanceTaskId(event.target.value || null)}
+          className="rounded border border-accent/30 bg-background/70 px-2 py-1 text-xs text-foreground"
+        >
+          {ganttTasks.map((task) => (
+            <option key={task.id} value={task.id}>
+              {task.name}
+            </option>
+          ))}
+        </select>
+        <button
+          type="button"
+          data-testid="open-tide-guidance"
+          onClick={handleOpenGuidance}
+          className="rounded border border-cyan-400/40 bg-cyan-500/15 px-2 py-1 text-xs font-semibold text-cyan-100 hover:bg-cyan-500/25"
+        >
+          View guidance
+        </button>
+        {dangerGuidance ? (
+          <button
+            type="button"
+            data-testid="hide-tide-guidance"
+            onClick={handleHideGuidance}
+            className="rounded border border-slate-400/40 bg-slate-500/15 px-2 py-1 text-xs font-semibold text-slate-100 hover:bg-slate-500/25"
+          >
+            Hide
+          </button>
+        ) : null}
+      </div>
 
       <TideStrip windows={windows} />
       {dangerGuidance ? (
@@ -462,7 +537,13 @@ export function TideOverlayGantt({ className, debug = false }: TideOverlayGanttP
           className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3"
         >
           <p className="text-xs font-semibold text-amber-200">
-            DANGER detected: {dangerGuidance.taskName}
+            {dangerGuidance.safety.status === "DANGER"
+              ? `DANGER detected: ${dangerGuidance.taskName}`
+              : `Guidance: ${dangerGuidance.taskName} (${dangerGuidance.safety.status})`}
+          </p>
+          <p className="mt-1 text-[11px] text-amber-100/90">
+            Source: {dangerGuidance.source === "auto" ? "auto (drag validation)" : "manual (button)"} •
+            reasons: {dangerGuidance.safety.reasons.join(", ")}
           </p>
           {dangerGuidance.nearestSafe ? (
             <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-amber-100">
