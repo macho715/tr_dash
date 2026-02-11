@@ -57,6 +57,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   process.env.AI_PROVIDER = "ollama";
   process.env.OLLAMA_MODEL = "exaone3.5:7.8b";
+  process.env.OLLAMA_FALLBACK_MODELS = "llama3.1:8b";
   process.env.OPENAI_API_KEY = "";
 });
 
@@ -161,5 +162,44 @@ describe("/api/nl-command", () => {
 
     expect(res.status).toBe(422);
     expect(body.error).toMatch(/preview_ref/);
+  });
+
+  it("falls back to secondary Ollama model when primary model fails", async () => {
+    global.fetch = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          message: {
+            content: JSON.stringify({
+              intent: "set_mode",
+              explanation: "Switch to live",
+              parameters: { mode: "live" },
+            }),
+          },
+        }),
+      }) as unknown as typeof fetch;
+
+    const { POST } = await loadRoute();
+    const res = await POST(makeRequest("라이브 모드로 전환해"));
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body.intent).toBe("set_mode");
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+
+    const firstBody = JSON.parse(
+      String((global.fetch as unknown as { mock: { calls: unknown[][] } }).mock.calls[0][1] && ((global.fetch as unknown as { mock: { calls: unknown[][] } }).mock.calls[0][1] as { body?: unknown }).body)
+    ) as { model?: string };
+    const secondBody = JSON.parse(
+      String((global.fetch as unknown as { mock: { calls: unknown[][] } }).mock.calls[1][1] && ((global.fetch as unknown as { mock: { calls: unknown[][] } }).mock.calls[1][1] as { body?: unknown }).body)
+    ) as { model?: string };
+
+    expect(firstBody.model).toBe("exaone3.5:7.8b");
+    expect(secondBody.model).toBe("llama3.1:8b");
   });
 });

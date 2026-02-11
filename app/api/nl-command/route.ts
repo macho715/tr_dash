@@ -4,10 +4,14 @@ import type { ScheduleActivity } from "@/lib/ssot/schedule";
 import type { AiIntent, AiIntentResult, AiRiskLevel } from "@/lib/ops/ai-intent";
 
 const MIN_API_KEY_LENGTH = 20;
-const DEFAULT_OLLAMA_MODEL = process.env.OLLAMA_MODEL || "qwen2.5:7b-instruct";
+const DEFAULT_OLLAMA_MODEL = process.env.OLLAMA_MODEL || "exaone3.5:7.8b";
 const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL || "http://127.0.0.1:11434";
 const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4-turbo-preview";
 const AI_PROVIDER = (process.env.AI_PROVIDER || "").toLowerCase();
+const OLLAMA_FALLBACK_MODELS = (process.env.OLLAMA_FALLBACK_MODELS || "llama3.1:8b")
+  .split(",")
+  .map((x) => x.trim())
+  .filter((x) => x.length > 0 && x !== DEFAULT_OLLAMA_MODEL);
 
 // TR Logistics Domain Prompt
 const SYSTEM_PROMPT = `You are an AI assistant for a Transformer (TR) logistics scheduling system.
@@ -202,31 +206,45 @@ async function callOpenAI(apiKey: string, userContent: string): Promise<string |
 }
 
 async function callOllama(userContent: string): Promise<string | null> {
-  const ollamaRes = await fetch(`${OLLAMA_BASE_URL}/api/chat`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: DEFAULT_OLLAMA_MODEL,
-      format: "json",
-      stream: false,
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: userContent },
-      ],
-      options: {
-        temperature: 0.2,
-      },
-    }),
-  });
-  if (!ollamaRes.ok) {
-    const err = new Error(`Ollama request failed (${ollamaRes.status})`);
-    (err as Error & { status?: number }).status = ollamaRes.status;
-    throw err;
+  const models = [DEFAULT_OLLAMA_MODEL, ...OLLAMA_FALLBACK_MODELS];
+  const modelErrors: string[] = [];
+  let lastStatus: number | undefined;
+
+  for (const model of models) {
+    const ollamaRes = await fetch(`${OLLAMA_BASE_URL}/api/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model,
+        format: "json",
+        stream: false,
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          { role: "user", content: userContent },
+        ],
+        options: {
+          temperature: 0.2,
+        },
+      }),
+    });
+
+    if (!ollamaRes.ok) {
+      lastStatus = ollamaRes.status;
+      modelErrors.push(`${model}:${ollamaRes.status}`);
+      continue;
+    }
+
+    const ollamaJson = (await ollamaRes.json()) as {
+      message?: { content?: string };
+    };
+    const content = ollamaJson?.message?.content ?? null;
+    if (content) return content;
+    modelErrors.push(`${model}:empty`);
   }
-  const ollamaJson = (await ollamaRes.json()) as {
-    message?: { content?: string };
-  };
-  return ollamaJson?.message?.content ?? null;
+
+  const err = new Error(`Ollama request failed (${modelErrors.join(", ")})`);
+  (err as Error & { status?: number }).status = lastStatus;
+  throw err;
 }
 
 export async function POST(request: NextRequest) {
