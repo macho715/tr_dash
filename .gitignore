@@ -20,6 +20,7 @@ dist
 *.log
 .turbo
 .vercel
+.playwright-cli
 
 # OS
 .DS_Store
