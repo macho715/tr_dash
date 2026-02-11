@@ -20,7 +20,7 @@ import { scheduleActivitiesToGanttRows } from "@/lib/data/schedule-data"
 import { buildGroupedVisData, applyGanttFilters } from "@/lib/gantt/grouping"
 import { buildDensityBuckets } from "@/lib/gantt/density"
 import { loadEventLog } from "@/lib/data/event-log-loader"
-import type { VisTimelineGanttHandle } from "@/components/gantt/VisTimelineGantt"
+import type { VisTimelineGanttHandle, DragMovePayload } from "@/components/gantt/VisTimelineGantt"
 import { DependencyArrowsOverlay } from "@/components/gantt/DependencyArrowsOverlay"
 import { WeatherOverlay } from "@/components/gantt/WeatherOverlay"
 
@@ -248,6 +248,8 @@ interface GanttChartProps {
   onGanttEvent?: (event: GanttEventBase) => void
   onOpenEvidence?: (activityId: string) => void
   onOpenHistory?: (activityId: string) => void
+  /** Drag-to-Edit: called when user drags an activity bar to a new date */
+  onDragMove?: (activityId: string, newStart: string) => void
 }
 
 export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function GanttChart(
@@ -279,6 +281,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
     onGanttEvent,
     onOpenEvidence,
     onOpenHistory,
+    onDragMove,
   },
   ref
 ) {
@@ -459,6 +462,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
         selectedDate,
         isHistoryMode,
       },
+      slackMap,
     })
     return result
   }, [
@@ -474,6 +478,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
     eventOverlays,
     selectedDate,
     isHistoryMode,
+    slackMap,
   ])
 
   const isGhostItemId = (id: string) =>
@@ -757,7 +762,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
       return "ring-2 ring-sky-400/80 ring-offset-2 ring-offset-slate-900"
     }
     if (isCriticalPath) {
-      return "ring-2 ring-emerald-400/80 ring-offset-2 ring-offset-slate-900"
+      return "ring-2 ring-red-400/80 ring-offset-2 ring-offset-slate-900"
     }
     return ""
   }
@@ -823,6 +828,20 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
         return "Planned"
       })()
     : "Planned"
+
+  const handleDragMove = (payload: DragMovePayload) => {
+    if (!canEdit) return
+    const activityId = normalizeItemId(payload.itemId)
+    if (!activityMeta.has(activityId)) return
+    // Convert date to YYYY-MM-DD UTC noon string
+    const d = new Date(payload.newStart)
+    const year = d.getUTCFullYear()
+    const month = String(d.getUTCMonth() + 1).padStart(2, "0")
+    const day = String(d.getUTCDate()).padStart(2, "0")
+    const newStartIso = `${year}-${month}-${day}`
+    onDragMove?.(activityId, newStartIso)
+    toast.info(`Drag preview: ${activityId} → ${newStartIso}`, { duration: 2000 })
+  }
 
   const handleQuickEdit = (activityId: string) => {
     const meta = activityMeta.get(activityId)
@@ -948,7 +967,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
           <button
             type="button"
             onClick={() => getLegendDefinition("CP") && setLegendDrawerItem(getLegendDefinition("CP")!)}
-            className="text-emerald-400 hover:text-emerald-300 hover:underline focus:outline-none focus:ring-2 focus:ring-cyan-500/50 rounded min-h-[24px] min-w-[24px]"
+            className="text-red-400 hover:text-red-300 hover:underline focus:outline-none focus:ring-2 focus:ring-cyan-500/50 rounded min-h-[24px] min-w-[24px]"
             title="클릭하면 설명 보기"
           >
             CP
@@ -1129,6 +1148,8 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
               ganttSection?.scrollIntoView({ behavior: "smooth", block: "start" })
             }}
             onDeselect={onActivityDeselect}
+            onItemMove={handleDragMove}
+            dragEnabled={canEdit}
             focusedActivityId={focusedActivityId}
           />
           {groupedVisData && (
@@ -1481,9 +1502,13 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
         </div>
       )}
 
-      {hoverCard && hoverActivity && (
+      {hoverCard && hoverActivity && (() => {
+        const hoverSlack = hoverCard ? slackMap.get(hoverCard.activityId) : null
+        const hoverConflicts = hoverCard ? getConflictsForActivity(hoverCard.activityId, conflicts) : []
+        const hoverDeps = hoverActivity.depends_on ?? []
+        return (
         <div
-          className="fixed z-50 w-72 rounded-xl border border-cyan-500/40 bg-slate-900/95 p-4 text-xs text-slate-200 shadow-2xl"
+          className="fixed z-50 w-80 rounded-xl border border-cyan-500/40 bg-slate-900/95 p-4 text-xs text-slate-200 shadow-2xl"
           style={{ left: hoverCard.x, top: hoverCard.y, transform: "translate(-40%, -110%)" }}
           onMouseEnter={clearHoverHideTimeout}
           onMouseLeave={() => setHoverCard(null)}
@@ -1492,18 +1517,59 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
             <div className="font-semibold text-sm text-foreground">
               {hoverActivity.activity_name || hoverActivity.activity_id}
             </div>
-            <span className="rounded bg-slate-800 px-2 py-0.5 text-[10px] uppercase text-slate-400">
-              {hoverActivity.status ?? "planned"}
-            </span>
+            <div className="flex items-center gap-1">
+              {hoverSlack?.isCriticalPath && (
+                <span className="rounded bg-red-900/50 px-1.5 py-0.5 text-[10px] font-bold text-red-300">
+                  CP
+                </span>
+              )}
+              <span className="rounded bg-slate-800 px-2 py-0.5 text-[10px] uppercase text-slate-400">
+                {hoverActivity.status ?? "planned"}
+              </span>
+            </div>
+          </div>
+          <div className="mt-1 text-[10px] font-mono text-slate-500">
+            {hoverActivity.planned_start} ~ {hoverActivity.planned_finish} ({Math.ceil(hoverActivity.duration)}d)
           </div>
           <div className="mt-2 space-y-1 text-[11px] text-slate-400">
             <div>
               <span className="text-slate-300">Progress:</span> {hoverProgressLabel}
             </div>
+            {hoverSlack && (
+              <div>
+                <span className="text-slate-300">Slack:</span>{" "}
+                {hoverSlack.slackDays > 0 ? (
+                  <span className="text-emerald-400">+{hoverSlack.slackDays}d</span>
+                ) : (
+                  <span className="text-red-400 font-semibold">0d (Critical Path)</span>
+                )}
+              </div>
+            )}
             <div>
-              <span className="text-slate-300">Owner/Resource:</span>{" "}
-              {hoverActivity.resource_tags?.[0] ?? "Unassigned"}
+              <span className="text-slate-300">Resource:</span>{" "}
+              {hoverActivity.resource_tags?.join(", ") || "Unassigned"}
             </div>
+            {hoverActivity.constraint && (
+              <div>
+                <span className="text-slate-300">Constraint:</span>{" "}
+                <span className="text-sky-400">{hoverActivity.constraint.type}</span>
+                {hoverActivity.constraint.date && (
+                  <span className="text-slate-500 ml-1">({hoverActivity.constraint.date})</span>
+                )}
+              </div>
+            )}
+            {hoverDeps.length > 0 && (
+              <div>
+                <span className="text-slate-300">Depends on:</span>{" "}
+                {hoverDeps.map(d => `${d.predecessorId} (${d.type}${d.lagDays ? ` +${d.lagDays}d` : ""})`).join(", ")}
+              </div>
+            )}
+            {hoverConflicts.length > 0 && (
+              <div className="text-red-400">
+                <span className="text-red-300 font-semibold">Conflicts:</span>{" "}
+                {hoverConflicts.length} ({hoverConflicts.map(c => c.resource || c.type).join(", ")})
+              </div>
+            )}
             {hoverEvidenceSummary && (
               <div>
                 <span className="text-slate-300">Evidence:</span>{" "}
@@ -1539,7 +1605,8 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
             </button>
           </div>
         </div>
-      )}
+        )
+      })()}
 
     </section>
   )

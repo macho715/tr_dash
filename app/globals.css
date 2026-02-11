@@ -481,6 +481,48 @@ body::before {
   font-weight: 600;
 }
 
+/* === Drag-to-Edit visual feedback === */
+.gantt-vis-wrapper .vis-item.vis-range.vis-editable.vis-dragging {
+  opacity: 0.7 !important;
+  box-shadow: 0 0 12px rgba(34, 211, 238, 0.6) !important;
+  border: 2px dashed rgba(34, 211, 238, 0.9) !important;
+  cursor: grabbing !important;
+}
+
+.gantt-vis-wrapper .vis-item.vis-range.vis-editable:hover {
+  cursor: grab !important;
+  box-shadow: 0 0 8px rgba(34, 211, 238, 0.4) !important;
+}
+
+/* Drag ghost bar (preview of new position) */
+.vis-timeline .vis-item.ghost-bar-drag {
+  border: 2px dashed rgba(34, 211, 238, 0.8) !important;
+  background: rgba(34, 211, 238, 0.15) !important;
+  opacity: 0.85;
+  box-shadow: 0 0 8px rgba(34, 211, 238, 0.3) !important;
+}
+
+/* === Critical Path (slack=0) — red pulse highlight === */
+.gantt-vis-wrapper .vis-item.critical-path {
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.6) !important;
+}
+
+@keyframes pulse-critical {
+  0%, 100% {
+    box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.6);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.3);
+  }
+}
+
+/* === Dependency type labels on arrows === */
+.dep-type-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 600;
+  pointer-events: none;
+}
+
 /* TR Marker Pulsing Animation (Location Map Improvement) */
 @keyframes pulse-marker {
   0%, 100% {
