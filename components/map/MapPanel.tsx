@@ -343,6 +343,10 @@ export function MapPanel({
     return active?.dest ?? null
   }, [voyageOverlays])
 
+  const voyageOverlaysForMap = useMemo(() => {
+    return voyageOverlays.filter((overlay) => overlay.active)
+  }, [voyageOverlays])
+
   const selectedVoyageDest = useMemo(() => {
     if (selectedVoyageNo == null) return null
     const selected = voyageOverlays.find((overlay) => overlay.voyageNo === selectedVoyageNo)
@@ -386,7 +390,7 @@ export function MapPanel({
               heatPoints={heatPoints}
               locations={locations}
               routeSegments={routeSegments}
-              voyageOverlays={voyageOverlays}
+              voyageOverlays={voyageOverlaysForMap}
               activeVoyageDest={activeVoyageDest}
               selectedVoyageNo={selectedVoyageNo}
               selectedVoyageDest={selectedVoyageDest}

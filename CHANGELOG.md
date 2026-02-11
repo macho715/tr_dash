@@ -53,6 +53,7 @@
   - **Map overlay**: drift abs > 1.5 점선(MapPanel). click-selected만 flyTo, hover는 highlight only(MapContent). active destination pulse marker(MapContent).
   - **Page state**: selectedVoyageNo, hoveredVoyageNo 추가, selectedVoyage 파생화, 카드↔맵 연결(page.tsx).
   - **테스트**: voyage-map-view.test.ts 신규, MapPanel.test.tsx DateProvider 래핑 보강. MapPanel.test.tsx·tsc·eslint(지정 파일) 통과, lint errors 0.
+  - **스크린샷 기준 보정 (2026-02-11)**: 카드 배지 겹침 수정 — 상단 여백 추가 + 배지 compact 2줄화(`voyage-cards.tsx`). 지도 경로 중첩 개선 — active voyage만 overlay 표시(`MapPanel.tsx`). tsc·MapPanel.test 통과.
 
 - **AI Command Phase 1 업그레이드 (2026-02-10)**: Unified Command Palette AI 실행 흐름 고도화.
   - `/api/nl-command` intent 계약 확장: `shift_activities|prepare_bulk|explain_conflict|set_mode|apply_preview|unclear`

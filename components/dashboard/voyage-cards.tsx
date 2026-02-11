@@ -86,7 +86,7 @@ export function VoyageCards({
                 onClick={() => onSelectVoyage?.(v)}
                 onMouseEnter={() => onHoverVoyage?.(v.voyage)}
                 onMouseLeave={() => onHoverVoyage?.(null)}
-                className={`relative rounded-xl p-4 border text-center transition-all duration-300 hover:-translate-y-1 hover:scale-[1.02] hover:border-cyan-500 hover:shadow-voyage ${getMapStatusColor(
+                className={`relative rounded-xl p-4 pt-10 border text-center transition-all duration-300 hover:-translate-y-1 hover:scale-[1.02] hover:border-cyan-500 hover:shadow-voyage ${getMapStatusColor(
                   getVoyageStatus(v)
                 )} ${
                   isSelected
@@ -97,7 +97,7 @@ export function VoyageCards({
                 }`}
               >
                 <div
-                  className="absolute right-2 top-2 rounded-full border px-2 py-0.5 text-[10px] font-bold tracking-wide"
+                  className="absolute right-2 top-2 min-w-[58px] rounded-md border px-2 py-1 text-right"
                   style={{
                     borderColor: `${bandColor}88`,
                     color: bandColor,
@@ -105,8 +105,11 @@ export function VoyageCards({
                   }}
                   title={`ETA Drift ${driftDays >= 0 ? "+" : ""}${driftDays.toFixed(1)}d`}
                 >
-                  {band} {driftDays >= 0 ? "+" : ""}
-                  {driftDays.toFixed(1)}d
+                  <div className="text-[10px] font-bold leading-none">{band}</div>
+                  <div className="font-mono text-[10px] leading-none mt-1">
+                    {driftDays >= 0 ? "+" : ""}
+                    {driftDays.toFixed(1)}d
+                  </div>
                 </div>
                 <div className="font-mono text-amber-400 text-xs font-bold tracking-widest uppercase mb-2">
                   Voyage {v.voyage}
