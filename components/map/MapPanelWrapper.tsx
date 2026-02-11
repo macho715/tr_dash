@@ -26,6 +26,9 @@ type MapPanelWrapperProps = {
   selectedTrIds?: string[]
   selectedActivityId?: string | null
   highlightedRouteId?: string | null
+  selectedVoyageNo?: number | null
+  hoveredVoyageNo?: number | null
+  voyageEtaDriftByNo?: Record<number, number>
   onTrClick?: (trId: string) => void
   onActivitySelect?: (activityId: string) => void
   onCollisionClick?: (collisionId: string, activityId: string) => void
@@ -37,6 +40,9 @@ export function MapPanelWrapper({
   selectedTrIds = [],
   selectedActivityId = null,
   highlightedRouteId = null,
+  selectedVoyageNo = null,
+  hoveredVoyageNo = null,
+  voyageEtaDriftByNo,
   onTrClick,
   onActivitySelect,
   onCollisionClick,
@@ -78,6 +84,9 @@ export function MapPanelWrapper({
       selectedTrIds={selectedTrIds}
       selectedActivityId={selectedActivityId}
       highlightedRouteId={highlightedRouteId}
+      selectedVoyageNo={selectedVoyageNo}
+      hoveredVoyageNo={hoveredVoyageNo}
+      voyageEtaDriftByNo={voyageEtaDriftByNo}
       riskOverlay={riskOverlay}
       viewMode={viewMode}
       onTrClick={onTrClick}

@@ -35,6 +35,30 @@
   - **gantt-chart.tide-guidance.ts**: `composeDragTideGuidance` — 드래그 태스크 + tide windows + rule → dragSafety, nearestSafe, whatIf(+1/+2d). DANGER가 아니면 null.
   - **테스트**: `gantt-chart.tide-guidance.test.ts`(DANGER 시 nearest SAFE·what-if, SAFE 시 null, SAFE 없을 때 nearestSafe=null), `tideService.test.ts` 정합성 유지. tsc·eslint 0 유지.
   - **문서**: AGENTS.md 최신 작업 반영 라인에 Tide 고급 한 줄 요약 추가.
+- **Reflow 의존성 cascade Preview 경로 (2026-02-11)**:
+  - **dependency-cascade.ts**: 의존성 cascade 엔진 신규 추가. `applyBulkAnchors`에 전략 인자 추가, 기본값 `dependency_cascade`로 전환(applyShift.ts).
+  - **schedule-reflow-manager.ts**: canonical preview 경로를 cascade 엔진 기반으로 교체, `meta.cascade` 및 missing predecessor 진단 충돌 반영.
+  - **page.tsx**: deprecated `reflowSchedule` 제거, Drag/What-if/Action 경로에서 `previewScheduleReflow` 직접 호출로 통일.
+  - **테스트**: dependency-cascade.test.ts, schedule-preview-paths.test.ts, what-if-simulation.test.ts 추가/갱신. tsc·eslint 통과.
+- **TideOverlayGantt 가이던스 수동 오픈 (2026-02-11)**:
+  - **조건 충족(DANGER)**: 기존처럼 가이던스 패널 자동 표시.
+  - **조건 미충족**: "View guidance" 버튼(`data-testid="open-tide-guidance"`) 및 task 선택 UI로 가이던스 패널 수동 표시. `guidancePinned`, `guidanceTaskId` 상태 추가. 자동/수동 소스 표시, 동일 패널 렌더 유지.
+  - **테스트**: TideOverlayGantt.test.tsx — 비-DANGER 상태에서 버튼 클릭 시 패널 표시 검증 추가. 4 tests passed.
+- **Tide Gantt 네비게이션 (2026-02-11)**:
+  - 메인 대시보드 헤더에 **Open Tide Gantt** 버튼 추가(`components/dashboard/header.tsx`) → `/tide-gantt` 이동.
+  - `/tide-gantt` 페이지 상단에 **Back to Dashboard** 버튼 추가(`app/tide-gantt/page.tsx`) → `/` 복귀. `/`↔`/tide-gantt` 왕복 이동 가능.
+- **Voyage Map View · ETA Drift (2026-02-11)**:
+  - **통 파생 helper**: `lib/tr/voyage-map-view.ts` — RiskBand, toRiskBand, riskColor, computeVoyageEtaDriftDays, buildVoyageRoute, isVoyageActive.
+  - **Voyage 카드**: hover/select + Drift 배지 (`voyage-cards.tsx`, `voyages-section.tsx`). Map props: MapPanelWrapper, MapPanel, MapContent.
+  - **Map overlay**: drift abs > 1.5 점선(MapPanel). click-selected만 flyTo, hover는 highlight only(MapContent). active destination pulse marker(MapContent).
+  - **Page state**: selectedVoyageNo, hoveredVoyageNo 추가, selectedVoyage 파생화, 카드↔맵 연결(page.tsx).
+  - **테스트**: voyage-map-view.test.ts 신규, MapPanel.test.tsx DateProvider 래핑 보강. MapPanel.test.tsx·tsc·eslint(지정 파일) 통과, lint errors 0.
+  - **스크린샷 기준 보정 (2026-02-11)**: 카드 배지 겹침 수정 — 상단 여백 추가 + 배지 compact 2줄화(`voyage-cards.tsx`). 지도 경로 중첩 개선 — active voyage만 overlay 표시(`MapPanel.tsx`). tsc·MapPanel.test 통과.
+- **즉시 조치(Immediate Action) 체크리스트 (2026-02-11)**:
+  - **체크리스트 3항목 고정**: 1차 항차 TR 1유닛 로드(LCT 밸러스팅 제외), SPMT 2세트 유지·MOB 1/26 변경 없음, 잔여 일정 확정 후 반영. `lib/alerts/immediate-actions.ts` — 항목 상수, `toSelectedDateKey`, localStorage 키 `tr-dashboard-immediate-actions:{YYYY-MM-DD}`, load/save/toggle, invalid JSON fail-soft.
+  - **OperationalNotice** (alerts.tsx): 체크박스·완료율(n/3 done)·Go 버튼. 항목1 Go → `onSelectVoyageNo(1)` + `onNavigateSection("voyages")`, 항목2 → `onNavigateSection("schedule")`, 항목3 → `onNavigateSection("gantt")`. 선택일 라벨 유지.
+  - **AlertsSection** props: `onSelectVoyageNo?`, `onNavigateSection?`. **page.tsx**: `handleNavigateSection`(scrollIntoView), AlertsSection에 콜백 전달·voyage 선택 연동.
+  - **테스트**: immediate-actions.test.ts(날짜 키·round-trip·invalid JSON), alerts.test.tsx(토글 완료율·날짜별 상태 분리·Go 콜백 payload). tsc 통과.
 
 - **AI Command Phase 1 업그레이드 (2026-02-10)**: Unified Command Palette AI 실행 흐름 고도화.
   - `/api/nl-command` intent 계약 확장: `shift_activities|prepare_bulk|explain_conflict|set_mode|apply_preview|unclear`

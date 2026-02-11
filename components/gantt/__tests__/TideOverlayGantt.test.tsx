@@ -151,6 +151,34 @@ describe("TideOverlayGantt", () => {
     expect(screen.getByTestId("whatif-2d")).toBeTruthy()
   })
 
+  it("shows guidance panel on button click even when current task is not DANGER", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          location: "MINA ZAYED",
+          days: [
+            makeDay("2026-02-11", "safe"),
+            makeDay("2026-02-12", "safe"),
+          ],
+        }),
+      })
+    )
+
+    render(<TideOverlayGantt />)
+    await screen.findByTestId("mock-gantt")
+
+    expect(screen.queryByTestId("tide-danger-guidance")).toBeNull()
+    fireEvent.click(screen.getByTestId("open-tide-guidance"))
+
+    await waitFor(() => {
+      expect(screen.getByTestId("tide-danger-guidance")).toBeTruthy()
+    })
+    expect(screen.getByText(/source: manual/i)).toBeTruthy()
+  })
+
   it("renders fail-soft fallback when API request fails", async () => {
     vi.stubGlobal(
       "fetch",

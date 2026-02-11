@@ -7,7 +7,7 @@ import type {
   ScheduleConflict,
 } from '@/lib/ssot/schedule'
 import { diffUTCDays } from '@/lib/ssot/schedule'
-import { applyBulkAnchors } from '@/lib/ops/agi/applyShift'
+import { simulateDependencyCascade } from '@/lib/ops/agi/dependency-cascade'
 import { buildChanges } from '@/lib/ops/agi/adapters'
 import type { IsoDate } from '@/lib/ops/agi/types'
 import { detectResourceConflicts } from '@/lib/utils/detect-resource-conflicts'
@@ -30,6 +30,11 @@ export type ReflowPreviewDTO = {
   meta: {
     mode: 'shift' | 'bulk'
     anchors: Array<{ activityId: string; newStart: IsoDate }>
+    cascade?: {
+      impacted_count: number
+      anchor_count: number
+      blocked_by_freeze_lock: number
+    }
   }
 }
 
@@ -99,19 +104,45 @@ export function previewScheduleReflow({
   const respectLocks = options?.respectLocks ?? true
   const includeLocked = !respectLocks
 
-  const next = applyBulkAnchors({
+  const cascadeResult = simulateDependencyCascade({
     activities,
     anchors,
     includeLocked,
+    respectFreeze: true,
   })
+  const next = cascadeResult.nextActivities
+  const diagnosticConflicts = cascadeResult.diagnostics.data_errors.map((error) => ({
+    type: 'CONSTRAINT' as const,
+    kind: 'data_error',
+    activity_id: error.successor_id,
+    activity_ids: [error.successor_id, error.predecessor_id],
+    message: error.message,
+    severity: 'warn' as const,
+    root_cause_code: 'data_error_missing_predecessor',
+    details: {
+      predecessor_id: error.predecessor_id,
+      successor_id: error.successor_id,
+      code: error.code,
+    },
+    suggested_actions: [],
+  }))
 
-  return toReflowPreviewDTO({
+  const preview = toReflowPreviewDTO({
     beforeActivities: activities,
     nextActivities: next,
     anchors,
     mode,
     options,
+    additionalConflicts: diagnosticConflicts,
   })
+  preview.impact.freeze_lock_violations = cascadeResult.violations
+  preview.meta.cascade = {
+    impacted_count: cascadeResult.diagnostics.impacted_count,
+    anchor_count: cascadeResult.diagnostics.anchor_count,
+    blocked_by_freeze_lock: cascadeResult.diagnostics.blocked_by_freeze_lock,
+  }
+
+  return preview
 }
 
 export function toReflowPreviewDTO(args: {
@@ -120,11 +151,15 @@ export function toReflowPreviewDTO(args: {
   anchors: Array<{ activityId: string; newStart: IsoDate }>
   mode: 'shift' | 'bulk'
   options?: ReflowOptions
+  additionalConflicts?: ScheduleConflict[]
 }): ReflowPreviewDTO {
-  const { beforeActivities, nextActivities, anchors, mode, options } = args
+  const { beforeActivities, nextActivities, anchors, mode, options, additionalConflicts } = args
   const changes = buildChanges(beforeActivities, nextActivities)
   const collisions =
     options?.checkResourceConflicts === false ? [] : detectResourceConflicts(nextActivities)
+  const allConflicts = additionalConflicts && additionalConflicts.length > 0
+    ? [...collisions, ...additionalConflicts]
+    : collisions
   const impact: ImpactReport = {
     affected_count: changes.length,
     affected_ids: changes.map((change) => change.activityId),
@@ -136,7 +171,7 @@ export function toReflowPreviewDTO(args: {
       new_finish: change.afterFinish,
       delta_days: diffUTCDays(change.beforeStart, change.afterStart),
     })),
-    conflicts: collisions,
+    conflicts: allConflicts,
     freeze_lock_violations: collectFreezeLockViolations(
       beforeActivities,
       changes.map((change) => ({
@@ -153,7 +188,7 @@ export function toReflowPreviewDTO(args: {
   return {
     nextActivities,
     changes,
-    collisions,
+    collisions: allConflicts,
     impact,
     meta: {
       mode,

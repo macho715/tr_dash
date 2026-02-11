@@ -10,8 +10,10 @@
 import '@testing-library/jest-dom/vitest'
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
+import type { ReactNode } from 'react'
 import { MapPanel } from '../MapPanel'
 import type { OptionC } from '@/src/types/ssot'
+import { DateProvider } from '@/lib/contexts/date-context'
 
 const minimalSsot: OptionC = {
   contract: {
@@ -76,21 +78,24 @@ const minimalSsot: OptionC = {
 }
 
 describe('MapPanel', () => {
+  const renderWithDateProvider = (node: ReactNode) =>
+    render(<DateProvider>{node}</DateProvider>)
+
   it('shows placeholder when ssot is null', () => {
-    render(<MapPanel ssot={null} />)
+    renderWithDateProvider(<MapPanel ssot={null} />)
     expect(screen.getByTestId('map-panel-placeholder')).toBeInTheDocument()
     expect(screen.getByText(/Load SSOT to display map/i)).toBeInTheDocument()
   })
 
   it('renders map container when ssot is provided', () => {
-    render(<MapPanel ssot={minimalSsot} />)
+    renderWithDateProvider(<MapPanel ssot={minimalSsot} />)
     expect(screen.getByTestId('map-panel')).toBeInTheDocument()
   })
 
   it('accepts onTrClick and onActivitySelect callbacks', () => {
     const onTrClick = vi.fn()
     const onActivitySelect = vi.fn()
-    render(
+    renderWithDateProvider(
       <MapPanel
         ssot={minimalSsot}
         onTrClick={onTrClick}
@@ -102,7 +107,7 @@ describe('MapPanel', () => {
   })
 
   it('accepts highlightedRouteId and selectedActivityId for route highlighting', () => {
-    render(
+    renderWithDateProvider(
       <MapPanel
         ssot={minimalSsot}
         selectedActivityId="A1000"

@@ -85,5 +85,10 @@ export type PreviewResult = {
   meta: {
     mode: "shift" | "bulk";
     anchors: Array<{ activityId?: string; pivot?: IsoDate; newStart?: IsoDate; deltaDays?: number }>;
+    cascade?: {
+      impacted_count: number;
+      anchor_count: number;
+      blocked_by_freeze_lock: number;
+    };
   };
 };

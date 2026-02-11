@@ -1,6 +1,7 @@
 "use client"
 
 import { Ship } from "lucide-react"
+import Link from "next/link"
 import { DatePicker } from "@/components/dashboard/date-picker"
 
 export function DashboardHeader() {
@@ -27,8 +28,14 @@ export function DashboardHeader() {
           </p>
         </div>
       </div>
-      <div className="pt-4 border-t border-accent/20">
+      <div className="pt-4 border-t border-accent/20 flex flex-wrap items-center justify-between gap-3">
         <DatePicker />
+        <Link
+          href="/tide-gantt"
+          className="inline-flex items-center rounded-md border border-cyan-400/40 bg-cyan-500/15 px-3 py-2 text-xs font-semibold text-cyan-100 hover:bg-cyan-500/25"
+        >
+          Open Tide Gantt
+        </Link>
       </div>
     </header>
   )

@@ -7,7 +7,7 @@
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.1-38bdf8)](https://tailwindcss.com/)
 
 **최종 업데이트**: 2026-02-11  
-**최신 작업 반영**: **Merge·Reflow·Typecheck/Lint·Tide Phase1·고급 (2026-02-11)** — 위 내용 + **Tide 고급**: SAFE 2h 연속 슬롯 자동 추천(`findNearestSafeSlot`), DANGER 드래그 시 What-if(+1/+2일) 제안(`buildShiftDayWhatIf`). TideOverlayGantt에 가이던스 패널·Apply nearest SAFE / +1d / +2d 즉시 적용. [CHANGELOG.md](CHANGELOG.md), [docs/TYPECHECK_AND_LINT_FAILURES.md](docs/TYPECHECK_AND_LINT_FAILURES.md).
+**최신 작업 반영**: **Merge·Reflow·Typecheck/Lint·Tide Phase1·고급 (2026-02-11)** — Reflow: **dependency cascade** preview 경로 통일. **Tide 고급**: SAFE 추천, DANGER What-if, 가이던스·View guidance. **Voyage Map View**: 카드 hover/select·Drift 배지·active voyage만 경로 overlay. **즉시 조치**: 3항목 체크리스트(OperationalNotice)·Go→voyages/schedule/gantt·선택일별 localStorage. [CHANGELOG.md](CHANGELOG.md), [docs/TYPECHECK_AND_LINT_FAILURES.md](docs/TYPECHECK_AND_LINT_FAILURES.md).
 
 ---
 

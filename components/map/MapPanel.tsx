@@ -6,6 +6,15 @@ import type { OptionC, Location } from '@/src/types/ssot'
 import { calculateCurrentActivityForTR, calculateCurrentLocationForTR } from '@/src/lib/derived-calc'
 import { activityStateToMapStatus, MAP_STATUS_HEX } from '@/src/lib/map-status-colors'
 import type { MapStatusToken } from '@/src/lib/map-status-colors'
+import { voyages } from '@/lib/dashboard-data'
+import { useDate } from '@/lib/contexts/date-context'
+import {
+  buildVoyageRoute,
+  computeVoyageEtaDriftDays,
+  isVoyageActive,
+  riskColor,
+  toRiskBand,
+} from '@/lib/tr/voyage-map-view'
 
 // Single dynamic import for entire map - avoids appendChild race with TileLayer
 const MapContent = dynamic(
@@ -24,6 +33,9 @@ export type MapPanelProps = {
   selectedTrIds?: string[]
   selectedActivityId?: string | null
   highlightedRouteId?: string | null
+  selectedVoyageNo?: number | null
+  hoveredVoyageNo?: number | null
+  voyageEtaDriftByNo?: Record<number, number>
   riskOverlay?: 'none' | 'all' | 'wx' | 'resource' | 'permit'
   viewMode?: ViewMode
   onTrClick?: (trId: string) => void
@@ -67,6 +79,9 @@ export function MapPanel({
   selectedTrIds = [],
   selectedActivityId = null,
   highlightedRouteId = null,
+  selectedVoyageNo = null,
+  hoveredVoyageNo = null,
+  voyageEtaDriftByNo,
   riskOverlay = 'none',
   viewMode = 'live',
   onTrClick,
@@ -78,6 +93,7 @@ export function MapPanel({
   const [mapContentVisible, setMapContentVisible] = useState(false)
   const [showHeatmapLegend] = useState(true)
   const containerRef = useRef<HTMLDivElement>(null)
+  const { selectedDate } = useDate()
 
   useEffect(() => {
     setMounted(true)
@@ -289,6 +305,54 @@ export function MapPanel({
     return result
   }, [activities, locations, highlightedRouteId, selectedActivityId])
 
+  const voyageOverlays = useMemo(() => {
+    const overlays: Array<{
+      voyageNo: number
+      coords: [number, number][]
+      color: string
+      dashArray?: string
+      active: boolean
+      label: string
+      dest: [number, number]
+    }> = []
+
+    for (const voyage of voyages) {
+      const route = buildVoyageRoute(voyage, locations)
+      if (!route) continue
+      const driftDays =
+        voyageEtaDriftByNo?.[voyage.voyage] ?? computeVoyageEtaDriftDays(voyage, selectedDate)
+      const band = toRiskBand(driftDays)
+      const active = isVoyageActive(voyage.voyage, selectedVoyageNo, hoveredVoyageNo)
+
+      overlays.push({
+        voyageNo: voyage.voyage,
+        coords: route.coords,
+        color: riskColor(band),
+        dashArray: Math.abs(driftDays) > 1.5 ? '6,8' : undefined,
+        active,
+        label: `V${voyage.voyage} · ${voyage.trUnit}`,
+        dest: route.to,
+      })
+    }
+
+    return overlays
+  }, [locations, selectedDate, selectedVoyageNo, hoveredVoyageNo, voyageEtaDriftByNo])
+
+  const activeVoyageDest = useMemo(() => {
+    const active = voyageOverlays.find((overlay) => overlay.active)
+    return active?.dest ?? null
+  }, [voyageOverlays])
+
+  const voyageOverlaysForMap = useMemo(() => {
+    return voyageOverlays.filter((overlay) => overlay.active)
+  }, [voyageOverlays])
+
+  const selectedVoyageDest = useMemo(() => {
+    if (selectedVoyageNo == null) return null
+    const selected = voyageOverlays.find((overlay) => overlay.voyageNo === selectedVoyageNo)
+    return selected?.dest ?? null
+  }, [voyageOverlays, selectedVoyageNo])
+
   const isReadOnly = viewMode === 'history' || viewMode === 'approval'
   const handleTrMarkerClick = useCallback(
     (trId: string) => {
@@ -326,6 +390,10 @@ export function MapPanel({
               heatPoints={heatPoints}
               locations={locations}
               routeSegments={routeSegments}
+              voyageOverlays={voyageOverlaysForMap}
+              activeVoyageDest={activeVoyageDest}
+              selectedVoyageNo={selectedVoyageNo}
+              selectedVoyageDest={selectedVoyageDest}
               trMarkers={trMarkers}
               onTrMarkerClick={handleTrMarkerClick}
               mapStatusHex={MAP_STATUS_HEX}

@@ -50,7 +50,8 @@ import {
 import { runPipelineCheck } from "@/lib/ops/agi-schedule/pipeline-check"
 import { detectResourceConflicts } from "@/lib/utils/detect-resource-conflicts"
 import { calculateDelta } from "@/lib/compare/compare-loader"
-import { reflowSchedule } from "@/lib/utils/schedule-reflow"
+import type { IsoDate } from "@/lib/ops/agi/types"
+import { previewScheduleReflow } from "@/src/lib/reflow/schedule-reflow-manager"
 import { addUTCDays, dateToIsoUtc, parseUTCDate } from "@/lib/ssot/schedule"
 import { appendHistoryEvent } from "@/lib/store/trip-store"
 import { useViewModeOptional } from "@/src/lib/stores/view-mode-store"
@@ -161,7 +162,8 @@ export default function Page() {
   })
   const [jumpDate, setJumpDate] = useState<string>("")
   const [jumpTrigger, setJumpTrigger] = useState(0)
-  const [selectedVoyage, setSelectedVoyage] = useState<(typeof voyages)[number] | null>(null)
+  const [selectedVoyageNo, setSelectedVoyageNo] = useState<number | null>(null)
+  const [hoveredVoyageNo, setHoveredVoyageNo] = useState<number | null>(null)
   const [selectedCollision, setSelectedCollision] = useState<ScheduleConflict | null>(null)
   const [selectedActivityId, setSelectedActivityId] = useState<string | null>(null)
   const [focusedActivityId, setFocusedActivityId] = useState<string | null>(null)
@@ -198,6 +200,23 @@ export default function Page() {
   } | null>(null)
   const [whatIfMetrics, setWhatIfMetrics] = useState<WhatIfMetrics | null>(null)
   const [showWhatIfPanel, setShowWhatIfPanel] = useState(false)
+  const selectedVoyage = useMemo(
+    () => voyages.find((voyage) => voyage.voyage === selectedVoyageNo) ?? null,
+    [selectedVoyageNo]
+  )
+  const toIsoDate = (value: string): IsoDate => value.slice(0, 10) as IsoDate
+  const toPageReflowPreview = (
+    result: ReturnType<typeof previewScheduleReflow>,
+    scenario?: WhatIfScenario
+  ) => ({
+    changes: result.impact.changes,
+    conflicts: result.impact.conflicts,
+    nextActivities: result.nextActivities,
+    scenario,
+    affected_count: result.impact.affected_count,
+    conflict_count: result.impact.conflicts.length,
+    freezeLockViolations: result.impact.freeze_lock_violations ?? [],
+  })
 
   useEffect(() => {
     let cancelled = false
@@ -437,10 +456,22 @@ export default function Page() {
     const trId = findTrIdForActivity(activityId)
     if (trId) setSelectedTrId(trId)
     const v = findVoyageByActivityDate(start, voyages)
-    if (v) setSelectedVoyage(v)
+    if (v) setSelectedVoyageNo(v.voyage)
     // Enable What-If panel when activity is selected
     const activity = activities.find(a => a.activity_id === activityId)
     setShowWhatIfPanel(Boolean(activity))
+  }
+
+  const handleNavigateSection = (
+    sectionId: "voyages" | "schedule" | "gantt" | "water-tide"
+  ) => {
+    if (sectionId === "water-tide") {
+      setActiveDetailTab("tide")
+    }
+    document.getElementById(sectionId)?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    })
   }
 
   const handleOpsCommand = (cmd: Parameters<typeof runAgiOpsPipeline>[0]["command"]) => {
@@ -606,15 +637,16 @@ export default function Page() {
     if (!activityId || !newStart) return
 
     try {
-      const result = reflowSchedule(activities, activityId, newStart, {
-        respectLocks: true,
-        checkResourceConflicts: true,
+      const result = previewScheduleReflow({
+        activities,
+        anchors: [{ activityId, newStart: toIsoDate(newStart) }],
+        options: {
+          respectLocks: true,
+          checkResourceConflicts: true,
+        },
+        mode: "shift",
       })
-      setReflowPreview({
-        changes: result.impact_report.changes,
-        conflicts: result.impact_report.conflicts,
-        nextActivities: result.activities,
-      })
+      setReflowPreview(toPageReflowPreview(result))
     } catch {
       setReflowPreview(null)
     }
@@ -661,9 +693,14 @@ export default function Page() {
     setShowWhatIfPanel(true)
 
     try {
-      const result = reflowSchedule(activities, activityId, newStart, {
-        respectLocks: true,
-        checkResourceConflicts: true,
+      const result = previewScheduleReflow({
+        activities,
+        anchors: [{ activityId, newStart: toIsoDate(newStart) }],
+        options: {
+          respectLocks: true,
+          checkResourceConflicts: true,
+        },
+        mode: "shift",
       })
 
       const dragDays = Math.round(
@@ -671,26 +708,18 @@ export default function Page() {
           (1000 * 60 * 60 * 24)
       )
 
-      setReflowPreview({
-        changes: result.impact_report.changes,
-        conflicts: result.impact_report.conflicts,
-        nextActivities: result.activities,
-        scenario: {
-          activity_id: activityId,
-          delay_days: dragDays,
-          reason: "Drag-to-edit",
-          confidence: 1,
-          activity_name: activity.activity_name,
-        },
-        affected_count: result.impact_report.changes.length,
-        conflict_count: result.impact_report.conflicts.length,
-        freezeLockViolations: result.impact_report.freeze_lock_violations ?? [],
-      })
+      setReflowPreview(toPageReflowPreview(result, {
+        activity_id: activityId,
+        delay_days: dragDays,
+        reason: "Drag-to-edit",
+        confidence: 1,
+        activity_name: activity.activity_name,
+      }))
 
       setWhatIfMetrics({
-        affected_activities: result.impact_report.changes.length,
+        affected_activities: result.impact.affected_count,
         total_delay_days: dragDays,
-        new_conflicts: result.impact_report.conflicts.length,
+        new_conflicts: result.impact.conflicts.length,
         project_eta_change: dragDays,
       })
     } catch {
@@ -709,22 +738,27 @@ export default function Page() {
     const newStart = dateToIsoUtc(newDate)
 
     try {
-      const result = reflowSchedule(activities, scenario.activity_id, newStart, {
-        respectLocks: true,
-        checkResourceConflicts: true,
+      const result = previewScheduleReflow({
+        activities,
+        anchors: [{ activityId: scenario.activity_id, newStart: toIsoDate(newStart) }],
+        options: {
+          respectLocks: true,
+          checkResourceConflicts: true,
+        },
+        mode: "shift",
       })
 
       // Calculate metrics
-      const affectedCount = result.impact_report.changes.length
+      const affectedCount = result.impact.affected_count
       const totalDelay = scenario.delay_days
-      const newConflicts = result.impact_report.conflicts.length
+      const newConflicts = result.impact.conflicts.length
       
       // Calculate project ETA change (simplified - comparing last activity finish)
       const currentLastFinish = Math.max(
         ...activities.map(a => new Date(a.planned_finish).getTime())
       )
       const newLastFinish = Math.max(
-        ...result.activities.map(a => new Date(a.planned_finish).getTime())
+        ...result.nextActivities.map(a => new Date(a.planned_finish).getTime())
       )
       const etaChangeDays = Math.round(
         (newLastFinish - currentLastFinish) / (1000 * 60 * 60 * 24)
@@ -737,15 +771,7 @@ export default function Page() {
         project_eta_change: etaChangeDays,
       })
 
-      setReflowPreview({
-        changes: result.impact_report.changes,
-        conflicts: result.impact_report.conflicts,
-        nextActivities: result.activities,
-        scenario,
-        affected_count: affectedCount,
-        conflict_count: newConflicts,
-        freezeLockViolations: result.impact_report.freeze_lock_violations ?? [],
-      })
+      setReflowPreview(toPageReflowPreview(result, scenario))
     } catch (error) {
       console.error("What-If simulation failed:", error)
       setReflowPreview(null)
@@ -845,7 +871,11 @@ export default function Page() {
 
             <div className="flex flex-1 flex-col min-h-0 space-y-6">
               <KPISection />
-              <AlertsSection activities={activities} />
+              <AlertsSection
+                activities={activities}
+                onSelectVoyageNo={setSelectedVoyageNo}
+                onNavigateSection={handleNavigateSection}
+              />
               <TrThreeColumnLayout
                 mapSlot={
                   <div className="space-y-3">
@@ -861,6 +891,8 @@ export default function Page() {
                       <MapPanelWrapper
                         ssot={ssot}
                         selectedActivityId={selectedActivityId ?? selectedCollision?.activity_id ?? focusedActivityId ?? null}
+                        selectedVoyageNo={selectedVoyageNo}
+                        hoveredVoyageNo={hoveredVoyageNo}
                         onTrClick={(trId) => setSelectedTrId(trId)}
                         onActivitySelect={(activityId) => {
                           setActiveDetailTab("detail")
@@ -875,8 +907,10 @@ export default function Page() {
                       />
                     </WidgetErrorBoundary>
                     <VoyagesSection
-                      onSelectVoyage={setSelectedVoyage}
+                      onSelectVoyage={(voyage) => setSelectedVoyageNo(voyage?.voyage ?? null)}
                       selectedVoyage={selectedVoyage}
+                      hoveredVoyageNo={hoveredVoyageNo}
+                      onHoverVoyage={setHoveredVoyageNo}
                     />
                   </div>
                 }
@@ -1108,7 +1142,7 @@ export default function Page() {
           {selectedVoyage && (
             <VoyageFocusDrawer
               voyage={selectedVoyage}
-              onClose={() => setSelectedVoyage(null)}
+              onClose={() => setSelectedVoyageNo(null)}
             />
           )}
         </main>
