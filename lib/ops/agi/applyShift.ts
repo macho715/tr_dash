@@ -1,6 +1,7 @@
 // lib/ops/agi/applyShift.ts
 import type { ScheduleActivity } from "@/lib/ssot/schedule";
 import { addUTCDays, calculateFinishDate, parseUTCDate, diffUTCDays } from "@/lib/ssot/schedule";
+import { simulateDependencyCascade } from "@/lib/ops/agi/dependency-cascade";
 import type { IsoDate } from "./types";
 
 function fmtIsoUTC(d: Date): IsoDate {
@@ -35,7 +36,19 @@ export function applyBulkAnchors(params: {
   activities: ScheduleActivity[];
   anchors: Array<{ activityId: string; newStart: IsoDate }>;
   includeLocked: boolean;
+  strategy?: "pivot_shift" | "dependency_cascade";
 }): ScheduleActivity[] {
+  const strategy = params.strategy ?? "dependency_cascade";
+
+  if (strategy === "dependency_cascade") {
+    return simulateDependencyCascade({
+      activities: params.activities,
+      anchors: params.anchors,
+      includeLocked: params.includeLocked,
+      respectFreeze: true,
+    }).nextActivities;
+  }
+
   // 정책: anchors 순차 적용(누적)
   let next = params.activities;
 

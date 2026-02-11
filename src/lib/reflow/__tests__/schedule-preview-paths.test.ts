@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { ScheduleActivity } from '@/lib/ssot/schedule'
 import { previewScheduleReflow } from '../schedule-reflow-manager'
-import { reflowSchedule } from '@/lib/utils/schedule-reflow'
 
 const activities: ScheduleActivity[] = [
   {
@@ -26,16 +25,19 @@ const activities: ScheduleActivity[] = [
 ]
 
 describe('schedule reflow preview call paths', () => {
-  it('returns identical output for same input across canonical and legacy wrapper paths', () => {
-    const canonical = previewScheduleReflow({
+  it('includes dependency cascade impact summary in canonical preview', () => {
+    const preview = previewScheduleReflow({
       activities,
       anchors: [{ activityId: 'A1', newStart: '2026-02-05' }],
       mode: 'shift',
     })
-    const legacy = reflowSchedule(activities, 'A1', '2026-02-05')
-
-    expect(canonical.nextActivities).toEqual(legacy.activities)
-    expect(canonical.impact).toEqual(legacy.impact_report)
+    const shiftedA2 = preview.nextActivities.find((activity) => activity.activity_id === 'A2')
+    expect(shiftedA2?.planned_start).toBe('2026-02-06')
+    expect(preview.meta.cascade).toEqual({
+      impacted_count: 2,
+      anchor_count: 1,
+      blocked_by_freeze_lock: 0,
+    })
   })
 
   it('is deterministic for same input in canonical path (10 runs)', () => {

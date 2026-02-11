@@ -11,6 +11,7 @@
 import { describe, it, expect } from "vitest"
 import type { ScheduleActivity } from "@/lib/ssot/schedule"
 import type { WhatIfScenario, WhatIfMetrics } from "@/components/ops/WhatIfPanel"
+import { previewScheduleReflow } from "@/src/lib/reflow/schedule-reflow-manager"
 
 // Mock activities (simplified)
 const mockActivities: ScheduleActivity[] = [
@@ -207,26 +208,27 @@ describe("What-If Simulation - Browser Flow", () => {
     })
 
     it("should detect cascading effects through dependencies", () => {
-      // Given: A1030 → A1040 → A1050 dependency chain
-      const targetActivityId = "A1030"
+      // Given/When: canonical preview path로 A1030을 +6일 이동
+      const preview = previewScheduleReflow({
+        activities: mockActivities,
+        anchors: [{ activityId: "A1030", newStart: "2026-02-16" }],
+        options: {
+          respectLocks: true,
+          checkResourceConflicts: false,
+        },
+        mode: "shift",
+      })
 
-      // When: A1030이 지연되면
-      const directDependents = mockActivities.filter((a) =>
-        a.depends_on?.some((d) => d.predecessorId === targetActivityId)
+      // Then: A1030 → A1040 → A1050 연쇄 이동
+      const byId = new Map(
+        preview.nextActivities
+          .filter((activity) => activity.activity_id)
+          .map((activity) => [activity.activity_id as string, activity])
       )
-
-      const indirectDependents = mockActivities.filter((a) =>
-        a.depends_on?.some((d) => 
-          directDependents.some((dep) => dep.activity_id === d.predecessorId)
-        )
-      )
-
-      // Then: 직접 + 간접 영향 모두 포함
-      expect(directDependents).toHaveLength(1) // A1040
-      expect(indirectDependents).toHaveLength(1) // A1050
-      
-      const totalAffected = directDependents.length + indirectDependents.length
-      expect(totalAffected).toBe(2)
+      expect(byId.get("A1030")?.planned_start).toBe("2026-02-16")
+      expect(byId.get("A1040")?.planned_start).toBe("2026-02-17")
+      expect(byId.get("A1050")?.planned_start).toBe("2026-02-17")
+      expect(preview.meta.cascade?.impacted_count).toBeGreaterThanOrEqual(3)
     })
   })
 
