@@ -93,3 +93,25 @@ git branch -D release/general release/mobile
 
 - `backups/` remains untracked.
 - This flow does not change SSOT schema/state machine.
+
+## Full Execution Record
+
+- [release-history-20260211.md](release-history-20260211.md) — T1~T4 수행 타임라인, 검증 결과, 핵심 사실값 고정 레코드.
+
+## GitHub Required Checks
+
+Set the following required status checks on `main` for both repositories (`tr_dash`, `tr_dash_mobile`):
+
+1. `quality-gate / typecheck`
+2. `quality-gate / lint`
+3. `quality-gate / test`
+4. `quality-gate / build`
+5. `release-policy / enforce-release-source`
+6. `secret-guard / tracked-env-check`
+7. `secret-guard / gitleaks`
+
+Additional branch protection:
+
+1. Require pull request before merge
+2. Disallow force pushes
+3. Disallow branch deletion

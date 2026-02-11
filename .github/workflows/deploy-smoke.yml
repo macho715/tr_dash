@@ -1,0 +1,45 @@
+name: deploy-smoke
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  smoke-after-deploy:
+    name: smoke-after-deploy
+    runs-on: ubuntu-latest
+    env:
+      BASE_URL: ${{ github.repository == 'macho715/tr_dash_mobile' && 'https://trdash-mobile.vercel.app' || 'https://trdash.vercel.app' }}
+      API_PATH: /api/ssot
+    steps:
+      - name: Wait for Vercel deployment propagation
+        run: sleep 45
+
+      - name: Verify base URL and API health
+        run: |
+          set -euo pipefail
+
+          check_url() {
+            local url="$1"
+            local label="$2"
+
+            for attempt in 1 2 3 4 5 6; do
+              code="$(curl -s -o /dev/null -w "%{http_code}" "$url" || true)"
+              echo "[$label] attempt $attempt -> HTTP $code ($url)"
+
+              if [ "$code" = "200" ]; then
+                return 0
+              fi
+
+              sleep 10
+            done
+
+            echo "ERROR: $label failed health check after retries ($url)"
+            return 1
+          }
+
+          check_url "$BASE_URL" "base"
+          check_url "$BASE_URL$API_PATH" "api"
+
+          echo "Deploy smoke checks passed."
