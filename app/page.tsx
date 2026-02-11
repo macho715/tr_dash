@@ -162,7 +162,8 @@ export default function Page() {
   })
   const [jumpDate, setJumpDate] = useState<string>("")
   const [jumpTrigger, setJumpTrigger] = useState(0)
-  const [selectedVoyage, setSelectedVoyage] = useState<(typeof voyages)[number] | null>(null)
+  const [selectedVoyageNo, setSelectedVoyageNo] = useState<number | null>(null)
+  const [hoveredVoyageNo, setHoveredVoyageNo] = useState<number | null>(null)
   const [selectedCollision, setSelectedCollision] = useState<ScheduleConflict | null>(null)
   const [selectedActivityId, setSelectedActivityId] = useState<string | null>(null)
   const [focusedActivityId, setFocusedActivityId] = useState<string | null>(null)
@@ -199,6 +200,10 @@ export default function Page() {
   } | null>(null)
   const [whatIfMetrics, setWhatIfMetrics] = useState<WhatIfMetrics | null>(null)
   const [showWhatIfPanel, setShowWhatIfPanel] = useState(false)
+  const selectedVoyage = useMemo(
+    () => voyages.find((voyage) => voyage.voyage === selectedVoyageNo) ?? null,
+    [selectedVoyageNo]
+  )
   const toIsoDate = (value: string): IsoDate => value.slice(0, 10) as IsoDate
   const toPageReflowPreview = (
     result: ReturnType<typeof previewScheduleReflow>,
@@ -451,7 +456,7 @@ export default function Page() {
     const trId = findTrIdForActivity(activityId)
     if (trId) setSelectedTrId(trId)
     const v = findVoyageByActivityDate(start, voyages)
-    if (v) setSelectedVoyage(v)
+    if (v) setSelectedVoyageNo(v.voyage)
     // Enable What-If panel when activity is selected
     const activity = activities.find(a => a.activity_id === activityId)
     setShowWhatIfPanel(Boolean(activity))
@@ -870,6 +875,8 @@ export default function Page() {
                       <MapPanelWrapper
                         ssot={ssot}
                         selectedActivityId={selectedActivityId ?? selectedCollision?.activity_id ?? focusedActivityId ?? null}
+                        selectedVoyageNo={selectedVoyageNo}
+                        hoveredVoyageNo={hoveredVoyageNo}
                         onTrClick={(trId) => setSelectedTrId(trId)}
                         onActivitySelect={(activityId) => {
                           setActiveDetailTab("detail")
@@ -884,8 +891,10 @@ export default function Page() {
                       />
                     </WidgetErrorBoundary>
                     <VoyagesSection
-                      onSelectVoyage={setSelectedVoyage}
+                      onSelectVoyage={(voyage) => setSelectedVoyageNo(voyage?.voyage ?? null)}
                       selectedVoyage={selectedVoyage}
+                      hoveredVoyageNo={hoveredVoyageNo}
+                      onHoverVoyage={setHoveredVoyageNo}
                     />
                   </div>
                 }
@@ -1117,7 +1126,7 @@ export default function Page() {
           {selectedVoyage && (
             <VoyageFocusDrawer
               voyage={selectedVoyage}
-              onClose={() => setSelectedVoyage(null)}
+              onClose={() => setSelectedVoyageNo(null)}
             />
           )}
         </main>

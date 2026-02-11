@@ -47,6 +47,12 @@
 - **Tide Gantt 네비게이션 (2026-02-11)**:
   - 메인 대시보드 헤더에 **Open Tide Gantt** 버튼 추가(`components/dashboard/header.tsx`) → `/tide-gantt` 이동.
   - `/tide-gantt` 페이지 상단에 **Back to Dashboard** 버튼 추가(`app/tide-gantt/page.tsx`) → `/` 복귀. `/`↔`/tide-gantt` 왕복 이동 가능.
+- **Voyage Map View · ETA Drift (2026-02-11)**:
+  - **통 파생 helper**: `lib/tr/voyage-map-view.ts` — RiskBand, toRiskBand, riskColor, computeVoyageEtaDriftDays, buildVoyageRoute, isVoyageActive.
+  - **Voyage 카드**: hover/select + Drift 배지 (`voyage-cards.tsx`, `voyages-section.tsx`). Map props: MapPanelWrapper, MapPanel, MapContent.
+  - **Map overlay**: drift abs > 1.5 점선(MapPanel). click-selected만 flyTo, hover는 highlight only(MapContent). active destination pulse marker(MapContent).
+  - **Page state**: selectedVoyageNo, hoveredVoyageNo 추가, selectedVoyage 파생화, 카드↔맵 연결(page.tsx).
+  - **테스트**: voyage-map-view.test.ts 신규, MapPanel.test.tsx DateProvider 래핑 보강. MapPanel.test.tsx·tsc·eslint(지정 파일) 통과, lint errors 0.
 
 - **AI Command Phase 1 업그레이드 (2026-02-10)**: Unified Command Palette AI 실행 흐름 고도화.
   - `/api/nl-command` intent 계약 확장: `shift_activities|prepare_bulk|explain_conflict|set_mode|apply_preview|unclear`

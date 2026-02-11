@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -35,6 +35,18 @@ export type MapContentProps = {
     status: 'planned' | 'in_progress' | 'completed'
     trId: string
   }>
+  voyageOverlays?: Array<{
+    voyageNo: number
+    coords: [number, number][]
+    color: string
+    dashArray?: string
+    active: boolean
+    label: string
+    dest: [number, number]
+  }>
+  activeVoyageDest?: [number, number] | null
+  selectedVoyageNo?: number | null
+  selectedVoyageDest?: [number, number] | null
   trMarkers: Array<{
     trId: string
     lat: number
@@ -83,10 +95,42 @@ function HeatLayer({ heatPoints }: { heatPoints: HeatPoint[] }) {
   return null
 }
 
+function FlyToSelectedVoyage({
+  selectedVoyageNo,
+  selectedVoyageDest,
+}: {
+  selectedVoyageNo?: number | null
+  selectedVoyageDest?: [number, number] | null
+}) {
+  const map = useMap()
+  const previousSelectedVoyageNo = useRef<number | null>(null)
+
+  useEffect(() => {
+    if (selectedVoyageNo == null || !selectedVoyageDest) {
+      previousSelectedVoyageNo.current = selectedVoyageNo ?? null
+      return
+    }
+
+    if (previousSelectedVoyageNo.current !== selectedVoyageNo) {
+      map.flyTo(selectedVoyageDest, Math.max(map.getZoom(), 9), {
+        animate: true,
+        duration: 0.6,
+      })
+    }
+    previousSelectedVoyageNo.current = selectedVoyageNo
+  }, [map, selectedVoyageNo, selectedVoyageDest])
+
+  return null
+}
+
 export function MapContent({
   heatPoints = [],
   locations,
   routeSegments,
+  voyageOverlays = [],
+  activeVoyageDest = null,
+  selectedVoyageNo = null,
+  selectedVoyageDest = null,
   trMarkers,
   onTrMarkerClick,
   onCollisionClick,
@@ -101,6 +145,19 @@ export function MapContent({
     completed: { color: '#22c55e', weight: 2, opacity: 0.8 },
   }
 
+  const activeVoyageOverlay =
+    voyageOverlays.find((overlay) => overlay.active) ??
+    (selectedVoyageNo != null
+      ? voyageOverlays.find((overlay) => overlay.voyageNo === selectedVoyageNo)
+      : null)
+
+  const activeDestinationIcon = L.divIcon({
+    className: 'tr-marker-pulse',
+    html: `<div style="width:26px;height:26px;border-radius:50%;background:#22d3ee;border:3px solid #0f172a;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.4);color:#0f172a;font-size:10px;font-weight:700;">V</div>`,
+    iconSize: [26, 26],
+    iconAnchor: [13, 13],
+  })
+
   return (
     <MapContainer
       center={DEFAULT_CENTER}
@@ -113,6 +170,7 @@ export function MapContent({
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       {heatPoints.length > 0 && <HeatLayer heatPoints={heatPoints} />}
+      <FlyToSelectedVoyage selectedVoyageNo={selectedVoyageNo} selectedVoyageDest={selectedVoyageDest} />
       <GeofenceLayer locations={locations} visible={showGeofence} />
       <HeatmapLegend visible={showHeatmapLegend} />
 
@@ -131,6 +189,20 @@ export function MapContent({
           />
         )
       })}
+
+      {/* Voyage overlays (card-sync visual route layer) */}
+      {voyageOverlays.map((overlay) => (
+        <Polyline
+          key={`voyage-overlay-${overlay.voyageNo}`}
+          positions={overlay.coords}
+          pathOptions={{
+            color: overlay.color,
+            weight: overlay.active ? 5 : 3,
+            opacity: overlay.active ? 0.95 : 0.6,
+            dashArray: overlay.dashArray,
+          }}
+        />
+      ))}
 
       {/* Location markers (nodes: Yard, Jetty, etc.) */}
       {Object.entries(locations).map(([locId, loc]) => {
@@ -261,6 +333,15 @@ export function MapContent({
           </Marker>
         )
       })}
+
+      {/* Active voyage destination marker pulse */}
+      {activeVoyageDest ? (
+        <Marker position={activeVoyageDest} icon={activeDestinationIcon}>
+          <Popup>
+            {activeVoyageOverlay?.label ?? 'Active Voyage'} destination
+          </Popup>
+        </Marker>
+      ) : null}
     </MapContainer>
   )
 }
