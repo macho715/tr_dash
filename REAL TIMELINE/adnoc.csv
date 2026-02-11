@@ -1,0 +1,16 @@
+SN	Date	DURATION TIMES	DURATION HRS	DURATION DAYS	Activity	level1	level2	activity_id	activity_name
+1	2026-01-25	04:30 Hrs	25.5	1.06	Vessel released from shipping and sailed to MZP anchorage to berth on 26 Jan 2026 as requested by SCT.	MOBILIZATION	MARINE		MARINE
+2	2026-01-26	06:00 Hrs	35.63	1.48	Vessel remained at anchorage as Berth wasn’t secured	MOBILIZATION	MARINE	A1001	Mobilization of Marine Equipment and Steelworks
+3	2026-01-27	17:38 Hrs	23.37	0.97	Bushra Berthed at MZP RoRo Berth No. 5	OPERATIONAL	Deck Preparations	A1004	Deck Preparations (D-ring cutting; marking, steel sets installation) - One 5t forklift and Crane required
+4	2026-01-28	17:00 Hrs	65.5	2.73	Grillage, stools installed and welding completed onboard Bushra.	OPERATIONAL	Deck Preparations	A1005	Deck Preparations (Steel sets installation, welding) - Crane Required for steel sets installation
+5	2026-01-31	10:30 Hrs	0.5	0.02	Loading Permission received by MZP Harbor Master.	OPERATIONAL	AGI TR Unit 1	A1060	Load-out of AGL TR Unit 1; stool down (8am-10am)
+6	2026-01-31	11:00 Hrs	9.6	0.4	Loading TR No. 1 Completed	OPERATIONAL	AGI TR Unit 1	A1070	RoRo ramp removal; Seafastening AGL TR Unit 1 - Crane required
+7	2026-01-31	20:36 Hrs	9.4	0.39	MWS Sail away certificate was received Bushra Cast off MZP	OPERATIONAL	AGI TR Unit 1	A1070	RoRo ramp removal; Seafastening AGL TR Unit 1 - Crane required
+8	2026-02-01	06:00 Hrs	47	1.96	Bushra Dropped anchor at Al Ghallan Anchorage waiting for Berth	OPERATIONAL	AGI TR Unit 1	A1081	MWS; MPI; Sail-away - Marine Transportation by LCT to Al Ghallan Island
+9	2026-02-03	05:00 Hrs	35.1	1.46	MMT team travelled from Mina Port to AGI for TR No. 1 offloading	OPERATIONAL	AGI TR Unit 1	A1090	MMT Crew Mob to AGI; Site Induction; Meeting with Client
+10	2026-02-04	16:06 Hrs	4.4	0.18	Bushra Berthed alongside West RoRo Berth No. 3 at AGI	OPERATIONAL	AGI TR Unit 1	A1091	LCT Arrival; Berthing at AGL RoRo Jetty
+11	2026-02-04	20:30 Hrs	86.5	3.6	J62 arrived to AGI with Lifting clamps for TR No. 1 offloading	OPERATIONAL	AGI TR Unit 1	A1122	Steel bridge Installation - Crane required
+12	2026-02-08	11:00 Hrs	3.63	0.15	Tr No. 1 Offloaded at AGI	OPERATIONAL	AGI TR Unit 1	A1150	Jacking down of AGI TR Unit 1 (TR Bay 4) on temporary support - Forklift required
+13	2026-02-08	14:38 Hrs	8.07	0.34	Bushra Sailed from AGI	OPERATIONAL	AGI TR Unit 1	A1121	LCT Sails back to MZP to collect TR Unit 1
+14	2026-02-08	08:04 Hrs	8.07	0.34	Bushra dropped anchor at MZP anchorage waiting for berth	OPERATIONAL	AGI TR Unit 1	A1121	LCT Sails back to MZP to collect TR Unit 1
+				

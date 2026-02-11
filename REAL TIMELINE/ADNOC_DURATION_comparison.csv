@@ -1,0 +1,15 @@
+phase_id,start_dt,end_dt,adnoc_duration_hrs,adnoc_activity,activity_id_primary,activity_id_secondary,wa_ids_in_phase,wa_key_datetime,bushra_nos_overlapped,bushra_hrs_overlapped_sum,delta_hrs,consistency_note
+1,2026-01-25 00:00,2026-01-26 01:30,25.5,Vessel released from shipping and sailed to MZP anchorage to berth on 26 Jan 2026 as requested by SCT.,,,E001,2026-01-25 08:54,,,,bushra 해당일 없음
+2,2026-01-26 01:30,2026-01-27 13:07,35.63,Vessel remained at anchorage as Berth wasn’t secured,A1001,,E015;E014;E003;E004,2026-01-27 07:38; 2026-01-27 08:00; 2026-01-27 08:33,1,13.13,-22.5,정의차이 또는 overlap 구간
+3,2026-01-27 13:07,2026-01-27 17:38,23.37,Bushra Berthed at MZP RoRo Berth No. 5,A1004,,E016;E017,2026-01-27 14:30; 2026-01-27 17:00,1,4.5,-18.87,정의차이 또는 overlap 구간
+4,2026-01-27 17:38,2026-01-28 17:00,65.5,"Grillage, stools installed and welding completed onboard Bushra.",A1005,,E002;E027,2026-01-27 17:38; 2026-01-28 13:19,1;2;3;4;5;6;7,95.47,29.97,정의차이 또는 overlap 구간
+5,2026-01-28 17:00,2026-01-31 10:30,0.5,Loading Permission received by MZP Harbor Master.,A1060,,E025;E018;E020;E019;E005,2026-01-30 07:26; 2026-01-30 08:40; 2026-01-30 00:00,7;8;9;10;11;12;13;14;15;16;17;18;19;20;21,172.25,171.75,정의차이 또는 overlap 구간
+6,2026-01-31 10:30,2026-01-31 11:00,9.6,Loading TR No. 1 Completed,A1070,,E006,2026-01-31 10:53,12;13;14;15;16;17;18;19;20;21,4.75,-4.85,정의차이 또는 overlap 구간
+7,2026-01-31 11:00,2026-01-31 20:36,9.4,MWS Sail away certificate was received Bushra Cast off MZP,A1081,A1070,E007,2026-01-31 16:38,14;15;16;17;18;19;20;21,52.6,43.2,정의차이 또는 overlap 구간
+8,2026-01-31 20:36,2026-02-01 06:00,47,Bushra Dropped anchor at Al Ghallan Anchorage waiting for Berth,A1081,,E008,2026-01-31 20:36,20;21;22,15.8,-31.2,정의차이 또는 overlap 구간
+9,2026-02-01 06:00,2026-02-03 05:00,35.1,MMT team travelled from Mina Port to AGI for TR No. 1 offloading,A1090,,E009,2026-02-01 06:00,22;23;24,47,11.9,정의차이 또는 overlap 구간
+10,2026-02-03 05:00,2026-02-04 16:06,4.4,Bushra Berthed alongside West RoRo Berth No. 3 at AGI,A1091,,,,24;25;26;27;28;29;30;31;32,134.75,130.35,정의차이 또는 overlap 구간
+11,2026-02-04 16:06,2026-02-04 20:30,86.5,J62 arrived to AGI with Lifting clamps for TR No. 1 offloading,A1122,,E010,2026-02-04 16:06,,,,
+12,2026-02-04 20:30,2026-02-08 14:38,3.63,Tr No. 1 Offloaded at AGI,A1150,,E026;E021;E011;E023,2026-02-06 15:00; 2026-02-07 00:00; 2026-02-08 14:00,,,,bushra 자료 02-04까지
+13,2026-02-08 14:38,2026-02-08 22:42,8.07,Bushra Sailed from AGI,A1121,,E012;E024;E022,2026-02-08 14:38; 2026-02-08 15:00; 2026-02-08 16:00,,,,bushra 자료 02-04까지
+14,2026-02-08 22:42,2026-02-09 06:46,8.07,Bushra dropped anchor at MZP anchorage waiting for berth,A1121,,,,,,,bushra 자료 02-04까지

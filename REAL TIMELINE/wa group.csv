@@ -1,0 +1,185 @@
+NO	START DATE	START TIME	END DATE	END TIME	DURATION TIMES	DURATION HRS	DURATION DAYS	Activity	level1	level2	activity_id	activity_name
+1	2026-01-24	10:47	2026-01-24	11:34	00:47 HRS	0.78	0.03	CHA: MZP load-out readiness 요약(Deck prep 27–28 Jan, Load-out target 29 Jan AM, Tide≥2.00m, 자원 24h 사전요청, tug/TBC, Ramp certificate 필요 가능)				
+2			2026-01-25	9:08				LCT Bushra: Musaffah short stay drop anchor 25/01/2026 0854 hrs				
+3	2026-01-25	9:08	2026-01-25	9:11	00:03 HRS	0.05	0	Capt Igor: Samsung agent가 MZP berth arrange 전까지 anchorage 대기				
+4	2026-01-25	9:11	2026-01-25	9:12	00:01 HRS	0.02	0	상욱: Noted				
+5	2026-01-25	9:12	2026-01-25	9:35	00:23 HRS	0.38	0.02	LCT Bushra: Noted				
+6			2026-01-26	10:03				Adnoc Ouda: Bushra MZP 도착 시점 문의(27 Jan?)	MOBILIZATION	MARINE	A1001	Mobilization of Marine Equipment and Steelworks
+7	2026-01-26	10:03	2026-01-26	10:12	00:09 HRS	0.15	0.01	CHA: 2026-01-27 08:00 AM	MOBILIZATION	SPMT	A1000	Mobilization of 1st set of SPMT; Asembly + Function Test
+8	2026-01-26	10:12	2026-01-26	10:14	00:02 HRS	0.03	0	Adnoc Ouda: Bushra 27 Jan 08:00 도착 준비 지시(berth/pilot/agent)	MOBILIZATION	MARINE	A1001	Mobilization of Marine Equipment and Steelworks
+9	2026-01-26	10:14	2026-01-26	10:22	00:08 HRS	0.13	0.01	Yoonus: Ramp certificates ASAP 요청	MOBILIZATION	SPMT	A1000	Mobilization of 1st set of SPMT; Asembly + Function Test
+10	2026-01-26	10:22	2026-01-26	11:06	00:44 HRS	0.73	0.03	Yulia(MAMMOET): 10 forklift + 25t(이상) mobile crane 요청(14t mats 2pcs)	MOBILIZATION	SPMT	A1000	Mobilization of 1st set of SPMT; Asembly + Function Test
+11	2026-01-26	11:06	2026-01-26	11:07	00:01 HRS	0.02	0	CHA: NOTED	MOBILIZATION	SPMT	A1000	Mobilization of 1st set of SPMT; Asembly + Function Test
+12	2026-01-26	11:07	2026-01-26	11:13	00:06 HRS	0.1	0	Adnoc Ouda: Sent by mail	MOBILIZATION	SPMT	A1000	Mobilization of 1st set of SPMT; Asembly + Function Test
+13	2026-01-26	11:13	2026-01-26	14:10	02:57 HRS	2.95	0.12	Yulia: 5 trailers 도착, forklift/crane 제공 시점 문의	MOBILIZATION	SPMT	A1000	Mobilization of 1st set of SPMT; Asembly + Function Test
+14	2026-01-26	14:10	2026-01-26	14:11	00:01 HRS	0.02	0	CHA: I check Ofco team	MOBILIZATION	SPMT	A1000	Mobilization of 1st set of SPMT; Asembly + Function Test
+15	2026-01-26	14:11	2026-01-26	14:53	00:42 HRS	0.7	0.03	Yulia: No crane and forklift until now =(	MOBILIZATION	SPMT	A1000	Mobilization of 1st set of SPMT; Asembly + Function Test
+16	2026-01-26	14:53	2026-01-26	15:00	00:07 HRS	0.12	0.01	Yoonus: F/L only available now, follow-up 중	MOBILIZATION	SPMT	A1000	Mobilization of 1st set of SPMT; Asembly + Function Test
+17	2026-01-26	15:00	2026-01-26	15:00	00:00 HRS	0	0	Yoonus: F/L will be coming soon	MOBILIZATION	SPMT	A1000	Mobilization of 1st set of SPMT; Asembly + Function Test
+18	2026-01-26	15:00	2026-01-26	15:01	00:01 HRS	0.02	0	Yulia: 20t forklift면 crane 불필요(14t mats)	MOBILIZATION	SPMT	A1000	Mobilization of 1st set of SPMT; Asembly + Function Test
+19	2026-01-26	15:01	2026-01-26	15:01	00:00 HRS	0	0	Yoonus: this is 15T F/L	MOBILIZATION	SPMT	A1000	Mobilization of 1st set of SPMT; Asembly + Function Test
+20	2026-01-26	15:01	2026-01-26	15:49	00:48 HRS	0.8	0.03	Yoonus: meeting scheduled tomorrow with Mina Zayed HM	MOBILIZATION	MARINE	A1001	Mobilization of Marine Equipment and Steelworks
+21	2026-01-26	15:49	2026-01-26	15:57	00:08 HRS	0.13	0.01	Yulia: Until now no forklift...	MOBILIZATION	SPMT	A1000	Mobilization of 1st set of SPMT; Asembly + Function Test
+22	2026-01-26	15:57	2026-01-26	16:09	00:12 HRS	0.2	0.01	Yulia: 6pm 이후 offload 불가, forklift ASAP	MOBILIZATION	SPMT	A1000	Mobilization of 1st set of SPMT; Asembly + Function Test
+23	2026-01-26	16:09	2026-01-26	16:10	00:01 HRS	0.02	0	상욱: OFCO team..pls..	MOBILIZATION	SPMT	A1000	Mobilization of 1st set of SPMT; Asembly + Function Test
+24	2026-01-26	16:10	2026-01-26	16:13	00:03 HRS	0.05	0	CHA: The operation will start soon	MOBILIZATION	SPMT	A1000	Mobilization of 1st set of SPMT; Asembly + Function Test
+25	2026-01-26	16:13	2026-01-26	16:19	00:06 HRS	0.1	0	Yoonus: labour and forklift is there(현장), supervisor 번호 공유	MOBILIZATION	SPMT	A1000	Mobilization of 1st set of SPMT; Asembly + Function Test
+26	2026-01-26	16:19	2026-01-26	17:29	01:10 HRS	1.17	0.05	Yulia: 내일 계획(08:00 SPMT/70t crane/10t FL/점심 후 2x10t FL)	MOBILIZATION	SPMT	A1000	Mobilization of 1st set of SPMT; Asembly + Function Test
+27	2026-01-26	17:29	2026-01-26	17:29	00:00 HRS	0	0	Yulia: 1st TR unit ID number 요청	MOBILIZATION	SPMT	A1000	Mobilization of 1st set of SPMT; Asembly + Function Test
+28	2026-01-26	17:29	2026-01-26	17:31	00:02 HRS	0.03	0	CHA: Case no 364332	MOBILIZATION	SPMT	A1000	Mobilization of 1st set of SPMT; Asembly + Function Test
+29	2026-01-26	17:31	2026-01-26	17:32	00:01 HRS	0.02	0	CHA: Yoonus please arrange	MOBILIZATION	SPMT	A1000	Mobilization of 1st set of SPMT; Asembly + Function Test
+30	2026-01-26	17:32	2026-01-26	17:33	00:01 HRS	0.02	0	Yoonus: Tomorrow crane/forklift/gang booking request submitted	MOBILIZATION	SPMT	A1000	Mobilization of 1st set of SPMT; Asembly + Function Test
+31	2026-01-26	17:33	2026-01-26	17:34	00:01 HRS	0.02	0	Yoonus: RORO jetty approval 대기	MOBILIZATION	MARINE	A1001	Mobilization of Marine Equipment and Steelworks
+32	2026-01-26	17:34	2026-01-26	17:35	00:01 HRS	0.02	0	Yulia: beam replacement 위해 2nd forklift 요청	MOBILIZATION	SPMT	A1000	Mobilization of 1st set of SPMT; Asembly + Function Test
+33	2026-01-26	17:35	2026-01-26	17:49	00:14 HRS	0.23	0.01	Yoonus: GC ops 확인 후 업데이트 예정	MOBILIZATION	SPMT	A1000	Mobilization of 1st set of SPMT; Asembly + Function Test
+34			2026-01-27	7:07				상욱: Pls update	OPERATIONAL	Deck Preparations	A1004	Deck Preparations (D-ring cutting; marking, steel sets installation) - One 5t forklift and Crane required
+35	2026-01-27	7:07	2026-01-27	7:38	00:31 HRS	0.52	0.02	Yulia: Jetty 5 currently berthed LCT Safeen Kate	OPERATIONAL	Deck Preparations	A1004	Deck Preparations (D-ring cutting; marking, steel sets installation) - One 5t forklift and Crane required
+36	2026-01-27	7:38	2026-01-27	7:38	00:00 HRS	0	0	Yulia: SPMT crew & Marine crew arrived, preparing	OPERATIONAL	Deck Preparations	A1004	Deck Preparations (D-ring cutting; marking, steel sets installation) - One 5t forklift and Crane required
+37	2026-01-27	7:38	2026-01-27	7:39	00:01 HRS	0.02	0	CHA: Noted	OPERATIONAL	Deck Preparations	A1004	Deck Preparations (D-ring cutting; marking, steel sets installation) - One 5t forklift and Crane required
+38	2026-01-27	7:39	2026-01-27	7:39	00:00 HRS	0	0	Yulia: transformer serial number sticker 못 찾음(위치 문의)	OPERATIONAL	Deck Preparations	A1004	Deck Preparations (D-ring cutting; marking, steel sets installation) - One 5t forklift and Crane required
+39	2026-01-27	7:39	2026-01-27	7:41	00:02 HRS	0.03	0	CHA: 확인 후 안내(잠시 대기 요청)	OPERATIONAL	Deck Preparations	A1004	Deck Preparations (D-ring cutting; marking, steel sets installation) - One 5t forklift and Crane required
+40	2026-01-27	7:41	2026-01-27	7:42	00:01 HRS	0.02	0	Yulia: crane & forklift 8am 도착 맞나?	OPERATIONAL	Deck Preparations	A1004	Deck Preparations (D-ring cutting; marking, steel sets installation) - One 5t forklift and Crane required
+41	2026-01-27	7:42	2026-01-27	7:45	00:03 HRS	0.05	0	CHA: S/N 2XBR62542-T Spare	OPERATIONAL	Deck Preparations	A1004	Deck Preparations (D-ring cutting; marking, steel sets installation) - One 5t forklift and Crane required
+42	2026-01-27	7:45	2026-01-27	8:33	00:48 HRS	0.8	0.03	Yulia: Crane and forklift arrived on time	OPERATIONAL	Deck Preparations	A1004	Deck Preparations (D-ring cutting; marking, steel sets installation) - One 5t forklift and Crane required
+43	2026-01-27	8:33	2026-01-27	8:33	00:00 HRS	0	0	Yulia: Bushra는 jetty 5? other jetty?	OPERATIONAL	Deck Preparations	A1004	Deck Preparations (D-ring cutting; marking, steel sets installation) - One 5t forklift and Crane required
+44	2026-01-27	8:33	2026-01-27	8:35	00:02 HRS	0.03	0	상욱: Jetty #5는 29일 loadout 필요, deck prep는 타 jetty 가능 검토 요청	OPERATIONAL	Deck Preparations	A1004	Deck Preparations (D-ring cutting; marking, steel sets installation) - One 5t forklift and Crane required
+45	2026-01-27	8:35	2026-01-27	12:56	04:21 HRS	4.35	0.18	Yulia: offloading 완료, crane release. SPMT assembly/beam replacement 진행. Bushra status?	OPERATIONAL	Deck Preparations	A1004	Deck Preparations (D-ring cutting; marking, steel sets installation) - One 5t forklift and Crane required
+46	2026-01-27	12:56	2026-01-27	14:20	01:24 HRS	1.4	0.06	Yulia: 2:30pm beam replacement 시작 예정, 2nd forklift 2:30까지 요청 + LCT ETA 요청	OPERATIONAL	Deck Preparations	A1004	Deck Preparations (D-ring cutting; marking, steel sets installation) - One 5t forklift and Crane required
+47	2026-01-27	14:20	2026-01-27	14:26	00:06 HRS	0.1	0	CHA: I check	OPERATIONAL	Deck Preparations	A1004	Deck Preparations (D-ring cutting; marking, steel sets installation) - One 5t forklift and Crane required
+48	2026-01-27	14:26	2026-01-27	15:29	01:03 HRS	1.05	0.04	Yoonus: 2nd Forklift not available today	OPERATIONAL	Deck Preparations	A1004	Deck Preparations (D-ring cutting; marking, steel sets installation) - One 5t forklift and Crane required
+49	2026-01-27	15:29	2026-01-27	15:31	00:02 HRS	0.03	0	Yoonus: Land PTW pending → 승인 전 SPMT 이동 금지	OPERATIONAL	Deck Preparations	A1004	Deck Preparations (D-ring cutting; marking, steel sets installation) - One 5t forklift and Crane required
+50	2026-01-27	15:31	2026-01-27	15:38	00:07 HRS	0.12	0.01	상욱: Hot work(deck prep) start 요청(접안/확보 후)	OPERATIONAL	Deck Preparations	A1004	Deck Preparations (D-ring cutting; marking, steel sets installation) - One 5t forklift and Crane required
+51	2026-01-27	15:38	2026-01-27	15:39	00:01 HRS	0.02	0	Yulia: laydown area, permission 없이 SPMT 이동 안함	OPERATIONAL	Deck Preparations	A1004	Deck Preparations (D-ring cutting; marking, steel sets installation) - One 5t forklift and Crane required
+52	2026-01-27	15:39	2026-01-27	15:42	00:03 HRS	0.05	0	Yulia: 내일 2 forklifts booking 요청	OPERATIONAL	Deck Preparations	A1004	Deck Preparations (D-ring cutting; marking, steel sets installation) - One 5t forklift and Crane required
+53	2026-01-27	15:42	2026-01-27	15:54	00:12 HRS	0.2	0.01	Yoonus: 내일 몇 시? 2 forklifts만? (port advance notice 필요)	OPERATIONAL	Deck Preparations	A1004	Deck Preparations (D-ring cutting; marking, steel sets installation) - One 5t forklift and Crane required
+54	2026-01-27	15:54	2026-01-27	16:00	00:06 HRS	0.1	0	Yulia: 8am부터 3시간 2 forklifts + (Marine) forklift+crane+gang 8am 시작	OPERATIONAL	Deck Preparations	A1004	Deck Preparations (D-ring cutting; marking, steel sets installation) - One 5t forklift and Crane required
+55	2026-01-27	16:00	2026-01-27	16:00	00:00 HRS	0	0	Yulia: Bushra Captain 정보—17:00 berth 예상	OPERATIONAL	Deck Preparations	A1004	Deck Preparations (D-ring cutting; marking, steel sets installation) - One 5t forklift and Crane required
+56	2026-01-27	16:00	2026-01-27	16:05	00:05 HRS	0.08	0	Yulia: Marine crew shift 17:00 종료, deck prep 내일 아침 시작	OPERATIONAL	Deck Preparations	A1004	Deck Preparations (D-ring cutting; marking, steel sets installation) - One 5t forklift and Crane required
+57	2026-01-27	16:05	2026-01-27	16:05	00:00 HRS	0	0	Yoonus: port 장비 가용 확인 후 업데이트	OPERATIONAL	Deck Preparations	A1004	Deck Preparations (D-ring cutting; marking, steel sets installation) - One 5t forklift and Crane required
+58	2026-01-27	16:05	2026-01-27	17:59	01:54 HRS	1.9	0.08	Yulia: Bushra berthed roro jetty 17:38	OPERATIONAL	Deck Preparations	A1004	Deck Preparations (D-ring cutting; marking, steel sets installation) - One 5t forklift and Crane required
+59	2026-01-27	17:59	2026-01-27	18:11	00:12 HRS	0.2	0.01	LCT Bushra: ALL FAST SECURED MINA ZAYED RORO BERTH 27.01.2026 1738 HRS	OPERATIONAL	Deck Preparations	A1004	Deck Preparations (D-ring cutting; marking, steel sets installation) - One 5t forklift and Crane required
+60			2026-01-28	10:01				Yoonus: (MZ GC Ops) 작업 완료 후 Delivery Note 작성→AD Customs 제출(출항 전)	OPERATIONAL	Beam Replacement	A1003	Beam Replacement AGI TR Unit 2 (TR Bay 3) - Two 5t forklifts required
+61	2026-01-28	10:01	2026-01-28	10:52	00:51 HRS	0.85	0.04	Yulia: crane 3시간 연장 요청	OPERATIONAL	Beam Replacement	A1003	Beam Replacement AGI TR Unit 2 (TR Bay 3) - Two 5t forklifts required
+62	2026-01-28	10:52	2026-01-28	10:56	00:04 HRS	0.07	0	Yulia: forklift 1대 off-hire 가능, 1대는 필요	OPERATIONAL	Beam Replacement	A1003	Beam Replacement AGI TR Unit 2 (TR Bay 3) - Two 5t forklifts required
+63	2026-01-28	10:56	2026-01-28	11:02	00:06 HRS	0.1	0	Yoonus: port 통보 후 가용 업데이트	OPERATIONAL	Beam Replacement	A1003	Beam Replacement AGI TR Unit 2 (TR Bay 3) - Two 5t forklifts required
+64	2026-01-28	11:02	2026-01-28	11:20	00:18 HRS	0.3	0.01	Yulia: 29-01-2026 07:00 crane+1 forklift booking 요청(linkspan)	OPERATIONAL	Deck Preparations	A1005	Deck Preparations (Steel sets installation, welding) - Crane Required for steel sets installation
+65	2026-01-28	11:20	2026-01-28	11:40	00:20 HRS	0.33	0.01	Yoonus: crane extension port confirmed	OPERATIONAL	Beam Replacement	A1003	Beam Replacement AGI TR Unit 2 (TR Bay 3) - Two 5t forklifts required
+66	2026-01-28	11:40	2026-01-28	13:19	01:39 HRS	1.65	0.07	Yulia: SPMT scope 완료→release, Marine crew 계속	OPERATIONAL	Beam Replacement	A1003	Beam Replacement AGI TR Unit 2 (TR Bay 3) - Two 5t forklifts required
+67	2026-01-28	13:19	2026-01-28	14:19	01:00 HRS	1	0.04	Yoonus: 16t forklift + 40t crane(65t 정비)	OPERATIONAL	Beam Replacement	A1003	Beam Replacement AGI TR Unit 2 (TR Bay 3) - Two 5t forklifts required
+68	2026-01-28	14:19	2026-01-28	16:56	02:37 HRS	2.62	0.11	Yulia: 29/30 Jan weather forecast 요청	OPERATIONAL	Deck Preparations	A1005	Deck Preparations (Steel sets installation, welding) - Crane Required for steel sets installation
+69	2026-01-28	16:56	2026-01-28	17:10	00:14 HRS	0.23	0.01	Yulia: AGI berth 3 점유/기상 리스크(최악 2-Feb까지 stay) 공유	OPERATIONAL	Beam Replacement	A1003	Beam Replacement AGI TR Unit 2 (TR Bay 3) - Two 5t forklifts required
+70	2026-01-28	17:10	2026-01-28	17:18	00:08 HRS	0.13	0.01	Haitham: 내일 HM linkspan F2F meeting, 11am, 참석자 SCT/MWS/MMT/OFCO	OPERATIONAL	Deck Preparations	A1005	Deck Preparations (Steel sets installation, welding) - Crane Required for steel sets installation
+71	2026-01-28	17:18	2026-01-28	17:20	00:02 HRS	0.03	0	Yulia: tide window 8–10am, 그럼 내일 load-out 안하나?	OPERATIONAL	Deck Preparations	A1005	Deck Preparations (Steel sets installation, welding) - Crane Required for steel sets installation
+72	2026-01-28	17:20	2026-01-28	17:22	00:02 HRS	0.03	0	상욱: Not possible. Linkspan issue.. HM want certificate	OPERATIONAL	Deck Preparations	A1005	Deck Preparations (Steel sets installation, welding) - Crane Required for steel sets installation
+73	2026-01-28	17:22	2026-01-28	17:36	00:14 HRS	0.23	0.01	Yulia: crew standby, F2F 참석, office location 요청	OPERATIONAL	Deck Preparations	A1005	Deck Preparations (Steel sets installation, welding) - Crane Required for steel sets installation
+74	2026-01-28	17:36	2026-01-28	17:38	00:02 HRS	0.03	0	OFCO: Land PTW 승인 아직(초기 승인 HM)	OPERATIONAL	Beam Replacement	A1003	Beam Replacement AGI TR Unit 2 (TR Bay 3) - Two 5t forklifts required
+75	2026-01-29	-	2026-01-29	12:29	-	-	-	Yoonus: 오늘 작업 없음 → crane/forklift/gang release	MOBILIZATION	JACKING EQUIPMENT, STEEL BRIDGE		JACKING EQUIPMENT, STEEL BRIDGE
+76	2026-01-29	12:29	2026-01-29	12:31	00:02 HRS	0.03	0	상욱: loadout tom 9–11am, supporting docs ASAP	MOBILIZATION	JACKING EQUIPMENT, STEEL BRIDGE		JACKING EQUIPMENT, STEEL BRIDGE
+77	2026-01-29	12:31	2026-01-29	13:31	01:00 HRS	1	0.04	OFCO: linkspan certificate mandatory	MOBILIZATION	JACKING EQUIPMENT, STEEL BRIDGE		JACKING EQUIPMENT, STEEL BRIDGE
+78	2026-01-29	13:31	2026-01-29	15:05	01:34 HRS	1.57	0.07	Yulia: 내일 25t crane+forklift 7am booking 요청	MOBILIZATION	JACKING EQUIPMENT, STEEL BRIDGE		JACKING EQUIPMENT, STEEL BRIDGE
+79	2026-01-29	15:05	2026-01-29	15:07	00:02 HRS	0.03	0	Yoonus: booking 진행, port confirmation 회신 예정	MOBILIZATION	JACKING EQUIPMENT, STEEL BRIDGE		JACKING EQUIPMENT, STEEL BRIDGE
+80	2026-01-29	15:07	2026-01-29	16:28	01:21 HRS	1.35	0.06	Yulia: Mammoet 팀 내일 7am port 도착	MOBILIZATION	JACKING EQUIPMENT, STEEL BRIDGE		JACKING EQUIPMENT, STEEL BRIDGE
+81			2026-01-30	7:26				Yulia: 준비 시작(steel plates installation), PTW 또는 reschedule 대기	MOBILIZATION	JACKING EQUIPMENT, STEEL BRIDGE	A2010	Mobilization of Jacking Equipment and Steel bridge (prior LCT's arrival to AGI with TR 1&2!))
+82	2026-01-30	7:26	2026-01-30	8:40	01:14 HRS	1.23	0.05	Yulia: steel plates 설치 완료, linkspan ramp adjusted	MOBILIZATION	JACKING EQUIPMENT, STEEL BRIDGE	A2010	Mobilization of Jacking Equipment and Steel bridge (prior LCT's arrival to AGI with TR 1&2!))
+83	2026-01-30	8:40	2026-01-30	8:53	00:13 HRS	0.22	0.01	Yulia: Tide(09:00 1.97m / 10:00 2.05m / 11:00 2.04m)	MOBILIZATION	JACKING EQUIPMENT, STEEL BRIDGE	A2010	Mobilization of Jacking Equipment and Steel bridge (prior LCT's arrival to AGI with TR 1&2!))
+84	2026-01-30	8:53	2026-01-30	10:31	01:38 HRS	1.63	0.07	Adnoc Ouda: welding schedule/Aries witness/MWS scope 질의 시작	MOBILIZATION	JACKING EQUIPMENT, STEEL BRIDGE	A2010	Mobilization of Jacking Equipment and Steel bridge (prior LCT's arrival to AGI with TR 1&2!))
+85	2026-01-30	10:31	2026-01-30	10:39	00:08 HRS	0.13	0.01	상욱: Aries analysis done, issue는 PTW/Linkspan	MOBILIZATION	JACKING EQUIPMENT, STEEL BRIDGE	A2010	Mobilization of Jacking Equipment and Steel bridge (prior LCT's arrival to AGI with TR 1&2!))
+86	2026-01-30	10:39	2026-01-30	10:43	00:04 HRS	0.07	0	Adnoc Ouda: FW discharge clearance 업데이트 요청(OFCO)	MOBILIZATION	JACKING EQUIPMENT, STEEL BRIDGE	A2010	Mobilization of Jacking Equipment and Steel bridge (prior LCT's arrival to AGI with TR 1&2!))
+87	2026-01-30	10:43	2026-01-30	11:20	00:37 HRS	0.62	0.03	Yulia: Port Authority가 ops 불가 → linkspan removal 시작 가능 여부 문의	MOBILIZATION	JACKING EQUIPMENT, STEEL BRIDGE	A2010	Mobilization of Jacking Equipment and Steel bridge (prior LCT's arrival to AGI with TR 1&2!))
+88	2026-01-30	11:20	2026-01-30	11:22	00:02 HRS	0.03	0	Capt Igor: Please share mobile of MWS	MOBILIZATION	JACKING EQUIPMENT, STEEL BRIDGE	A2010	Mobilization of Jacking Equipment and Steel bridge (prior LCT's arrival to AGI with TR 1&2!))
+89	2026-01-30	11:22	2026-01-30	11:23	00:01 HRS	0.02	0	CHA: Linkspan Removal - Hold until 14:00	MOBILIZATION	JACKING EQUIPMENT, STEEL BRIDGE	A2010	Mobilization of Jacking Equipment and Steel bridge (prior LCT's arrival to AGI with TR 1&2!))
+90	2026-01-30	11:23	2026-01-30	12:01	00:38 HRS	0.63	0.03	Yoonus: de-ballasting/tanker arrangements 승인 필요, proceed 확인 요청	MOBILIZATION	JACKING EQUIPMENT, STEEL BRIDGE	A2010	Mobilization of Jacking Equipment and Steel bridge (prior LCT's arrival to AGI with TR 1&2!))
+91	2026-01-30	12:01	2026-01-30	12:01	00:00 HRS	0	0	Shariff: Ok confirmed...pls proceed	MOBILIZATION	JACKING EQUIPMENT, STEEL BRIDGE	A2010	Mobilization of Jacking Equipment and Steel bridge (prior LCT's arrival to AGI with TR 1&2!))
+92	2026-01-30	12:01	2026-01-30	12:12	00:11 HRS	0.18	0.01	LCT Bushra: fresh water transfer 계획/trim 목표 공유	MOBILIZATION	JACKING EQUIPMENT, STEEL BRIDGE	A2010	Mobilization of Jacking Equipment and Steel bridge (prior LCT's arrival to AGI with TR 1&2!))
+93	2026-01-30	12:12	2026-01-30	14:54	02:42 HRS	2.7	0.11	LCT Bushra: FW transfer 후 trim 1m, plan 대비 0.15m 차이	MOBILIZATION	JACKING EQUIPMENT, STEEL BRIDGE	A2010	Mobilization of Jacking Equipment and Steel bridge (prior LCT's arrival to AGI with TR 1&2!))
+94	2026-01-30	14:54	2026-01-30	15:55	01:01 HRS	1.02	0.04	Yoonus: port에 장비/gang release 요청	MOBILIZATION	JACKING EQUIPMENT, STEEL BRIDGE	A2010	Mobilization of Jacking Equipment and Steel bridge (prior LCT's arrival to AGI with TR 1&2!))
+95	2026-01-30	15:55	2026-01-30	16:00	00:05 HRS	0.08	0	Yulia: load out 승인 시 내일 crane+forklift 필요(11–12pm 이후)	MOBILIZATION	JACKING EQUIPMENT, STEEL BRIDGE	A2010	Mobilization of Jacking Equipment and Steel bridge (prior LCT's arrival to AGI with TR 1&2!))
+96	2026-01-30	16:00	2026-01-30	22:10	06:10 HRS	6.17	0.26	Yoonus: HM/HSE/MZ Ops 승인(01st trip load), 출항 전 MWS COA 제출 조건	OPERATIONAL	AGI TR Unit 1	A1060	Load-out of AGL TR Unit 1; stool down (8am-10am)
+97	2026-01-30	22:10	2026-01-30	22:11	00:01 HRS	0.02	0	Adnoc Ouda: loading 전 MWS confirmation(Aries bow strength arrangement 정합) 필수	MOBILIZATION	JACKING EQUIPMENT, STEEL BRIDGE	A2010	Mobilization of Jacking Equipment and Steel bridge (prior LCT's arrival to AGI with TR 1&2!))
+98	2026-01-30	22:11	2026-01-30	22:13	00:02 HRS	0.03	0	상욱: loadout tomorrow morning( tide 9–11 ), MMT standby 7am	MOBILIZATION	JACKING EQUIPMENT, STEEL BRIDGE	A2010	Mobilization of Jacking Equipment and Steel bridge (prior LCT's arrival to AGI with TR 1&2!))
+99			2026-01-31	6:16				CHA: MWS 08:50 Mina Port 도착 예정	OPERATIONAL	AGI TR Unit 1	A1060	Load-out of AGL TR Unit 1; stool down (8am-10am)
+100	2026-01-31	6:16	2026-01-31	7:21	01:05 HRS	1.08	0.05	Yulia: Please share PTW	OPERATIONAL	AGI TR Unit 1	A1060	Load-out of AGL TR Unit 1; stool down (8am-10am)
+101	2026-01-31	7:21	2026-01-31	7:32	00:11 HRS	0.18	0.01	Yulia: HM이 MWS COA 기다림, 발급되나?	OPERATIONAL	AGI TR Unit 1	A1060	Load-out of AGL TR Unit 1; stool down (8am-10am)
+102	2026-01-31	7:32	2026-01-31	7:46	00:14 HRS	0.23	0.01	Haitham: MWS before 9am, COA 발급	OPERATIONAL	AGI TR Unit 1	A1060	Load-out of AGL TR Unit 1; stool down (8am-10am)
+103	2026-01-31	7:46	2026-01-31	9:49	02:03 HRS	2.05	0.09	Yulia: mats 이동 위해 forklift 요청	OPERATIONAL	AGI TR Unit 1	A1060	Load-out of AGL TR Unit 1; stool down (8am-10am)
+104	2026-01-31	9:49	2026-01-31	9:50	00:01 HRS	0.02	0	Yoonus: noted, MZ GC ops에 요청	OPERATIONAL	AGI TR Unit 1	A1060	Load-out of AGL TR Unit 1; stool down (8am-10am)
+105	2026-01-31	9:50	2026-01-31	10:25	00:35 HRS	0.58	0.02	Yulia: HM 승인 받아 load out 시작, toolbox talk 완료	OPERATIONAL	AGI TR Unit 1	A1060	Load-out of AGL TR Unit 1; stool down (8am-10am)
+106	2026-01-31	10:25	2026-01-31	10:29	00:04 HRS	0.07	0	Yulia: Load out started	OPERATIONAL	AGI TR Unit 1	A1060	Load-out of AGL TR Unit 1; stool down (8am-10am)
+107	2026-01-31	10:29	2026-01-31	10:53	00:24 HRS	0.4	0.02	Yulia: TR Unit 1 on LCT	OPERATIONAL	AGI TR Unit 1	A1070	RoRo ramp removal; Seafastening AGL TR Unit 1 - Crane required
+108	2026-01-31	10:53	2026-01-31	10:54	00:01 HRS	0.02	0	Yulia: linkspan ramp removal/적재 위해 crane 요청	OPERATIONAL	AGI TR Unit 1	A1070	RoRo ramp removal; Seafastening AGL TR Unit 1 - Crane required
+109	2026-01-31	10:54	2026-01-31	10:58	00:04 HRS	0.07	0	Yoonus: crane confirmed	OPERATIONAL	AGI TR Unit 1	A1070	RoRo ramp removal; Seafastening AGL TR Unit 1 - Crane required
+110	2026-01-31	10:58	2026-01-31	11:08	00:10 HRS	0.17	0.01	Adnoc Ouda: 1st unit loading 축하	OPERATIONAL	AGI TR Unit 1	A1070	RoRo ramp removal; Seafastening AGL TR Unit 1 - Crane required
+111	2026-01-31	11:08	2026-01-31	11:09	00:01 HRS	0.02	0	Adnoc Ouda: AGI offloading 전 hing beam 하부 구조/용접 재확인(MWS)	OPERATIONAL	AGI TR Unit 1	A1070	RoRo ramp removal; Seafastening AGL TR Unit 1 - Crane required
+112	2026-01-31	11:09	2026-01-31	12:29	01:20 HRS	1.33	0.06	LCT Bushra: cargo manifest 요청(계산 위해)	OPERATIONAL	AGI TR Unit 1	A1070	RoRo ramp removal; Seafastening AGL TR Unit 1 - Crane required
+113	2026-01-31	12:29	2026-01-31	13:12	00:43 HRS	0.72	0.03	Yoonus: (GC Ops) crane after lunch 제공 가능	OPERATIONAL	AGI TR Unit 1	A1070	RoRo ramp removal; Seafastening AGL TR Unit 1 - Crane required
+114	2026-01-31	13:12	2026-01-31	14:33	01:21 HRS	1.35	0.06	Adnoc Ouda: sailing time/ETA 요청	OPERATIONAL	AGI TR Unit 1	A1070	RoRo ramp removal; Seafastening AGL TR Unit 1 - Crane required
+115	2026-01-31	14:33	2026-01-31	14:46	00:13 HRS	0.22	0.01	상욱: ETA AGI 2-Feb 계획 언급	OPERATIONAL	AGI TR Unit 1	A1070	RoRo ramp removal; Seafastening AGL TR Unit 1 - Crane required
+116	2026-01-31	14:46	2026-01-31	15:15	00:29 HRS	0.48	0.02	OFCO: Bushra ETD 요청(다른 landing crafts 대기)	OPERATIONAL	AGI TR Unit 1	A1070	RoRo ramp removal; Seafastening AGL TR Unit 1 - Crane required
+117	2026-01-31	15:15	2026-01-31	16:38	01:23 HRS	1.38	0.06	Yulia: sea fastening done, inspection ongoing	OPERATIONAL	AGI TR Unit 1	A1070	RoRo ramp removal; Seafastening AGL TR Unit 1 - Crane required
+118	2026-01-31	16:38	2026-01-31	17:58	01:20 HRS	1.33	0.06	상욱: manifest/COA 대기, ETD 1-Feb / ETA 2-Feb 추정	OPERATIONAL	AGI TR Unit 1	A1070	RoRo ramp removal; Seafastening AGL TR Unit 1 - Crane required
+119	2026-01-31	17:58	2026-01-31	19:18	01:20 HRS	1.33	0.06	LCT Bushra: packing list vs draft/loaded weight match 언급	OPERATIONAL	AGI TR Unit 1	A1070	RoRo ramp removal; Seafastening AGL TR Unit 1 - Crane required
+120	2026-01-31	19:18	2026-01-31	19:28	00:10 HRS	0.17	0.01	LCT Bushra: manifest 645t이면 draft 2.9m 예상 vs 실제 2.5m(차이 0.4m)	OPERATIONAL	AGI TR Unit 1	A1070	RoRo ramp removal; Seafastening AGL TR Unit 1 - Crane required
+121	2026-01-31	19:28	2026-01-31	19:47	00:19 HRS	0.32	0.01	상욱: revised manifest 공유(Shipping follow-up)	OPERATIONAL	AGI TR Unit 1	A1070	RoRo ramp removal; Seafastening AGL TR Unit 1 - Crane required
+122	2026-01-31	19:47	2026-01-31	20:52	01:05 HRS	1.08	0.05	Yoonus: Vessel Bushra cast off from Mina Zayed	OPERATIONAL	AGI TR Unit 1	A1070	RoRo ramp removal; Seafastening AGL TR Unit 1 - Crane required
+123	2026-01-31	20:52	2026-01-31	20:53	00:01 HRS	0.02	0	LCT Bushra: 31/01/2026 2036 cast off, ETA AGI 01/02/2026 0700	OPERATIONAL	AGI TR Unit 1	A1070	RoRo ramp removal; Seafastening AGL TR Unit 1 - Crane required
+124	2026-01-31	20:53	2026-01-31	21:18	00:25 HRS	0.42	0.02	Yulia: crew는 CICPA renewal로 3-Feb 이전 이동 불가	OPERATIONAL	AGI TR Unit 1	A1070	RoRo ramp removal; Seafastening AGL TR Unit 1 - Crane required
+125			2026-02-01	7:42				Khemlal: AGI에서는 Linkspan 외 lifting 불가(ALS LOP 범위), forklift ops 불가	OPERATIONAL	AGI TR Unit 1	A1081	MWS; MPI; Sail-away - Marine Transportation by LCT to Al Ghallan Island
+126	2026-02-01	7:42	2026-02-01	7:49	00:07 HRS	0.12	0.01	Khemlal: ADNOC approved TPC 없으면 lift 불가	OPERATIONAL	AGI TR Unit 1	A1081	MWS; MPI; Sail-away - Marine Transportation by LCT to Al Ghallan Island
+127	2026-02-01	7:49	2026-02-01	8:01	00:12 HRS	0.2	0.01	LCT Bushra: AGI anchorage 0600, waiting berthing schedule	OPERATIONAL	AGI TR Unit 1	A1081	MWS; MPI; Sail-away - Marine Transportation by LCT to Al Ghallan Island
+128			2026-02-02	9:12				상욱: Erwin booking 확인 요청(3-Feb AM)	OPERATIONAL	AGI TR Unit 1	A1090	MMT Crew Mob to AGI; Site Induction; Meeting with Client
+129	2026-02-02	9:12	2026-02-02	9:13	00:01 HRS	0.02	0	Yulia: 3rd travel 가능, CICPA pending 공유 예정	OPERATIONAL	AGI TR Unit 1	A1090	MMT Crew Mob to AGI; Site Induction; Meeting with Client
+130	2026-02-02	9:13	2026-02-02	9:15	00:02 HRS	0.03	0	상욱: Wardeh ETA AGI today	OPERATIONAL	AGI TR Unit 1	A1090	MMT Crew Mob to AGI; Site Induction; Meeting with Client
+131	2026-02-02	9:15	2026-02-02	9:16	00:01 HRS	0.02	0	상욱: JPT62 ETA AGI 3-Feb(부분 적재)	OPERATIONAL	AGI TR Unit 1	A1090	MMT Crew Mob to AGI; Site Induction; Meeting with Client
+132	2026-02-02	9:16	2026-02-02	9:56	00:40 HRS	0.67	0.03	PTR 담당: passengers booked 후 PTR 발송	OPERATIONAL	AGI TR Unit 1	A1090	MMT Crew Mob to AGI; Site Induction; Meeting with Client
+133	2026-02-02	9:56	2026-02-02	10:16	00:20 HRS	0.33	0.01	Yulia: Lifting clamps loaded onto LCT JPT62	OPERATIONAL	AGI TR Unit 1	A1090	MMT Crew Mob to AGI; Site Induction; Meeting with Client
+134	2026-02-02	10:16	2026-02-02	10:17	00:01 HRS	0.02	0	상욱: ETA MZP 5 or 6, 내일 업데이트	OPERATIONAL	AGI TR Unit 1	A1090	MMT Crew Mob to AGI; Site Induction; Meeting with Client
+135	2026-02-02	10:17	2026-02-02	10:18	00:01 HRS	0.02	0	OFCO: Linkspan certificate very important	OPERATIONAL	AGI TR Unit 1	A1090	MMT Crew Mob to AGI; Site Induction; Meeting with Client
+136	2026-02-02	10:18	2026-02-02	10:18	00:00 HRS	0	0	Yulia: 2 beams load test today and tomorrow	OPERATIONAL	AGI TR Unit 1	A1090	MMT Crew Mob to AGI; Site Induction; Meeting with Client
+137			2026-02-04	12:22				상욱: MUS.0521	OPERATIONAL	AGI TR Unit 1	A1121	LCT Sails back to MZP to collect TR Unit 1
+138	2026-02-04	12:22	2026-02-04	17:35	05:13 HRS	5.22	0.22	Yulia: Wardeh ETA AGI 문의	OPERATIONAL	AGI TR Unit 1	A1121	LCT Sails back to MZP to collect TR Unit 1
+139	2026-02-04	17:35	2026-02-04	17:35	00:00 HRS	0	0	상욱: Onsite.yesterday	OPERATIONAL	AGI TR Unit 1	A1121	LCT Sails back to MZP to collect TR Unit 1
+140	2026-02-04	17:35	2026-02-04	17:36	00:01 HRS	0.02	0	상욱: JPT62 ETA 20:30 today, onsite tomorrow morning	OPERATIONAL	AGI TR Unit 1	A1121	LCT Sails back to MZP to collect TR Unit 1
+141	2026-02-04	17:36	2026-02-04	19:56	02:20 HRS	2.33	0.1	LCT Bushra: AGI West RORO berth 3 alongside 1606	OPERATIONAL	AGI TR Unit 1	A1091	LCT Arrival; Berthing at AGL RoRo Jetty
+142			2026-02-05	7:59				LCT Bushra: AGI port meeting onboard 요청(아침)	OPERATIONAL	AGI TR Unit 1	A1141	Turning of AGI TR Unit 1 (TR Bay 4) - 10t Forklift required
+143	2026-02-05	7:59	2026-02-05	8:00	00:01 HRS	0.02	0	Khemlal: Any specific time?	OPERATIONAL	AGI TR Unit 1	A1141	Turning of AGI TR Unit 1 (TR Bay 4) - 10t Forklift required
+144	2026-02-05	8:00	2026-02-05	8:05	00:05 HRS	0.08	0	Khemlal: Electrical/MMT 08:30 참석	OPERATIONAL	AGI TR Unit 1	A1141	Turning of AGI TR Unit 1 (TR Bay 4) - 10t Forklift required
+145	2026-02-05	8:05	2026-02-05	12:52	04:47 HRS	4.78	0.2	Adnoc Ouda: TR1 offloading 시작/ETD back/2nd TR loading 일정 질의	OPERATIONAL	AGI TR Unit 1	A1141	Turning of AGI TR Unit 1 (TR Bay 4) - 10t Forklift required
+146	2026-02-05	12:52	2026-02-05	13:07	00:15 HRS	0.25	0.01	상욱: Loadin plan tomorrow, ETD 6/ETA 7, TR2 loadout 8~9 Feb(계획)	OPERATIONAL	AGI TR Unit 1	A1141	Turning of AGI TR Unit 1 (TR Bay 4) - 10t Forklift required
+147	2026-02-05	13:07	2026-02-05	13:11	00:04 HRS	0.07	0	Yoonus: 다음 TR 문서(Ramp cert/Hotwork/Overwater 등) 미수령	OPERATIONAL	AGI TR Unit 1	A1141	Turning of AGI TR Unit 1 (TR Bay 4) - 10t Forklift required
+148	2026-02-05	13:11	2026-02-05	13:12	00:01 HRS	0.02	0	Yulia: 날짜만 변경해서 재제출 가능?	OPERATIONAL	AGI TR Unit 1	A1141	Turning of AGI TR Unit 1 (TR Bay 4) - 10t Forklift required
+149	2026-02-05	13:12	2026-02-05	13:13	00:01 HRS	0.02	0	Yoonus: 가능, permit duration(며칠) 필요	OPERATIONAL	AGI TR Unit 1	A1141	Turning of AGI TR Unit 1 (TR Bay 4) - 10t Forklift required
+150	2026-02-05	13:13	2026-02-05	13:14	00:01 HRS	0.02	0	Yulia: safe side 1 week permit	OPERATIONAL	AGI TR Unit 1	A1141	Turning of AGI TR Unit 1 (TR Bay 4) - 10t Forklift required
+151	2026-02-05	13:14	2026-02-05	13:14	00:00 HRS	0	0	Yulia: linkspan certificate 제출 예정(Inspector 공유 대기)	OPERATIONAL	AGI TR Unit 1	A1141	Turning of AGI TR Unit 1 (TR Bay 4) - 10t Forklift required
+152	2026-02-05	13:14	2026-02-05	16:47	03:33 HRS	3.55	0.15	Yoonus: pre-ops meeting scheduled(06-Feb 15:00)	OPERATIONAL	AGI TR Unit 1	A1141	Turning of AGI TR Unit 1 (TR Bay 4) - 10t Forklift required
+153	2026-02-05	16:47	2026-02-05	16:59	00:12 HRS	0.2	0.01	Yoonus: updated MOS/RA + tide window 요청	OPERATIONAL	AGI TR Unit 1	A1141	Turning of AGI TR Unit 1 (TR Bay 4) - 10t Forklift required
+154	2026-02-05	16:59	2026-02-05	17:32	00:33 HRS	0.55	0.02	Yulia: 내일 아침 MOS/RA 전달 예정	OPERATIONAL	AGI TR Unit 1	A1141	Turning of AGI TR Unit 1 (TR Bay 4) - 10t Forklift required
+155	2026-02-05	17:32	2026-02-05	17:33	00:01 HRS	0.02	0	Yulia: ADNOC office Fri–Sun off, approval 지연 우려	OPERATIONAL	AGI TR Unit 1	A1141	Turning of AGI TR Unit 1 (TR Bay 4) - 10t Forklift required
+156			2026-02-06	9:00				상욱: Pls send email..	OPERATIONAL	AGI TR Unit 1	A1141	Turning of AGI TR Unit 1 (TR Bay 4) - 10t Forklift required
+157	2026-02-06	9:00	2026-02-06	9:07	00:07 HRS	0.12	0.01	Yulia: done	OPERATIONAL	AGI TR Unit 1	A1141	Turning of AGI TR Unit 1 (TR Bay 4) - 10t Forklift required
+158	2026-02-06	9:07	2026-02-06	9:37	00:30 HRS	0.5	0.02	LCT Bushra: offloading plan today? high tide 15:00–16:00	OPERATIONAL	AGI TR Unit 1	A1141	Turning of AGI TR Unit 1 (TR Bay 4) - 10t Forklift required
+159	2026-02-06	9:37	2026-02-06	10:29	00:52 HRS	0.87	0.04	Yoonus: 2nd TR cargo manifest forward 요청	OPERATIONAL	AGI TR Unit 1	A1141	Turning of AGI TR Unit 1 (TR Bay 4) - 10t Forklift required
+160	2026-02-06	10:29	2026-02-06	14:44	04:15 HRS	4.25	0.18	Yoonus: 2nd TR BOE copy 요청	OPERATIONAL	AGI TR Unit 1	A1141	Turning of AGI TR Unit 1 (TR Bay 4) - 10t Forklift required
+161	2026-02-06	14:44	2026-02-06	14:46	00:02 HRS	0.03	0	Yoonus: Bushra updated ETA MZP?	OPERATIONAL	AGI TR Unit 1	A1141	Turning of AGI TR Unit 1 (TR Bay 4) - 10t Forklift required
+162	2026-02-06	14:46	2026-02-06	14:52	00:06 HRS	0.1	0	상욱: tentative ETA 8 or 9 Feb	OPERATIONAL	AGI TR Unit 1	A1141	Turning of AGI TR Unit 1 (TR Bay 4) - 10t Forklift required
+163	2026-02-06	14:52	2026-02-06	14:52	00:00 HRS	0	0	LCT Bushra: TR2 ramp door damage risk 언급(step 4&5)	OPERATIONAL	AGI TR Unit 1	A1141	Turning of AGI TR Unit 1 (TR Bay 4) - 10t Forklift required
+164	2026-02-06	14:52	2026-02-06	14:54	00:02 HRS	0.03	0	Yulia: Engineer Sayeed Ahmed와 논의 요청(+971 58 680 5307)	OPERATIONAL	AGI TR Unit 1	A1141	Turning of AGI TR Unit 1 (TR Bay 4) - 10t Forklift required
+165	2026-02-06	14:54	2026-02-06	14:59	00:05 HRS	0.08	0	LCT Bushra: Ok will try to contact	OPERATIONAL	AGI TR Unit 1	A1141	Turning of AGI TR Unit 1 (TR Bay 4) - 10t Forklift required
+166	2026-02-06	14:59	2026-02-06	15:32	00:33 HRS	0.55	0.02	Yoonus: meeting rescheduled to 09-Feb 11:00	OPERATIONAL	AGI TR Unit 1	A1141	Turning of AGI TR Unit 1 (TR Bay 4) - 10t Forklift required
+167			2026-02-07	8:47				상욱: AGI 1st TR loading commenced. MZP 2nd loadout plan 10-Feb	OPERATIONAL	AGI TR Unit 1	A1141	Turning of AGI TR Unit 1 (TR Bay 4) - 10t Forklift required
+168			2026-02-08	11:00				상욱: AGI 1st TR offloading completed. cast off around 2pm	OPERATIONAL	AGI TR Unit 1	A1150	Jacking down of AGI TR Unit 1 (TR Bay 4) on temporary support - Forklift required
+169	2026-02-08	11:00	2026-02-08	11:04	00:04 HRS	0.07	0	상욱: TR2 loadout plan(MZP) 09-Feb FRA/PTW, 10-Feb loadout/sea fastening/MWS	OPERATIONAL	AGI TR Unit 1	A1150	Jacking down of AGI TR Unit 1 (TR Bay 4) on temporary support - Forklift required
+170	2026-02-08	11:04	2026-02-08	12:46	01:42 HRS	1.7	0.07	Shariff: ETD 1600 today, ETA MZP 0300 09-Feb	OPERATIONAL	AGI TR Unit 1	A1150	Jacking down of AGI TR Unit 1 (TR Bay 4) on temporary support - Forklift required
+171	2026-02-08	12:46	2026-02-08	12:49	00:03 HRS	0.05	0	상욱: Berth request 09–11 Feb pls	OPERATIONAL	AGI TR Unit 1	A1150	Jacking down of AGI TR Unit 1 (TR Bay 4) on temporary support - Forklift required
+172	2026-02-08	12:49	2026-02-08	13:38	00:49 HRS	0.82	0.03	+971 56 898 7173: AGI transformer offloading completed, FRA 승인 기반 운송 예정	OPERATIONAL	AGI TR Unit 1	A1150	Jacking down of AGI TR Unit 1 (TR Bay 4) on temporary support - Forklift required
+173	2026-02-08	13:38	2026-02-08	15:05	01:27 HRS	1.45	0.06	상욱: ATD 1500, ETA MZP 0100	OPERATIONAL	AGI TR Unit 1	A1150	Jacking down of AGI TR Unit 1 (TR Bay 4) on temporary support - Forklift required
+174	2026-02-08	15:05	2026-02-08	16:17	01:12 HRS	1.2	0.05	Yulia: 내일 90t crane+forklift+gang booking 요청(11am/2pm)	OPERATIONAL	AGI TR Unit 1	A1150	Jacking down of AGI TR Unit 1 (TR Bay 4) on temporary support - Forklift required
+175	2026-02-08	16:17	2026-02-08	16:25	00:08 HRS	0.13	0.01	Yoonus: 투입 구역(yard/berth5) + forklift capacity 확인 요청	OPERATIONAL	AGI TR Unit 1	A1150	Jacking down of AGI TR Unit 1 (TR Bay 4) on temporary support - Forklift required
+176	2026-02-08	16:25	2026-02-08	16:29	00:04 HRS	0.07	0	Yoonus: yard or berth #5?	OPERATIONAL	AGI TR Unit 1	A1150	Jacking down of AGI TR Unit 1 (TR Bay 4) on temporary support - Forklift required
+177	2026-02-08	16:29	2026-02-08	16:41	00:12 HRS	0.2	0.01	Yulia: SPMT는 laydown, marine eq는 상황 따라 berth5/laydown, 10t forklift 충분	OPERATIONAL	AGI TR Unit 1	A1150	Jacking down of AGI TR Unit 1 (TR Bay 4) on temporary support - Forklift required
+178	2026-02-08	16:41	2026-02-08	17:32	00:51 HRS	0.85	0.04	Yoonus: MZP Berth #5 내일 저녁 가용	OPERATIONAL	AGI TR Unit 1	A1150	Jacking down of AGI TR Unit 1 (TR Bay 4) on temporary support - Forklift required
+179	2026-02-08	17:32	2026-02-08	18:36	01:04 HRS	1.07	0.04	LCT Bushra: Bushra plan? other berth or drop anchor? (provision/water 부족)	OPERATIONAL	AGI TR Unit 1	A1150	Jacking down of AGI TR Unit 1 (TR Bay 4) on temporary support - Forklift required
+180	2026-02-08	18:36	2026-02-08	18:38	00:02 HRS	0.03	0	LCT Bushra: CAST OFF AGI 1438, ETA MZP 09-Feb 0100	OPERATIONAL	AGI TR Unit 1	A1121	LCT Sails back to MZP to collect TR Unit 1
+181	2026-02-08	18:38	2026-02-08	18:42	00:04 HRS	0.07	0	상욱: ETA 0100, provision/drinking water 위해 가능한 jetty 문의	OPERATIONAL	AGI TR Unit 1	A1121	LCT Sails back to MZP to collect TR Unit 1
+182	2026-02-08	18:42	2026-02-08	20:28	01:46 HRS	1.77	0.07	Yoonus: 대안 jetty 없음, port authorities와 follow-up	OPERATIONAL	AGI TR Unit 1	A1121	LCT Sails back to MZP to collect TR Unit 1
+183	2026-02-08	20:28	2026-02-08	23:09	02:41 HRS	2.68	0.11	LCT Bushra: drop anchor at MZP anchorage 2242hrs	OPERATIONAL	AGI TR Unit 1	A1121	LCT Sails back to MZP to collect TR Unit 1
+				
