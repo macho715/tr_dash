@@ -80,11 +80,19 @@ export interface SuggestedAction {
 
 export interface ScheduleConflict {
   type: "RESOURCE" | "CONSTRAINT" | "LOCK_VIOLATION" | "DEPENDENCY_CYCLE"
+  collision_id?: string
+  kind?: string
   activity_id: string
+  activity_ids?: string[]
   message: string
   severity: "warn" | "error"
   related_activity_ids?: string[]
+  resource_ids?: string[]
   resource?: string
+  time_range?: {
+    start: string | null
+    end: string | null
+  }
   overlapStart?: string
   overlapEnd?: string
   overlapMinutes?: number

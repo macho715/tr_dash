@@ -65,6 +65,7 @@ import type {
   ScheduleConflict,
   SuggestedAction,
 } from "@/lib/ssot/schedule"
+import { mapSsotCollisionToScheduleConflict } from "@/src/lib/collision-card"
 
 type SectionItem = {
   id: string
@@ -178,6 +179,7 @@ export default function Page() {
   )
   const ganttRef = useRef<GanttChartHandle>(null)
   const evidenceRef = useRef<HTMLElement>(null)
+  const detailPanelRef = useRef<HTMLDivElement>(null)
   const [evidenceTab, setEvidenceTab] = useState<HistoryEvidenceTab | null>(null)
   const [trips, setTrips] = useState<{ trip_id: string; name: string }[]>([])
   const [trs, setTrs] = useState<{ tr_id: string; name: string }[]>([])
@@ -462,7 +464,45 @@ export default function Page() {
   }
 
   const handleJumpToEvidence = () => {
+    setEvidenceTab("evidence")
     evidenceRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+  }
+
+  const handleJumpToHistory = () => {
+    setEvidenceTab("history")
+    evidenceRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+  }
+
+  const handleCollisionCardOpen = (params: {
+    collisionId?: string
+    conflict?: ScheduleConflict
+    activityId?: string | null
+  }) => {
+    const mapped =
+      params.collisionId && ssot?.collisions?.[params.collisionId]
+        ? mapSsotCollisionToScheduleConflict(ssot.collisions[params.collisionId])
+        : params.conflict ?? null
+    if (!mapped) return
+
+    const resolvedActivityId = params.activityId ?? mapped.activity_id ?? mapped.activity_ids?.[0] ?? null
+    const normalized = resolvedActivityId ? { ...mapped, activity_id: resolvedActivityId } : mapped
+
+    setSelectedCollision(normalized)
+    if (resolvedActivityId) {
+      setSelectedActivityId(resolvedActivityId)
+      setFocusedActivityId(resolvedActivityId)
+      ganttRef.current?.scrollToActivity(resolvedActivityId)
+      setShowWhatIfPanel(true)
+    }
+  }
+
+  const handleOpenWhyDetail = (collision: ScheduleConflict) => {
+    if (collision.activity_id) {
+      setSelectedActivityId(collision.activity_id)
+      setFocusedActivityId(collision.activity_id)
+    }
+    detailPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
+    detailPanelRef.current?.focus()
   }
 
   const openActivityFromGantt = (activityId: string) => {
@@ -778,6 +818,9 @@ export default function Page() {
                           const ganttSection = document.getElementById("gantt")
                           ganttSection?.scrollIntoView({ behavior: "smooth", block: "start" })
                         }}
+                        onCollisionClick={(collisionId, activityId) =>
+                          handleCollisionCardOpen({ collisionId, activityId })
+                        }
                       />
                     </WidgetErrorBoundary>
                     <VoyagesSection
@@ -821,13 +864,7 @@ export default function Page() {
                       }}
                       conflicts={conflicts}
                       onCollisionClick={(col) => {
-                        setSelectedCollision(col)
-                        if (col.activity_id) {
-                          setSelectedActivityId(col.activity_id)
-                          setFocusedActivityId(col.activity_id)
-                          ganttRef.current?.scrollToActivity(col.activity_id)
-                          setShowWhatIfPanel(true)
-                        }
+                        handleCollisionCardOpen({ conflict: col, activityId: col.activity_id })
                       }}
                       focusedActivityId={focusedActivityId}
                       projectEndDate={PROJECT_END_DATE}
@@ -888,6 +925,7 @@ export default function Page() {
                         isSimulating={false}
                       />
                     )}
+                    <div ref={detailPanelRef} tabIndex={-1} className="outline-none">
                     <DetailPanel
                       activity={
                         selectedActivityId
@@ -901,20 +939,17 @@ export default function Page() {
                       onClose={() => setSelectedActivityId(null)}
                       onActualUpdate={handleActualUpdate}
                       onCollisionClick={(col) => {
-                        setSelectedCollision(col)
-                        if (col.activity_id) {
-                          setSelectedActivityId(col.activity_id)
-                          setFocusedActivityId(col.activity_id)
-                          ganttRef.current?.scrollToActivity(col.activity_id)
-                          setShowWhatIfPanel(true)
-                        }
+                        handleCollisionCardOpen({ conflict: col, activityId: col.activity_id })
                       }}
                     />
+                    </div>
                     <WhyPanel
                       collision={selectedCollision}
                       onClose={() => setSelectedCollision(null)}
                       onViewInTimeline={handleViewInTimeline}
                       onJumpToEvidence={handleJumpToEvidence}
+                      onJumpToHistory={handleJumpToHistory}
+                      onOpenWhyDetail={handleOpenWhyDetail}
                       onRelatedActivityClick={focusTimelineActivity}
                       onApplyAction={handleApplyAction}
                     />
