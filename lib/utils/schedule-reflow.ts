@@ -14,7 +14,10 @@ import type {
   FreezeLockViolation,
 } from "@/lib/ssot/schedule";
 import type { IsoDate } from "@/lib/ops/agi/types";
-import { previewScheduleReflow } from "@/src/lib/reflow/schedule-reflow-manager";
+import { diffUTCDays } from "@/lib/ssot/schedule";
+import { applyBulkAnchors } from "@/lib/ops/agi/applyShift";
+import { buildChanges } from "@/lib/ops/agi/adapters";
+import { detectResourceConflicts } from "@/lib/utils/detect-resource-conflicts";
 
 /**
  * @deprecated Use `previewScheduleReflow` from `src/lib/reflow/schedule-reflow-manager`.
@@ -76,18 +79,35 @@ export function reflowSchedule(
   newStart: string,
   options?: ReflowOptions
 ): ReflowResult {
-  const preview = previewScheduleReflow({
+  const respectLocks = options?.respectLocks ?? true;
+  const includeLocked = !respectLocks;
+  const nextActivities = applyBulkAnchors({
     activities,
     anchors: [{ activityId: anchorId, newStart: newStart as IsoDate }],
-    options,
-    mode: "shift",
+    includeLocked,
+    strategy: "pivot_shift",
   });
+
+  const changes = buildChanges(activities, nextActivities);
+  const dateChanges: DateChange[] = changes.map((change) => ({
+    activity_id: change.activityId,
+    old_start: change.beforeStart,
+    new_start: change.afterStart,
+    old_finish: change.beforeFinish,
+    new_finish: change.afterFinish,
+    delta_days: diffUTCDays(change.beforeStart, change.afterStart),
+  }));
+
+  const conflicts =
+    options?.checkResourceConflicts === false ? [] : detectResourceConflicts(nextActivities);
+
   const impact_report: ImpactReport = {
-    ...preview.impact,
-    changes: preview.impact.changes as DateChange[],
-    freeze_lock_violations:
-      (preview.impact.freeze_lock_violations as FreezeLockViolation[] | undefined) ??
-      collectFreezeLockViolations(activities, preview.impact.changes as DateChange[]),
+    affected_count: dateChanges.length,
+    affected_ids: dateChanges.map((change) => change.activity_id),
+    changes: dateChanges,
+    conflicts,
+    freeze_lock_violations: collectFreezeLockViolations(activities, dateChanges),
   };
-  return { activities: preview.nextActivities, impact_report };
+
+  return { activities: nextActivities, impact_report };
 }
