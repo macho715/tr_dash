@@ -7,6 +7,10 @@
 
 import type { OptionC } from '../types/ssot'
 
+function isDefined<T>(value: T | null | undefined): value is T {
+  return value != null
+}
+
 /**
  * Get activities as array (for iteration)
  *
@@ -60,14 +64,14 @@ export function getEvidence(ssot: OptionC | null | undefined, evidenceId: string
 export function getActivitiesForTrip(ssot: OptionC | null | undefined, tripId: string) {
   const trip = getTrip(ssot, tripId)
   if (!trip?.activity_ids) return []
-  return trip.activity_ids.map((id) => getActivity(ssot, id)).filter(Boolean)
+  return trip.activity_ids.map((id) => getActivity(ssot, id)).filter(isDefined)
 }
 
 /**
  * Get activities for a TR
  */
 export function getActivitiesForTR(ssot: OptionC | null | undefined, trId: string) {
-  return getActivitiesArray(ssot).filter((activity) => activity?.tr_ids?.includes(trId))
+  return getActivitiesArray(ssot).filter((activity) => activity.tr_ids.includes(trId))
 }
 
 /**
@@ -77,5 +81,5 @@ export function getCollisionsForActivity(ssot: OptionC | null | undefined, activ
   const activity = getActivity(ssot, activityId)
   const collisionIds = activity?.calc?.collision_ids
   if (!collisionIds?.length) return []
-  return collisionIds.map((id) => getCollision(ssot, id)).filter(Boolean)
+  return collisionIds.map((id) => getCollision(ssot, id)).filter(isDefined)
 }

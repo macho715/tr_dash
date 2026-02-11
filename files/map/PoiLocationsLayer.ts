@@ -1,7 +1,5 @@
 import type { Layer, PickingInfo } from "@deck.gl/core"
 import { ScatterplotLayer, TextLayer } from "@deck.gl/layers"
-// @ts-ignore - @deck.gl/extensions may not have type declarations
-import { CollisionFilterExtension } from "@deck.gl/extensions"
 
 import type { PoiCategory, PoiLocation } from "@/lib/map/poiTypes"
 
@@ -111,12 +109,6 @@ export function createPoiLayers(opts: PoiLayersOptions): Layer[] {
     background: true,
     getBackgroundColor: [255, 255, 255, 230],
     backgroundPadding: [6, 4],
-    extensions: [new CollisionFilterExtension()],
-    // @ts-ignore - getCollisionPriority may not be in type definitions
-    getCollisionPriority: (d: PoiLocation) => d.priority ?? 0,
-    collisionTestProps: {
-      sizeScale: 1.15,
-    },
     onClick: (info) => {
       if (!info?.object) return
       onSelectPoi?.(info.object)

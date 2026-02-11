@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
-import type { ScheduleActivity } from "@/lib/types/schedule";
+import type { ScheduleActivity } from "@/lib/ssot/schedule";
 import type { AiIntent, AiIntentResult, AiRiskLevel } from "@/lib/ops/ai-intent";
 
 const MIN_API_KEY_LENGTH = 20;
@@ -254,7 +254,7 @@ export async function POST(request: NextRequest) {
       anchor_type: a.anchor_type,
       planned_start: a.planned_start,
       planned_finish: a.planned_finish,
-      constraints: a.constraints?.map((c) => c.constraint_type) || [],
+      constraints: a.constraint ? [a.constraint.type] : [],
     }));
 
     const clarificationText =
@@ -331,13 +331,17 @@ export async function POST(request: NextRequest) {
     if (parsed.intent === "shift_activities" && parsed.parameters?.filter) {
       const filter = parsed.parameters.filter;
       const affected = activities.filter((a) => {
-        const matchVoyage = !filter.voyage_ids || filter.voyage_ids.includes(a.voyage_id);
-        const matchTR = !filter.tr_unit_ids || filter.tr_unit_ids.includes(a.tr_unit_id);
+        const voyageId = a.voyage_id ?? "";
+        const trUnitId = a.tr_unit_id ?? "";
+        const matchVoyage = !filter.voyage_ids || filter.voyage_ids.includes(voyageId);
+        const matchTR = !filter.tr_unit_ids || filter.tr_unit_ids.includes(trUnitId);
         const matchAnchor = !filter.anchor_types || filter.anchor_types?.includes(a.anchor_type || "");
         const matchId = !filter.activity_ids || filter.activity_ids.includes(a.activity_id || "");
         return matchVoyage && matchTR && matchAnchor && matchId;
       });
-      parsed.affected_activities = affected.map((a) => a.activity_id);
+      parsed.affected_activities = affected
+        .map((a) => a.activity_id)
+        .filter((id): id is string => typeof id === "string" && id.length > 0);
       parsed.affected_count = affected.length;
     }
 

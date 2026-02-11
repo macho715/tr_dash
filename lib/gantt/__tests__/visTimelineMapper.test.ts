@@ -103,6 +103,20 @@ describe("ganttRowsToVisData", () => {
           },
         },
       ],
+      kpis: {
+        totalDelayMinutes: { baseline: 0, compare: 0, delta: 0 },
+        collisionCountBySeverity: {
+          error: { baseline: 0, compare: 0, delta: 0 },
+          warn: { baseline: 0, compare: 0, delta: 0 },
+        },
+        evidenceRiskCount: { baseline: 0, compare: 0, delta: 0 },
+        asOf: "2026-02-01T00:00:00.000Z",
+        drilldownActivityIds: {
+          totalDelayMinutes: ["A2000"],
+          collisionBySeverity: { error: [], warn: [] },
+          evidenceRiskCount: ["A2000"],
+        },
+      },
       summary: {
         addedCount: 0,
         removedCount: 0,

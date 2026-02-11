@@ -27,6 +27,13 @@ export interface VisTimelineGanttHandle {
 
 export type TimelineView = "Day" | "Week"
 
+/** Payload emitted when an item is dragged to a new position */
+export type DragMovePayload = {
+  itemId: string
+  newStart: Date
+  newEnd: Date
+}
+
 type Props = {
   groups: VisGroup[]
   items: VisItem[]
@@ -41,6 +48,10 @@ type Props = {
   onGroupClick?: (groupId: string) => void
   /** Bug 3: 배경 클릭 시 선택 해제 → 화면 고정 해제 */
   onDeselect?: () => void
+  /** Drag-to-Edit: called when user finishes dragging an activity bar */
+  onItemMove?: (payload: DragMovePayload) => void
+  /** Whether drag-to-edit is enabled (default: true) */
+  dragEnabled?: boolean
   focusedActivityId?: string | null
   /** GANTTPATCH2: Trip context for events */
   tripId?: TripId
@@ -67,6 +78,8 @@ export const VisTimelineGantt = forwardRef<VisTimelineGanttHandle, Props>(
       onItemBlur,
       onGroupClick,
       onDeselect,
+      onItemMove,
+      dragEnabled = true,
       focusedActivityId,
       tripId = 1,
       onRangeChange,
@@ -82,20 +95,35 @@ export const VisTimelineGantt = forwardRef<VisTimelineGanttHandle, Props>(
     const onItemBlurRef = useRef(onItemBlur)
     const onGroupClickRef = useRef(onGroupClick)
     const onDeselectRef = useRef(onDeselect)
+    const onItemMoveRef = useRef(onItemMove)
     const onEventRef = useRef(onEvent)
     const onRangeChangeRef = useRef(onRangeChange)
     const onRenderRef = useRef(onRender)
+
     useEffect(() => {
       tripIdRef.current = tripId
     }, [tripId])
-    onItemClickRef.current = onItemClick
-    onItemHoverRef.current = onItemHover
-    onItemBlurRef.current = onItemBlur
-    onGroupClickRef.current = onGroupClick
-    onDeselectRef.current = onDeselect
-    onEventRef.current = onEvent
-    onRangeChangeRef.current = onRangeChange
-    onRenderRef.current = onRender
+    useEffect(() => {
+      onItemClickRef.current = onItemClick
+      onItemHoverRef.current = onItemHover
+      onItemBlurRef.current = onItemBlur
+      onGroupClickRef.current = onGroupClick
+      onDeselectRef.current = onDeselect
+      onItemMoveRef.current = onItemMove
+      onEventRef.current = onEvent
+      onRangeChangeRef.current = onRangeChange
+      onRenderRef.current = onRender
+    }, [
+      onItemClick,
+      onItemHover,
+      onItemBlur,
+      onGroupClick,
+      onDeselect,
+      onItemMove,
+      onEvent,
+      onRangeChange,
+      onRender,
+    ])
 
     const groupsDS = useMemo(() => new DataSet<VisGroup>([]), [])
     const itemsDS = useMemo(() => new DataSet<VisItem>([]), [])
@@ -159,14 +187,52 @@ export const VisTimelineGantt = forwardRef<VisTimelineGanttHandle, Props>(
         multiselect: false,
         selectable: true,
         /** 액티비티 클릭 후 드래그로 일정 이동 (복구) */
-        editable: true,
-        itemsAlwaysDraggable: { item: true, range: true },
+        editable: dragEnabled
+          ? { updateTime: true, updateGroup: false, remove: false }
+          : false,
+        itemsAlwaysDraggable: dragEnabled
+          ? { item: true, range: true }
+          : { item: false, range: false },
+        snap: (date: Date) => {
+          // Snap to noon UTC for consistent date handling
+          const d = new Date(date)
+          d.setUTCHours(12, 0, 0, 0)
+          return d
+        },
         zoomable: true,
         moveable: true,
         /** Bug 1: 날짜를 Gantt 위에 표시 (legacy와 동일) */
         orientation: { axis: "top", item: "top" },
         showMajorLabels: true,
         showMinorLabels: true,
+        onMove: (
+          item: { id: string | number; start: Date; end: Date },
+          callback: (item: { id: string | number; start: Date; end: Date } | null) => void
+        ) => {
+          const itemId = String(item.id)
+          // Reject drag for ghost/overlay items
+          if (
+            itemId.startsWith("ghost_") ||
+            itemId.startsWith("reflow_ghost_") ||
+            itemId.startsWith("weather_ghost_") ||
+            itemId.startsWith("weather_prop_ghost_") ||
+            itemId.startsWith("actual__") ||
+            itemId.startsWith("hold__") ||
+            itemId.startsWith("milestone__") ||
+            itemId.startsWith("baseline_ghost_")
+          ) {
+            callback(null) // Cancel the move
+            return
+          }
+          // Emit move event to parent, then revert the visual position
+          // (parent will show reflow preview ghost bars instead)
+          onItemMoveRef.current?.({
+            itemId,
+            newStart: item.start,
+            newEnd: item.end,
+          })
+          callback(null) // Revert visual — parent handles via reflow preview
+        },
         groupTemplate: (group?: { content?: string; level?: number }) => {
           const level = typeof group?.level === "number" ? group.level : -1
           const levelClass = level >= 0 ? `group-level-${level}` : ""
@@ -175,11 +241,12 @@ export const VisTimelineGantt = forwardRef<VisTimelineGanttHandle, Props>(
         },
       }
 
+      // vis-timeline types don't include snap/onMove but they're supported at runtime
       const timeline = new Timeline(
         containerRef.current,
         itemsDS,
         groupsDS,
-        options
+        options as Parameters<typeof Timeline.prototype.setOptions>[0]
       )
       timelineRef.current = timeline
 

@@ -10,7 +10,7 @@ function createMockActivity(
   id: string,
   options: {
     resources?: Array<{ resource_id?: string; pool_id?: string; resource_kind: string; qty: number }>;
-    constraints?: Array<{ constraint_type: string; params?: Record<string, any> }>;
+    constraints?: Activity["plan"]["constraints"];
     lockLevel?: 'none' | 'baseline';
     actualStart?: string | null;
     planStart?: string | null;
@@ -70,7 +70,13 @@ function createMockActivity(
 
 function createMinimalSSOT(): OptionC {
   return {
-    contract: { version: '0.8.0', ssot: { activity_is_source_of_truth: true } },
+    contract: {
+      name: 'Test Project',
+      version: '0.8.0',
+      timezone: 'Asia/Dubai',
+      generated_at: '2026-01-01T00:00:00+04:00',
+      ssot: { activity_is_source_of_truth: true, derived_fields_read_only: true },
+    },
     constraint_rules: {} as any,
     activity_types: {},
     entities: {
@@ -84,7 +90,7 @@ function createMinimalSSOT(): OptionC {
     },
     collisions: {},
     reflow_runs: [],
-    baselines: { current: null, history: [] },
+    baselines: { current_baseline_id: null, items: {} },
     history_events: []
   };
 }
