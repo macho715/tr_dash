@@ -16,7 +16,9 @@ export const ALLOWED_TRANSITIONS: Record<ActivityState, ActivityState[]> = {
   paused: ['in_progress', 'blocked', 'aborted'],
   blocked: ['ready', 'aborted'],
   completed: [], // Terminal state
+  done: [], // Terminal state (alias)
   canceled: [], // Terminal state
+  cancelled: [], // Terminal state (spelling)
   aborted: [] // Terminal state
 };
 

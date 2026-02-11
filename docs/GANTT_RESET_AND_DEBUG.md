@@ -1,8 +1,10 @@
 ---
 doc_id: gantt-reset-and-debug
 created: 2026-02-05
+updated: 2026-02-09
 status: completed
 phase: UI Enhancement + Debugging
+refs: [WORK_LOG_20260209.md](WORK_LOG_20260209.md), [plan/gantt-reset-button-fix-plan.md](plan/gantt-reset-button-fix-plan.md)
 ---
 
 # Gantt Chart Reset Button & Activity Visibility Debugging
@@ -47,12 +49,15 @@ const handleResetGantt = () => {
   // 6. Heatmap 비활성화
   setHeatmapEnabled(false)
   
-  // 7. Timeline fit (전체 보기)
-  setTimeout(() => {
-    visTimelineRef.current?.fit()
-  }, 100)
+  // 7. (2026-02-09 제거) fit() 호출 금지 — VisTimelineGantt의 useEffect(view, selectedDate)가 Day+14일 창을 설정한 뒤 fit()이 전체 프로젝트로 줌 아웃해 리셋을 무효화하므로 제거. 토스트만 동기 표시.
 }
 ```
+
+#### 2026-02-09 수정 (리셋이 안 되던 버그)
+
+- **증상**: Reset 클릭 후 토스트는 뜨지만 뷰가 "Day + 14일"로 복원되지 않고 전체로 줌 아웃됨.
+- **원인**: 위 7번의 `fit()`이 자식의 `setWindow(Day+14일)` 결과를 덮어씀.
+- **조치**: `fit()` 호출 제거. 창은 `VisTimelineGantt`의 `useEffect([view, selectedDate])`만 사용. 상세: [WORK_LOG_20260209.md](WORK_LOG_20260209.md), [gantt-reset-button-fix-plan.md](plan/gantt-reset-button-fix-plan.md).
 
 #### UI 위치
 - Timeline controls bar 내 Zoom/Pan 버튼 옆

@@ -23,7 +23,7 @@ describe("loadBaselineFromSsot", () => {
   })
 
   it("returns null when baseline not found", () => {
-    const data = { baselines: { items: {} } }
+    const data = { baselines: { current_baseline_id: null, items: {} } }
     const result = loadBaselineFromSsot(data, "MISSING")
     expect(result.baseline).toBeNull()
     expect(result.error).toContain("not found")

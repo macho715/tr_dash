@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
 import type { OptionC, Location } from '@/src/types/ssot'
 import { calculateCurrentActivityForTR, calculateCurrentLocationForTR } from '@/src/lib/derived-calc'
@@ -12,6 +12,9 @@ const MapContent = dynamic(
   () => import('./MapContent').then((m) => m.MapContent),
   { ssr: false }
 )
+
+/** Incremented on unmount so Strict Mode remount gets a fresh container (avoids "Map container is being reused") */
+let mapInstanceKey = 0
 
 export type ViewMode = 'live' | 'history' | 'approval' | 'compare'
 
@@ -70,20 +73,63 @@ export function MapPanel({
 }: MapPanelProps) {
   const [mounted, setMounted] = useState(false)
   const [mapReady, setMapReady] = useState(false)
+  const [mapContentVisible, setMapContentVisible] = useState(false)
   const [showHeatmapLegend] = useState(true)
+  const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     setMounted(true)
   }, [])
 
-  // Defer Leaflet mount until container is in DOM (avoids appendChild on undefined)
+  // On unmount, bump key so next mount gets a fresh map container (avoids "Map container is being reused")
+  useEffect(() => {
+    return () => {
+      mapInstanceKey += 1
+    }
+  }, [])
+
+  // Defer Leaflet mount until container is in DOM and ref is set (avoids appendChild on undefined)
   useEffect(() => {
     if (!mounted) return
+    let cancelled = false
+    const tryReady = () => {
+      if (cancelled) return
+      if (containerRef.current) {
+        setMapReady(true)
+      } else {
+        setTimeout(tryReady, 0)
+      }
+    }
     const t = requestAnimationFrame(() => {
-      requestAnimationFrame(() => setMapReady(true))
+      requestAnimationFrame(() => {
+        setTimeout(tryReady, 0)
+      })
     })
-    return () => cancelAnimationFrame(t)
+    return () => {
+      cancelled = true
+      cancelAnimationFrame(t)
+    }
   }, [mounted])
+
+  // Delay MapContent mount by two frames after mapReady so Leaflet's inner container ref is set (avoids appendChild on undefined).
+  useEffect(() => {
+    if (!mapReady) {
+      setMapContentVisible(false)
+      return
+    }
+    let cancelled = false
+    let t2 = 0
+    const t1 = requestAnimationFrame(() => {
+      t2 = requestAnimationFrame(() => {
+        if (!cancelled) setMapContentVisible(true)
+      })
+    })
+    return () => {
+      cancelled = true
+      cancelAnimationFrame(t1)
+      if (t2) cancelAnimationFrame(t2)
+    }
+  }, [mapReady])
 
   const locations = useMemo(
     () => ({
@@ -185,7 +231,7 @@ export function MapPanel({
         hasBlockingCollision: hasBlocking,
         hasWarningCollision: hasWarning,
         label: tr?.name ?? trId,
-        currentActivityName: activity?.name || null,
+        currentActivityName: activity?.title || null,
         currentActivityId,
         locationName: loc?.name || null,
         eta,
@@ -264,18 +310,26 @@ export function MapPanel({
   }
 
   return (
-    <div className="relative h-[280px] w-full overflow-hidden rounded-lg" data-testid="map-panel">
+    <div
+      ref={containerRef}
+      className="relative h-[280px] w-full overflow-hidden rounded-lg"
+      data-testid="map-panel"
+    >
       {mounted && mapReady ? (
-        <MapContent
-          heatPoints={heatPoints}
-          locations={locations}
-          routeSegments={routeSegments}
-          trMarkers={trMarkers}
-          onTrMarkerClick={handleTrMarkerClick}
-          mapStatusHex={MAP_STATUS_HEX}
-          showGeofence={false}
-          showHeatmapLegend={showHeatmapLegend}
-        />
+        <div key={mapInstanceKey} className="h-full w-full">
+          {mapContentVisible ? (
+            <MapContent
+              heatPoints={heatPoints}
+              locations={locations}
+              routeSegments={routeSegments}
+              trMarkers={trMarkers}
+              onTrMarkerClick={handleTrMarkerClick}
+              mapStatusHex={MAP_STATUS_HEX}
+              showGeofence={false}
+              showHeatmapLegend={showHeatmapLegend}
+            />
+          ) : null}
+        </div>
       ) : (
         <div className="flex h-full w-full items-center justify-center rounded-lg bg-muted/20 text-sm text-muted-foreground">
           Loading map…

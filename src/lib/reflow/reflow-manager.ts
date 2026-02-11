@@ -67,9 +67,12 @@ export function reflowPreview(
 
   // 1. Get activities for focus trip
   const focusTripId = seed.focus_trip_id || Object.keys(ssot.entities.trips)[0];
-  const allActivities = focusTripId
+  const rawActivities = focusTripId
     ? getActivitiesForTrip(ssot, focusTripId)
     : getActivitiesArray(ssot);
+  
+  // Filter out undefined activities
+  const allActivities = rawActivities.filter((a): a is Activity => a !== undefined);
 
   if (allActivities.length === 0) {
     return createEmptyResult(runId, requestedAt, requestedBy, seed);

@@ -5,7 +5,7 @@ import { updateActualDates } from "@/lib/ssot/update-actual"
 export const runtime = "nodejs"
 
 type RouteParams = {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }
 
 function normalizeInput(value: unknown): string | null | undefined {
@@ -19,7 +19,7 @@ function normalizeInput(value: unknown): string | null | undefined {
 }
 
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
-  const activityId = params?.id
+  const { id: activityId } = await params
   if (!activityId) {
     return NextResponse.json({ error: "Missing activity id" }, { status: 400 })
   }

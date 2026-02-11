@@ -39,9 +39,11 @@ export function WhatIfPanel({
 
   const handleSimulate = () => {
     if (!activity || delayDays === 0) return
+    const activityId = activity.activity_id ?? ""
+    if (!activityId) return
 
-      onSimulate({
-      activity_id: activity.activity_id,
+    onSimulate({
+      activity_id: activityId,
       activity_name: activity.activity_name || activity.activity_id || "",
       delay_days: delayDays,
       reason: reason || "Manual delay",

@@ -2,7 +2,7 @@
  * Gantt utilities for SSOT-based Timeline (Contract v0.8.0)
  */
 
-import type { Activity, Trip, TR, OptionC } from '../types/ssot';
+import type { Activity, Trip, TR, OptionC } from '../../types/ssot';
 import { getActivitiesForTR } from '../ssot-loader';
 
 export interface GanttRow {

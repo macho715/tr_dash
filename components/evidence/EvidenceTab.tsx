@@ -19,6 +19,13 @@ type EvidenceTabProps = {
   onUploadClick?: (activityId: string, evidenceType: string) => void
   /** @deprecated v1.0 Upload removed. Always false. */
   canUpload?: boolean
+  onAddEvidence?: (item: {
+    uri: string
+    evidence_type: string
+    title: string
+    activityId: string
+  }) => void
+  canAddEvidence?: boolean
   evidenceOverlay?: EvidenceOverlayItem[]
 }
 

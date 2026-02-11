@@ -42,7 +42,20 @@ export function calcCalendarKPI(
     0
   )
 
-  const delayBreakdown: Record<string, number> = {}
+  const delayBreakdown: Record<
+    "WEATHER" | "TIDE" | "BERTH_OCCUPIED" | "PTW" | "HM" | "MWS" | "CERT" | "RESOURCE" | "OTHER",
+    number
+  > = {
+    WEATHER: 0,
+    TIDE: 0,
+    BERTH_OCCUPIED: 0,
+    PTW: 0,
+    HM: 0,
+    MWS: 0,
+    CERT: 0,
+    RESOURCE: 0,
+    OTHER: 0,
+  }
   for (const pair of holdPairs) {
     const tag = pair.hold.reason_tag || "OTHER"
     delayBreakdown[tag] = (delayBreakdown[tag] ?? 0) +

@@ -16,7 +16,7 @@ import {
   CONSTRAINT_ICONS
 } from '../gantt-utils'
 import { loadSSOTSync } from '../../ssot-loader'
-import type { OptionC } from '../../types/ssot'
+import type { OptionC } from '../../../types/ssot'
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24
 

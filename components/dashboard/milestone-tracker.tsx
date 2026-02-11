@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo } from "react"
+import type { ReactElement } from "react"
 import { CheckCircle2, Circle, CircleDot } from "lucide-react"
 import type { ScheduleActivity } from "@/lib/ssot/schedule"
 import { useDate } from "@/lib/contexts/date-context"
@@ -26,7 +27,7 @@ const statusStyles: Record<string, string> = {
   pending: "text-slate-500",
 }
 
-const statusIcons: Record<string, JSX.Element> = {
+const statusIcons: Record<string, ReactElement> = {
   done: <CheckCircle2 className="h-4 w-4" />,
   "in-progress": <CircleDot className="h-4 w-4" />,
   pending: <Circle className="h-4 w-4" />,

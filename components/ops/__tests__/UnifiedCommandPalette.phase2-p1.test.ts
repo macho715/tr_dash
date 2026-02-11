@@ -23,7 +23,7 @@ describe("Phase 2 P1: Natural Language Extensions", () => {
     });
 
     it("should calculate correct delta (forward = negative)", () => {
-      const direction = "forward";
+      const direction: "forward" | "back" = "forward";
       const num = 5;
       const delta = direction === "forward" ? -num : num;
       
@@ -31,7 +31,7 @@ describe("Phase 2 P1: Natural Language Extensions", () => {
     });
 
     it("should calculate correct delta (back = positive)", () => {
-      const direction = "back";
+      const direction: "forward" | "back" = "back";
       const num = 3;
       const delta = direction === "forward" ? -num : num;
       
@@ -63,7 +63,7 @@ describe("Phase 2 P1: Natural Language Extensions", () => {
     });
 
     it("should calculate correct delta (advance = negative)", () => {
-      const action = "advance";
+      const action: "advance" | "delay" = "advance";
       const num = 2;
       const delta = action === "advance" ? -num : num;
       
@@ -71,7 +71,7 @@ describe("Phase 2 P1: Natural Language Extensions", () => {
     });
 
     it("should calculate correct delta (delay = positive)", () => {
-      const action = "delay";
+      const action: "advance" | "delay" = "delay";
       const num = 10;
       const delta = action === "advance" ? -num : num;
       

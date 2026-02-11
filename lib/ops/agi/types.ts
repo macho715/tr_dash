@@ -4,6 +4,31 @@ import type { ScheduleConflict } from "@/lib/ssot/schedule";
 
 export type IsoDate = `${number}-${number}-${number}`;
 
+/**
+ * Type guard to validate ISO date format YYYY-MM-DD
+ */
+export function isIsoDate(value: string): value is IsoDate {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
+
+/**
+ * Asserts that a string is a valid ISO date format
+ * @throws Error if not valid
+ */
+export function assertIsoDate(value: string): asserts value is IsoDate {
+  if (!isIsoDate(value)) {
+    throw new Error(`Invalid ISO date format: ${value}. Expected YYYY-MM-DD`);
+  }
+}
+
+/**
+ * Safely converts string to IsoDate with validation
+ */
+export function toIsoDate(value: string): IsoDate {
+  assertIsoDate(value);
+  return value;
+}
+
 export type CommandKind =
   | "SHIFT"
   | "BULK"

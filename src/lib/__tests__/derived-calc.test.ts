@@ -338,7 +338,11 @@ describe('Derived Calculation Engine', () => {
       const ssot = loadSSOTSync('tests/fixtures/option_c_baseline.json');
       
       // Corrupt slack_min
-      ssot.entities.activities['A1010'].calc.slack_min = 9999;
+      const activity = ssot.entities.activities['A1010'];
+      if (!activity) {
+        throw new Error('Missing activity A1010 in fixture');
+      }
+      activity.calc.slack_min = 9999;
       
       const result = verifyDerivedIntegrity(ssot);
       
@@ -350,7 +354,11 @@ describe('Derived Calculation Engine', () => {
       const ssot = loadSSOTSync('tests/fixtures/option_c_baseline.json');
       
       // Corrupt critical_path
-      ssot.entities.activities['A1000'].calc.critical_path = false;
+      const activity = ssot.entities.activities['A1000'];
+      if (!activity) {
+        throw new Error('Missing activity A1000 in fixture');
+      }
+      activity.calc.critical_path = false;
       
       const result = verifyDerivedIntegrity(ssot);
       

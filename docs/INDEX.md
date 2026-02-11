@@ -1,14 +1,14 @@
 ---
 doc_id: docs-index
-refs: [../patch.md, ../AGENTS.md, LAYOUT.md, SYSTEM_ARCHITECTURE.md, WORK_LOG_20260202.md, BUGFIX_APPLIED_20260202.md]
-updated: 2026-02-10
+refs: [../patch.md, ../AGENTS.md, LAYOUT.md, SYSTEM_ARCHITECTURE.md, WORK_LOG_20260202.md, WORK_LOG_20260209.md, WORK_LOG_20260210_AI_UPGRADE.md, BUGFIX_APPLIED_20260202.md, plan/gantt-reset-button-fix-plan.md]
+updated: 2026-02-11
 ---
 
 # Docs Index
 
 문서 진입점. SSOT 우선으로 정렬. **각 문서는 최신 작업 내용(WORK_LOG/BUGFIX/plan)을 반영하도록 유지한다.**
 
-**최신 작업 소스**: [AI_FEATURES](AI_FEATURES.md), [WORK_LOG_20260210_AI_UPGRADE](WORK_LOG_20260210_AI_UPGRADE.md), [NL_COMMAND_INTERFACE_IMPLEMENTATION_REPORT](NL_COMMAND_INTERFACE_IMPLEMENTATION_REPORT.md), [NL_COMMAND_INTERFACE_COMPLETE](NL_COMMAND_INTERFACE_COMPLETE.md), [WORK_LOG_20260202](WORK_LOG_20260202.md), [BUGFIX_APPLIED_20260202](BUGFIX_APPLIED_20260202.md), [IMPLEMENTATION_SUMMARY](IMPLEMENTATION_SUMMARY.md), [plan/](plan/)
+**최신 작업 소스**: [AI_FEATURES](AI_FEATURES.md), [WORK_LOG_20260210_AI_UPGRADE](WORK_LOG_20260210_AI_UPGRADE.md), [NL_COMMAND_INTERFACE_IMPLEMENTATION_REPORT](NL_COMMAND_INTERFACE_IMPLEMENTATION_REPORT.md), [NL_COMMAND_INTERFACE_COMPLETE](NL_COMMAND_INTERFACE_COMPLETE.md), [WORK_LOG_20260209](WORK_LOG_20260209.md), [WORK_LOG_20260202](WORK_LOG_20260202.md), [BUGFIX_APPLIED_20260202](BUGFIX_APPLIED_20260202.md), [IMPLEMENTATION_SUMMARY](IMPLEMENTATION_SUMMARY.md), [plan/](plan/)
 
 ### 문서 REF 관계 (Mermaid)
 
@@ -54,6 +54,7 @@ graph LR
 | [tr-dashboard-plan.md](plan/tr-dashboard-plan.md) | 대시보드 계획 |
 | [tr-dashboard-plan-patch4.md](plan/tr-dashboard-plan-patch4.md) | 패치4 계획 |
 | [tr-dashboard-verification-report.md](plan/tr-dashboard-verification-report.md) | 검증 리포트 |
+| [gantt-reset-button-fix-plan.md](plan/gantt-reset-button-fix-plan.md) | Gantt 리셋 버튼 수정 (2026-02-09) |
 | [vis-timeline-gantt-integration-plan.md](plan/vis-timeline-gantt-integration-plan.md) | Gantt 연동 계획 |
 | [vis-timeline-phase1-implementation.md](plan/vis-timeline-phase1-implementation.md) | VisTimeline Phase 1 구현 (A3 Mapper Caching, B5 Dependency Type) |
 | [weather-overlay-implementation-plan.md](plan/weather-overlay-implementation-plan.md) | Weather Overlay 상세 구현 계획 (Canvas 배경 레이어) |
@@ -77,6 +78,7 @@ graph LR
 | [NL_COMMAND_INTERFACE_COMPLETE.md](NL_COMMAND_INTERFACE_COMPLETE.md) | NL Command 현재 상태 요약 |
 | [WORK_LOG_20260206_COMPLETE.md](WORK_LOG_20260206_COMPLETE.md) | 4대 기능 + SSOT Trip/TR 정합성 수정 완료 로그 |
 | [WORK_LOG_20260206.md](WORK_LOG_20260206.md) | 2026-02-06 작업 로그 |
+| [WORK_LOG_20260209.md](WORK_LOG_20260209.md) | 작업 로그 (2026-02-09, Gantt 리셋 수정) |
 | [WORK_LOG_20260202.md](WORK_LOG_20260202.md) | 2026-02-02 작업 로그 |
 | [BUGFIX_APPLIED_20260202.md](BUGFIX_APPLIED_20260202.md) | 버그픽스 적용 |
 | [IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md) | 구현 요약 |

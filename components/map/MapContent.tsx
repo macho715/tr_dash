@@ -74,7 +74,9 @@ function HeatLayer({ heatPoints }: { heatPoints: HeatPoint[] }) {
       },
     })
     heat.addTo(map)
-    return () => map.removeLayer(heat)
+    return () => {
+      map.removeLayer(heat)
+    }
   }, [map, heatPoints])
   return null
 }

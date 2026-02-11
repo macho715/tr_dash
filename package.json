@@ -12,6 +12,7 @@
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
     "sync:schedule": "python scripts/sync_schedule_to_dashboard.py",
+    "sync:wa-events": "python scripts/sync_wa_events_to_ssot.py",
     "sync:tide": "python scripts/sync_tide_to_dashboard.py",
     "sync:agent": "python scripts/sync_agent_to_dashboard.py",
     "validate:ssot": "python scripts/validate_optionc.py tests/fixtures/option_c_baseline.json",

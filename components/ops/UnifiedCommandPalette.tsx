@@ -8,6 +8,7 @@ import type { ScheduleActivity } from "@/lib/ssot/schedule";
 import type { ViewMode } from "@/src/lib/stores/view-mode-store";
 import { useViewModeOptional } from "@/src/lib/stores/view-mode-store";
 import { parseAgiCommand } from "@/lib/ops/agi/parseCommand";
+import { toIsoDate } from "@/lib/ops/agi/types";
 import type { PreviewResult } from "@/lib/ops/agi/types";
 import type { AiIntentResult, ShiftFilter } from "@/lib/ops/ai-intent";
 import { useAgiCommandEngine } from "@/lib/ops/agi/useAgiCommandEngine";
@@ -721,9 +722,9 @@ export function UnifiedCommandPalette({ activities, setActivities, onFocusActivi
         initialNewDate={pivotPreset?.newDate ?? null}
         preview={preview}
         setPreview={setPreview}
-        onPreviewActivity={(activityId, newStart) => engine.previewShiftByActivity(activityId, newStart)}
+        onPreviewActivity={(activityId, newStart) => engine.previewShiftByActivity(activityId, toIsoDate(newStart))}
         onPreviewPivot={(pivot, deltaDays, newDate, includeLocked) =>
-          engine.previewShiftByPivot(pivot, deltaDays, newDate, includeLocked)
+          engine.previewShiftByPivot(toIsoDate(pivot), deltaDays, newDate ? toIsoDate(newDate) : undefined, includeLocked)
         }
         onApplyPreview={engine.applyPreview}
         canApply={canApply}
@@ -738,7 +739,7 @@ export function UnifiedCommandPalette({ activities, setActivities, onFocusActivi
         activities={activities}
         preview={preview}
         setPreview={setPreview}
-        onPreview={(anchors) => engine.previewBulkAnchors(anchors)}
+        onPreview={(anchors) => engine.previewBulkAnchors(anchors.map(a => ({ activityId: a.activityId, newStart: toIsoDate(a.newStart) })))}
         onApplyPreview={engine.applyPreview}
         canApply={canApply}
         initialAnchors={bulkPreset?.anchors ?? null}

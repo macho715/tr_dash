@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo } from "react"
+import type { ReactElement } from "react"
 import { Cpu, Ship, Wrench } from "lucide-react"
 import { scheduleActivities } from "@/lib/data/schedule-data"
 
@@ -13,7 +14,7 @@ interface ResourceStat {
   label: string
   count: number
   percent: number
-  icon: JSX.Element
+  icon: ReactElement
 }
 
 const fallbackResources = [

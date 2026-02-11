@@ -54,6 +54,7 @@ let selectedSource: OptionCSource | null = null
 const optionCv08 = optionCv08Raw as OptionCSource
 const optionCLegacy = optionCDataRaw as OptionCSource
 
+// Prefer option_c_v0.8.0.json (Contract SSOT with actuals) when it has entities; else option_c.json (pipeline/legacy)
 if (hasEntitiesActivities(optionCv08) || hasActivitiesArray(optionCv08)) {
   selectedSource = optionCv08
   if (process.env.NODE_ENV !== "production") {
@@ -63,14 +64,12 @@ if (hasEntitiesActivities(optionCv08) || hasActivitiesArray(optionCv08)) {
 } else if (hasEntitiesActivities(optionCLegacy) || hasActivitiesArray(optionCLegacy)) {
   selectedSource = optionCLegacy
   if (process.env.NODE_ENV !== "production") {
-    console.warn(
-      "[SSOT] Using legacy option_c.json because option_c_v0.8.0.json is missing or empty."
-    )
+    console.log("[SSOT] Using option_c.json (pipeline/legacy)")
   }
 } else {
   selectedSource = { activities: [] }
   console.error(
-    "[SSOT] No valid SSOT activities found in option_c_v0.8.0.json or option_c.json."
+    "[SSOT] No valid SSOT activities found in option_c.json or option_c_v0.8.0.json."
   )
 }
 

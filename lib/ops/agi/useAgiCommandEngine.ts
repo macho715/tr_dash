@@ -15,7 +15,7 @@ import {
   undo,
   type HistoryState,
 } from "@/lib/ops/agi/history";
-import type { AgiCommand, PreviewResult } from "@/lib/ops/agi/types";
+import type { AgiCommand, IsoDate, PreviewResult } from "@/lib/ops/agi/types";
 import { makeFullJSON, makePatchJSON, downloadJSON } from "@/lib/ops/agi/exporters";
 
 const DEFAULT_REFLOW_OPTIONS = {
@@ -56,7 +56,7 @@ export function useAgiCommandEngine({ activities, setActivities, canApply = true
 
   /** Preview a reflow for one selected activity start date change. */
   const previewShiftByActivity = useCallback(
-    (activityId: string, newStart: string): PreviewResult => {
+    (activityId: string, newStart: IsoDate): PreviewResult => {
       const result = reflowSchedule(activities, activityId, newStart, DEFAULT_REFLOW_OPTIONS);
       return buildPreview(activities, result.activities, {
         mode: "shift",
@@ -67,32 +67,32 @@ export function useAgiCommandEngine({ activities, setActivities, canApply = true
   );
 
   const previewShiftByPivot = useCallback(
-    (pivot: string, deltaDays?: number, newDate?: string, includeLocked?: boolean): PreviewResult => {
+    (pivot: IsoDate, deltaDays?: number, newDate?: IsoDate, includeLocked?: boolean): PreviewResult => {
       const computedDelta =
         typeof deltaDays === "number"
           ? deltaDays
           : newDate
-            ? computeDeltaByNewDate(pivot as any, newDate as any)
+            ? computeDeltaByNewDate(pivot, newDate)
             : 0;
       const next = shiftAfterPivot({
         activities,
-        pivot: pivot as any,
+        pivot,
         deltaDays: computedDelta,
         includeLocked: includeLocked ?? false,
       });
       return buildPreview(activities, next, {
         mode: "shift",
-        anchors: [{ pivot: pivot as any, deltaDays: computedDelta }],
+        anchors: [{ pivot, deltaDays: computedDelta }],
       });
     },
     [activities, buildPreview]
   );
 
   const previewBulkAnchors = useCallback(
-    (anchors: Array<{ activityId: string; newStart: string }>, includeLocked?: boolean): PreviewResult => {
+    (anchors: Array<{ activityId: string; newStart: IsoDate }>, includeLocked?: boolean): PreviewResult => {
       const next = applyBulkAnchors({
         activities,
-        anchors: anchors as any,
+        anchors,
         includeLocked: includeLocked ?? false,
       });
       return buildPreview(activities, next, {

@@ -1,7 +1,7 @@
 # AGENTS.md — TR Movement Dashboard (SSOT: option_c.json)
 
-**Last updated:** 2026-02-04 (Asia/Dubai)  
-**최신 작업 반영:** 2026-02-04 — [docs/WORK_LOG_20260202.md](docs/WORK_LOG_20260202.md), [docs/BUGFIX_APPLIED_20260202.md](docs/BUGFIX_APPLIED_20260202.md), [docs/plan/plan_patchmain_14.md](docs/plan/plan_patchmain_14.md)
+**Last updated:** 2026-02-09 (Asia/Dubai)  
+**최신 작업 반영:** 2026-02-09 — [docs/WORK_LOG_20260209.md](docs/WORK_LOG_20260209.md) (Gantt 리셋 버튼 fix), [docs/plan/gantt-reset-button-fix-plan.md](docs/plan/gantt-reset-button-fix-plan.md)
 
 > 이 저장소에서 작업하는 모든 AI 코딩 에이전트는 아래 규칙을 "절대 우선"으로 준수한다.  
 > **목표:** TR 하나 = 하나의 이동 스토리. 한 화면에서 Where → When/What → Evidence가 3초 내 읽혀야 한다.

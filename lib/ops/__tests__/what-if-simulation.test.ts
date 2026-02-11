@@ -19,20 +19,26 @@ const mockActivities: ScheduleActivity[] = [
     activity_name: "Jack-down TR1",
     planned_start: "2026-02-10",
     planned_finish: "2026-02-12",
-    state: "planned",
-    dependencies: [],
+    duration: 2,
+    level1: "Trip 1",
+    level2: "Jack-down",
+    status: "planned",
+    depends_on: [],
   },
   {
     activity_id: "A1040",
     activity_name: "Transport TR1",
     planned_start: "2026-02-13",
     planned_finish: "2026-02-14",
-    state: "planned",
-    dependencies: [
+    duration: 1,
+    level1: "Trip 1",
+    level2: "Transport",
+    status: "planned",
+    depends_on: [
       {
-        predecessor_id: "A1030",
+        predecessorId: "A1030",
         type: "FS",
-        lag_days: 0,
+        lagDays: 0,
       },
     ],
   },
@@ -41,12 +47,15 @@ const mockActivities: ScheduleActivity[] = [
     activity_name: "Install TR1",
     planned_start: "2026-02-15",
     planned_finish: "2026-02-17",
-    state: "planned",
-    dependencies: [
+    duration: 2,
+    level1: "Trip 1",
+    level2: "Install",
+    status: "planned",
+    depends_on: [
       {
-        predecessor_id: "A1040",
+        predecessorId: "A1040",
         type: "FS",
-        lag_days: 0,
+        lagDays: 0,
       },
     ],
   },
@@ -169,7 +178,7 @@ describe("What-If Simulation - Browser Flow", () => {
 
       // When: Reflow 시뮬레이션 (간단한 로직)
       const affectedActivities = mockActivities.filter((a) =>
-        a.dependencies?.some((d) => d.predecessor_id === scenario.activity_id)
+        a.depends_on?.some((d) => d.predecessorId === scenario.activity_id)
       )
       
       // A1040는 A1030에 의존 → 영향받음
@@ -203,12 +212,12 @@ describe("What-If Simulation - Browser Flow", () => {
 
       // When: A1030이 지연되면
       const directDependents = mockActivities.filter((a) =>
-        a.dependencies?.some((d) => d.predecessor_id === targetActivityId)
+        a.depends_on?.some((d) => d.predecessorId === targetActivityId)
       )
 
       const indirectDependents = mockActivities.filter((a) =>
-        a.dependencies?.some((d) => 
-          directDependents.some((dep) => dep.activity_id === d.predecessor_id)
+        a.depends_on?.some((d) => 
+          directDependents.some((dep) => dep.activity_id === d.predecessorId)
         )
       )
 

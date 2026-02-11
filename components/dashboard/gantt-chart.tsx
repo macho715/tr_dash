@@ -642,15 +642,10 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
     setEventLogLoading(false)
     setEventLogAttempted(false)
 
-    // 12. Fit timeline and show success feedback
-    if (visTimelineRef.current) {
-      setTimeout(() => {
-        visTimelineRef.current?.fit()
-        toast.success("Gantt view reset to initial state", {
-          duration: 2000,
-        })
-      }, 100)
-    }
+    // 12. Window is set by VisTimelineGantt useEffect(view, selectedDate) to Day view + 14d; do not call fit() or it would zoom out to full project and undo the reset.
+    toast.success("Gantt view reset to initial state", {
+      duration: 2000,
+    })
   }
 
   const handleGroupClick = (groupId: string) => {

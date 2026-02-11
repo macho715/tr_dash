@@ -92,7 +92,7 @@
         "tr_ids": [],
         "tr_unit_id": "MOBILIZATION",
         "title": "Mobilization of 1st set of SPMT; Asembly + Function Test",
-        "state": "planned",
+        "state": "completed",
         "lock_level": "none",
         "blocker_code": null,
         "blocker_detail": {},
@@ -116,8 +116,8 @@
           "notes": ""
         },
         "actual": {
-          "start_ts": null,
-          "end_ts": null,
+          "start_ts": "2026-01-24T11:34:00+04:00",
+          "end_ts": "2026-01-27T15:31:00+04:00",
           "progress_pct": 0,
           "location_override": null,
           "resource_assignments": [],
@@ -146,7 +146,7 @@
         "tr_ids": [],
         "tr_unit_id": "MOBILIZATION",
         "title": "Mobilization of Marine Equipment and Steelworks",
-        "state": "planned",
+        "state": "completed",
         "lock_level": "none",
         "blocker_code": null,
         "blocker_detail": {},
@@ -170,8 +170,8 @@
           "notes": ""
         },
         "actual": {
-          "start_ts": null,
-          "end_ts": null,
+          "start_ts": "2026-01-26T10:22:00+04:00",
+          "end_ts": "2026-01-26T16:19:00+04:00",
           "progress_pct": 0,
           "location_override": null,
           "resource_assignments": [],
@@ -200,7 +200,7 @@
         "tr_ids": [],
         "tr_unit_id": "DEMOBILIZATION",
         "title": "Demobilization of Marine Equipment and Steelworks",
-        "state": "planned",
+        "state": "completed",
         "lock_level": "none",
         "blocker_code": null,
         "blocker_detail": {},
@@ -224,8 +224,8 @@
           "notes": ""
         },
         "actual": {
-          "start_ts": null,
-          "end_ts": null,
+          "start_ts": "2026-01-27T15:31:00+04:00",
+          "end_ts": "2026-01-27T17:38:00+04:00",
           "progress_pct": 0,
           "location_override": null,
           "resource_assignments": [],
@@ -254,7 +254,7 @@
         "tr_ids": [],
         "tr_unit_id": "MOBILIZATION",
         "title": "Mobilization of Jacking Equipment and Steel bridge (prior LCT's arrival to AGI with TR 1&2!))",
-        "state": "planned",
+        "state": "completed",
         "lock_level": "none",
         "blocker_code": null,
         "blocker_detail": {},
@@ -278,8 +278,8 @@
           "notes": ""
         },
         "actual": {
-          "start_ts": null,
-          "end_ts": null,
+          "start_ts": "2026-01-28T17:22:00+04:00",
+          "end_ts": "2026-01-30T8:53:00+04:00",
           "progress_pct": 0,
           "location_override": null,
           "resource_assignments": [],
@@ -806,7 +806,7 @@
         ],
         "tr_unit_id": "TR_01",
         "title": "Load-out of AGL TR Unit 1; stool down (8am-10am)",
-        "state": "planned",
+        "state": "completed",
         "lock_level": "none",
         "blocker_code": null,
         "blocker_detail": {},
@@ -830,8 +830,8 @@
           "notes": ""
         },
         "actual": {
-          "start_ts": null,
-          "end_ts": null,
+          "start_ts": "2026-01-28T10:01:00+04:00",
+          "end_ts": "2026-01-31T10:53:00+04:00",
           "progress_pct": 0,
           "location_override": null,
           "resource_assignments": [],
@@ -862,7 +862,7 @@
         ],
         "tr_unit_id": "TR_01",
         "title": "RoRo ramp removal; Seafastening AGL TR Unit 1 - Crane required",
-        "state": "planned",
+        "state": "completed",
         "lock_level": "none",
         "blocker_code": null,
         "blocker_detail": {},
@@ -886,8 +886,8 @@
           "notes": ""
         },
         "actual": {
-          "start_ts": null,
-          "end_ts": null,
+          "start_ts": "2026-01-31T00:00:00+04:00",
+          "end_ts": "2026-01-31T23:59:59+04:00",
           "progress_pct": 0,
           "location_override": null,
           "resource_assignments": [],
@@ -918,7 +918,7 @@
         ],
         "tr_unit_id": "TR_01",
         "title": "MWS; MPI; Sail-away - Marine Transportation by LCT to Al Ghallan Island",
-        "state": "planned",
+        "state": "completed",
         "lock_level": "none",
         "blocker_code": null,
         "blocker_detail": {},
@@ -942,8 +942,8 @@
           "notes": ""
         },
         "actual": {
-          "start_ts": null,
-          "end_ts": null,
+          "start_ts": "2026-01-30T22:10:00+04:00",
+          "end_ts": "2026-02-08T14:38:00+04:00",
           "progress_pct": 0,
           "location_override": null,
           "resource_assignments": [],
@@ -1030,7 +1030,7 @@
         ],
         "tr_unit_id": "TR_01",
         "title": "LCT Arrival; Berthing at AGL RoRo Jetty",
-        "state": "planned",
+        "state": "completed",
         "lock_level": "none",
         "blocker_code": null,
         "blocker_detail": {},
@@ -1054,8 +1054,8 @@
           "notes": ""
         },
         "actual": {
-          "start_ts": null,
-          "end_ts": null,
+          "start_ts": "2026-01-31T20:53:00+04:00",
+          "end_ts": "2026-02-04T16:06:00+04:00",
           "progress_pct": 0,
           "location_override": null,
           "resource_assignments": [],
@@ -1142,7 +1142,7 @@
         ],
         "tr_unit_id": "TR_01",
         "title": "Load-in of AGI TR Unit 1 (including RoRo Ramp Installation); store on Jetty - Crane required",
-        "state": "planned",
+        "state": "completed",
         "lock_level": "none",
         "blocker_code": null,
         "blocker_detail": {},
@@ -1166,8 +1166,8 @@
           "notes": ""
         },
         "actual": {
-          "start_ts": null,
-          "end_ts": null,
+          "start_ts": "2026-02-04T00:00:00+04:00",
+          "end_ts": "2026-02-05T23:59:59+04:00",
           "progress_pct": 0,
           "location_override": null,
           "resource_assignments": [],
@@ -1198,7 +1198,7 @@
         ],
         "tr_unit_id": "TR_01",
         "title": "LCT Sails back to MZP to collect TR Unit 1",
-        "state": "planned",
+        "state": "completed",
         "lock_level": "none",
         "blocker_code": null,
         "blocker_detail": {},
@@ -1222,8 +1222,8 @@
           "notes": ""
         },
         "actual": {
-          "start_ts": null,
-          "end_ts": null,
+          "start_ts": "2026-02-08T14:38:00+04:00",
+          "end_ts": "2026-02-08T14:38:00+04:00",
           "progress_pct": 0,
           "location_override": null,
           "resource_assignments": [],
@@ -1310,7 +1310,7 @@
         ],
         "tr_unit_id": "TR_01",
         "title": "AGL TR Unit 1 (TR Bay 4) load on SPMT; lashing; Transportation and JD (steel set to be delivered to bay area by trailer)",
-        "state": "planned",
+        "state": "completed",
         "lock_level": "none",
         "blocker_code": null,
         "blocker_detail": {},
@@ -1334,8 +1334,8 @@
           "notes": ""
         },
         "actual": {
-          "start_ts": null,
-          "end_ts": null,
+          "start_ts": "2026-02-08T11:00:00+04:00",
+          "end_ts": "2026-02-08T11:00:00+04:00",
           "progress_pct": 0,
           "location_override": null,
           "resource_assignments": [],
@@ -1534,7 +1534,7 @@
         ],
         "tr_unit_id": "TR_02",
         "title": "Beam Replacement AGI TR Unit 2 (TR Bay 3) - Two 5t forklifts required",
-        "state": "planned",
+        "state": "completed",
         "lock_level": "none",
         "blocker_code": null,
         "blocker_detail": {},
@@ -1558,8 +1558,8 @@
           "notes": ""
         },
         "actual": {
-          "start_ts": null,
-          "end_ts": null,
+          "start_ts": "2026-01-27T17:38:00+04:00",
+          "end_ts": "2026-01-28T10:01:00+04:00",
           "progress_pct": 0,
           "location_override": null,
           "resource_assignments": [],
@@ -1590,7 +1590,7 @@
         ],
         "tr_unit_id": "TR_02",
         "title": "LCT Arrives at MZP; Deck preparations",
-        "state": "planned",
+        "state": "completed",
         "lock_level": "none",
         "blocker_code": null,
         "blocker_detail": {},
@@ -1614,8 +1614,8 @@
           "notes": ""
         },
         "actual": {
-          "start_ts": null,
-          "end_ts": null,
+          "start_ts": "2026-02-08T22:42:00+04:00",
+          "end_ts": "2026-02-08T22:42:00+04:00",
           "progress_pct": 0,
           "location_override": null,
           "resource_assignments": [],
@@ -1870,7 +1870,7 @@
         ],
         "tr_unit_id": "TR_02",
         "title": "MWS; MPI; Sail-away - Marine Transportation by LCT to Al Ghallan Island",
-        "state": "planned",
+        "state": "completed",
         "lock_level": "none",
         "blocker_code": null,
         "blocker_detail": {},
@@ -1894,8 +1894,8 @@
           "notes": ""
         },
         "actual": {
-          "start_ts": null,
-          "end_ts": null,
+          "start_ts": "2026-02-08T14:38:00+04:00",
+          "end_ts": "2026-02-08T22:42:00+04:00",
           "progress_pct": 0,
           "location_override": null,
           "resource_assignments": [],
@@ -7108,5 +7108,49 @@
   "collisions": [],
   "reflow_runs": [],
   "baselines": [],
-  "history_events": []
+  "history_events": [
+    {
+      "event_id": "HE_1770532576310_gqeent",
+      "ts": "2026-02-08T06:36:16.310Z",
+      "actor": "user",
+      "event_type": "delay",
+      "entity_ref": {
+        "entity_type": "tr",
+        "entity_id": "A2920"
+      },
+      "details": {
+        "message": "지연"
+      }
+    },
+    {
+      "event_id": "HE_1770612606877_retfst",
+      "ts": "2026-02-09T04:50:06.877Z",
+      "actor": "user",
+      "event_type": "actual_changed",
+      "entity_ref": {
+        "entity_type": "activity",
+        "entity_id": "A1121"
+      },
+      "details": {
+        "message": "Actual dates updated: 2026-02-08T10:38:00.000Z -> 2026-02-08T21:01:00.000Z",
+        "actual_start_ts": "2026-02-08T10:38:00.000Z",
+        "actual_end_ts": "2026-02-08T21:01:00.000Z"
+      }
+    },
+    {
+      "event_id": "HE_1770617770076_5yp8zc",
+      "ts": "2026-02-09T06:16:10.076Z",
+      "actor": "user",
+      "event_type": "actual_changed",
+      "entity_ref": {
+        "entity_type": "activity",
+        "entity_id": "A1121"
+      },
+      "details": {
+        "message": "Actual dates updated: 2026-02-08T18:42:00.000Z -> 2026-02-08T21:00:00.000Z",
+        "actual_start_ts": "2026-02-08T18:42:00.000Z",
+        "actual_end_ts": "2026-02-08T21:00:00.000Z"
+      }
+    }
+  ]
 }

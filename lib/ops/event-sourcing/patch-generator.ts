@@ -271,10 +271,7 @@ export function generatePatchStatistics(patches: JsonPatchOp[]): {
   }
 }
 
-function getPatchOp(
-  parent: Record<string, unknown> | undefined,
-  key: string
-): "add" | "replace" {
+function getPatchOp(parent: object | null | undefined, key: string): "add" | "replace" {
   if (!parent) return "add"
   return Object.prototype.hasOwnProperty.call(parent, key) ? "replace" : "add"
 }

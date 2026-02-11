@@ -32,6 +32,29 @@ type StoryHeaderProps = {
   onEvidenceClick?: () => void
 }
 
+const badgeStyles = {
+  success: {
+    variant: "default" as const,
+    className: "bg-emerald-500/20 text-emerald-200 border border-emerald-500/40",
+    label: "✓",
+  },
+  warning: {
+    variant: "secondary" as const,
+    className: "bg-amber-500/20 text-amber-200 border border-amber-500/40",
+    label: "⚠",
+  },
+  destructive: {
+    variant: "destructive" as const,
+    className: "",
+    label: "!",
+  },
+  secondary: {
+    variant: "secondary" as const,
+    className: "",
+    label: "",
+  },
+}
+
 export function StoryHeader({ 
   trId, 
   where, 
@@ -45,6 +68,7 @@ export function StoryHeader({
   onEvidenceClick,
 }: StoryHeaderProps) {
   const [helpOpen, setHelpOpen] = useState(false)
+  const badgeStyle = badgeStyles[evidenceBadgeVariant]
 
   // TR이 없을 때 (빈 상태)
   if (!trId) {
@@ -197,8 +221,11 @@ export function StoryHeader({
                 {evidence ?? "—"}
               </p>
               {evidenceBadgeVariant !== "secondary" && (
-                <Badge variant={evidenceBadgeVariant} className="shrink-0">
-                  {evidenceBadgeVariant === "destructive" ? "!" : "⚠"}
+                <Badge
+                  variant={badgeStyle.variant}
+                  className={`shrink-0 ${badgeStyle.className}`}
+                >
+                  {badgeStyle.label}
                 </Badge>
               )}
             </div>

@@ -169,6 +169,7 @@ export function TimelineGantt({
   onCollisionClick,
 }: TimelineGanttProps) {
   const containerRef = useRef<HTMLDivElement>(null)
+  const chartAreaRef = useRef<HTMLDivElement>(null)
   const [hoveredActivity, setHoveredActivity] = useState<string | null>(null)
   const [isDraggingCursor, setIsDraggingCursor] = useState(false)
 
@@ -325,7 +326,7 @@ export function TimelineGantt({
 
       {/* Gantt */}
       <div className="overflow-x-auto" ref={containerRef}>
-        <div className="relative min-w-[800px]">
+        <div className="relative min-w-[800px]" ref={chartAreaRef}>
           {/* Date header */}
           <div className="flex ml-[200px] mb-3 border-b border-accent/15 pb-3">
             {dateMarks.map((m) => (

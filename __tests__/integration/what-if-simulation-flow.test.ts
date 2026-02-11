@@ -175,7 +175,7 @@ describe("What-If Simulation - Browser Flow", () => {
 
       // When: Reflow 시뮬레이션 (간단한 로직)
       const affectedActivities = mockActivities.filter((a) =>
-        a.dependencies?.some((d) => d.predecessor_id === scenario.activity_id)
+        a.depends_on?.some((d) => d.predecessorId === scenario.activity_id)
       )
       
       // A1040는 A1030에 의존 → 영향받음
@@ -209,12 +209,12 @@ describe("What-If Simulation - Browser Flow", () => {
 
       // When: A1030이 지연되면
       const directDependents = mockActivities.filter((a) =>
-        a.dependencies?.some((d) => d.predecessor_id === targetActivityId)
+        a.depends_on?.some((d) => d.predecessorId === targetActivityId)
       )
 
       const indirectDependents = mockActivities.filter((a) =>
-        a.dependencies?.some((d) => 
-          directDependents.some((dep) => dep.activity_id === d.predecessor_id)
+        a.depends_on?.some((d) => 
+          directDependents.some((dep) => dep.activity_id === d.predecessorId)
         )
       )
 

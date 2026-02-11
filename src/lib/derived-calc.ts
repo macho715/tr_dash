@@ -75,17 +75,17 @@ export function calculateCurrentActivityForTR(
     return completed[0].activity_id;
   }
   
-  // 3. Find ready/committed activities (not yet started)
+  // 3. Find ready activities (not yet started)
   const ready = activities.filter(a =>
-    (a.state === 'ready' || a.state === 'committed') &&
+    a.state === 'ready' &&
     a.actual.start_ts === null
   );
   
   if (ready.length > 0) {
     // Return earliest (by plan.start_ts)
     const sorted = ready.sort((a, b) => {
-      const aStart = new Date(a.plan.start_ts).getTime();
-      const bStart = new Date(b.plan.start_ts).getTime();
+      const aStart = a.plan.start_ts ? new Date(a.plan.start_ts).getTime() : 0;
+      const bStart = b.plan.start_ts ? new Date(b.plan.start_ts).getTime() : 0;
       return aStart - bStart; // Ascending (earliest first)
     });
     
@@ -100,8 +100,8 @@ export function calculateCurrentActivityForTR(
   if (planned.length > 0) {
     // Return earliest (by plan.start_ts)
     const sorted = planned.sort((a, b) => {
-      const aStart = new Date(a.plan.start_ts).getTime();
-      const bStart = new Date(b.plan.start_ts).getTime();
+      const aStart = a.plan.start_ts ? new Date(a.plan.start_ts).getTime() : 0;
+      const bStart = b.plan.start_ts ? new Date(b.plan.start_ts).getTime() : 0;
       return aStart - bStart; // Ascending (earliest first)
     });
     
@@ -181,8 +181,10 @@ export function calculateCollisionIDsForTrip(
   const collisionIds = new Set<string>();
   
   for (const activity of activities) {
-    for (const colId of activity.calc.collision_ids) {
-      collisionIds.add(colId);
+    if (activity?.calc) {
+      for (const colId of activity.calc.collision_ids) {
+        collisionIds.add(colId);
+      }
     }
   }
   
@@ -204,7 +206,7 @@ export function calculateRiskScoreForTrip(
     return 0.0;
   }
   
-  return Math.max(...activities.map(a => a.calc.risk_score));
+  return Math.max(...activities.map(a => a?.calc?.risk_score ?? 0));
 }
 
 /**
