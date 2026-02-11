@@ -1,7 +1,7 @@
 # AGENTS.md — TR Movement Dashboard (SSOT: option_c.json)
 
 **Last updated:** 2026-02-11 (Asia/Dubai)  
-**최신 작업 반영:** 2026-02-11 — Merge·Reflow·Typecheck/Lint 0 errors. Reflow: dependency cascade preview 경로 통일(previewScheduleReflow). Tide 고급: SAFE 추천, DANGER What-if, 가이던스·View guidance. Voyage Map View·ETA Drift(카드/맵 hover·select·Drift 배지). 즉시 조치 3항목 체크리스트(OperationalNotice·Go→voyages/schedule/gantt). [docs/TYPECHECK_AND_LINT_FAILURES.md](docs/TYPECHECK_AND_LINT_FAILURES.md), [CHANGELOG.md](CHANGELOG.md). 이전: [docs/WORK_LOG_20260209.md](docs/WORK_LOG_20260209.md) (Gantt 리셋), [docs/plan/gantt-reset-button-fix-plan.md](docs/plan/gantt-reset-button-fix-plan.md)
+**최신 작업 반영:** 2026-02-11 — 2모델 AI Dual-pass Intent Guard(OLLAMA_REVIEW_MODEL), Governance 체크·What-if 추천. FilterDrawer 모듈. Release Split: `release/general`→origin, `release/mobile`→mobile-origin([docs/ops/release-split.md](docs/ops/release-split.md)). Reflow: dependency cascade preview. Tide 고급: SAFE 추천, DANGER What-if. Voyage Map View·ETA Drift. 즉시 조치 3항목. [CHANGELOG.md](CHANGELOG.md). 이전: [docs/WORK_LOG_20260209.md](docs/WORK_LOG_20260209.md), [docs/plan/gantt-reset-button-fix-plan.md](docs/plan/gantt-reset-button-fix-plan.md)
 
 > 이 저장소에서 작업하는 모든 AI 코딩 에이전트는 아래 규칙을 "절대 우선"으로 준수한다.  
 > **목표:** TR 하나 = 하나의 이동 스토리. 한 화면에서 Where → When/What → Evidence가 3초 내 읽혀야 한다.
@@ -213,4 +213,5 @@
 - [patch.md](patch.md)
 - [docs/LAYOUT.md](docs/LAYOUT.md)
 - [option_c.json](option_c.json)
+- [docs/ops/release-split.md](docs/ops/release-split.md), [docs/ops/release-history-20260211.md](docs/ops/release-history-20260211.md) — 배포 분리(General vs Mobile)
 - [docs/WORK_LOG_20260202.md](docs/WORK_LOG_20260202.md), [docs/BUGFIX_APPLIED_20260202.md](docs/BUGFIX_APPLIED_20260202.md) — 최신 작업 반영

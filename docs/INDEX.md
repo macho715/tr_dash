@@ -86,7 +86,14 @@ graph LR
 | [BUGFIX_APPLIED_20260202.md](BUGFIX_APPLIED_20260202.md) | 버그픽스 적용 |
 | [IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md) | 구현 요약 |
 
-## 6. 기타
+## 6. 운영·배포 (docs/ops)
+
+| 문서 | 설명 |
+|------|------|
+| [release-split.md](ops/release-split.md) | 일반/모바일 배포 분리 운영 절차 |
+| [release-history-20260211.md](ops/release-history-20260211.md) | Release Split 실행 기록 (2026-02-11, T1~T4) |
+
+## 7. 기타
 
 | 문서 | 설명 |
 |------|------|
@@ -96,7 +103,7 @@ graph LR
 | [VERCEL.md](VERCEL.md) | 배포(Vercel) |
 | [00_INBOX/chat/](00_INBOX/chat/README.md) | 대화 요약·메모 |
 
-## 7. DocOps 메타
+## 8. DocOps 메타
 
 | 경로 | 설명 |
 |------|------|

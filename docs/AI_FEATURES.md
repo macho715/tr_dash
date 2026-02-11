@@ -58,7 +58,8 @@
 관련 환경 변수:
 
 - `AI_PROVIDER=ollama`
-- `OLLAMA_MODEL=exaone3.5:7.8b`
+- `OLLAMA_MODEL=exaone3.5:7.8b` (1차 파싱)
+- `OLLAMA_REVIEW_MODEL` (2차 리뷰, Dual-pass 시)
 - `OLLAMA_BASE_URL=http://127.0.0.1:11434`
 - `OPENAI_API_KEY` (fallback용)
 - `OPENAI_MODEL` (선택)
@@ -67,6 +68,24 @@
 
 - OpenAI 키가 없거나 짧은 플레이스홀더 값이면 OpenAI 경로는 자동 제외
 - OpenAI가 실패해도 Ollama 경로가 살아 있으면 전체 기능은 계속 동작
+
+---
+
+## 3.1 Dual-pass Intent Guard (2026-02-11)
+
+2모델 기반 검증:
+
+1. **1차 파싱**: `OLLAMA_MODEL`로 intent 파싱
+2. **2차 리뷰**: `OLLAMA_REVIEW_MODEL`로 검증. 엄격 intent(apply_preview, set_mode, high-risk)에서 모호 판정 시 `unclear` 전환
+3. **일반 intent** (shift/prepare): 실행 의도 유지, `SECONDARY_REVIEW_NOTE` 경고만 추가 (fail-soft)
+
+---
+
+## 3.2 What-if 추천 · Governance 체크
+
+- **What-if**: `shift_activities` 결과에 `recommendations.what_if_shift_days` 자동 생성
+- **Governance 체크리스트**: `governance_checks` 필드 — CONFIRM_REQUIRED, APPLY_PREVIEW_REF, MODE_ALLOWED, HIGH_RISK_CONFIRM 등
+- **AIExplainDialog**: 모델 trace, what-if 제안, governance 체크 UI 표시
 
 ---
 
@@ -206,6 +225,7 @@ pnpm run smoke:nl-intent
 
 ## 11. 관련 문서
 
+- `docs/WORK_LOG_20260211.md` (2모델 AI, FilterDrawer 포함)
 - `docs/WORK_LOG_20260210_AI_UPGRADE.md`
 - `docs/NL_COMMAND_INTERFACE_IMPLEMENTATION_REPORT.md`
 - `docs/NL_COMMAND_INTERFACE_COMPLETE.md`
