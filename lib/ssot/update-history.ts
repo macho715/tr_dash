@@ -2,6 +2,10 @@ import { writeFile } from "fs/promises"
 import { existsSync, readFileSync } from "fs"
 import path from "path"
 import type { HistoryEvent, OptionC } from "@/src/types/ssot"
+import {
+  HISTORY_RESTORED_EVENT_TYPE,
+  HISTORY_SOFT_DELETED_EVENT_TYPE,
+} from "@/lib/ssot/history-deletion"
 
 type SsotCandidate = {
   path: string
@@ -82,20 +86,28 @@ export async function setHistoryEventDeleted(input: {
   }
 
   const target = events[index]
+  const now = new Date().toISOString()
   const nextEvent: HistoryEvent = {
-    ...target,
-    deleted: input.deleted,
-    deleted_by: input.deleted ? input.actor ?? "user" : undefined,
-    deleted_at: input.deleted ? new Date().toISOString() : undefined,
+    event_id: `HE_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    ts: now,
+    actor: input.actor ?? "user",
+    event_type: input.deleted
+      ? HISTORY_SOFT_DELETED_EVENT_TYPE
+      : HISTORY_RESTORED_EVENT_TYPE,
+    entity_ref: {
+      entity_type: "history_event",
+      entity_id: input.eventId,
+    },
     details: {
-      ...(target.details ?? {}),
-      deleted_reason: input.reason ?? target.details?.deleted_reason,
+      target_event_id: target.event_id,
+      deleted: input.deleted,
+      reason: input.reason,
+      actor: input.actor ?? "user",
+      ts: now,
     },
   }
 
-  const nextEvents = [...events]
-  nextEvents[index] = nextEvent
-  ssot.history_events = nextEvents
+  ssot.history_events = [...events, nextEvent]
 
   await writeFile(candidate.path, `${JSON.stringify(ssot, null, 2)}\n`, "utf-8")
 

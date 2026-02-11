@@ -8,10 +8,10 @@
  * - Respect freeze (actual.start_ts or reflow_pins)
  * - Apply dependency lag (pred_EF + lag → succ_ES)
  * - Apply constraints (time windows, resource calendars)
- * - Handle duration_mode: 'elapsed' vs 'work_hours'
+ * - Handle duration_mode: 'elapsed' vs 'work'
  */
 
-import type { Activity, Dependency, Constraint, ResourceCalendar, OptionC } from '../../types/ssot';
+import type { Activity, OptionC } from '../../types/ssot';
 
 export interface ForwardPassResult {
   activities: Map<string, {
@@ -67,7 +67,7 @@ export function forwardPass(
     const es = calculateEarlyStart(activity, results, dateCursor);
     
     // Apply constraints (time windows)
-    const constrainedES = applyConstraints(es, activity, ssot);
+    const constrainedES = applyConstraints(es, activity);
     
     // Calculate EF
     const ef = calculateFinish(constrainedES, activity, ssot);
@@ -90,7 +90,7 @@ export function forwardPass(
  * 
  * Frozen if:
  * - actual.start_ts exists (already started)
- * - reflow_pins with strength=HARD at start
+ * - reflow_pins with hardness=hard at plan.start_ts
  */
 function isFrozen(activity: Activity): boolean {
   // Actual start exists
@@ -100,7 +100,7 @@ function isFrozen(activity: Activity): boolean {
   
   // Hard pin at start
   for (const pin of activity.reflow_pins) {
-    if (pin.strength === 'hard' && pin.pin_type === 'start') {
+    if (pin.hardness === 'hard' && pin.path === 'plan.start_ts') {
       return true;
     }
   }
@@ -124,8 +124,8 @@ function getFrozenStart(activity: Activity): string {
   
   // Hard pin
   for (const pin of activity.reflow_pins) {
-    if (pin.strength === 'hard' && pin.pin_type === 'start' && pin.target_ts) {
-      return pin.target_ts;
+    if (pin.hardness === 'hard' && pin.path === 'plan.start_ts' && typeof pin.value === 'string') {
+      return pin.value;
     }
   }
   
@@ -204,13 +204,12 @@ function calculateEarlyStart(
  */
 function applyConstraints(
   es: string,
-  activity: Activity,
-  ssot: OptionC
+  activity: Activity
 ): string {
   let constrainedES = new Date(es);
   
   for (const constraint of activity.plan.constraints) {
-    switch (constraint.constraint_type) {
+    switch (constraint.kind) {
       case 'not_before':
         if (constraint.params?.target_ts) {
           const notBefore = new Date(constraint.params.target_ts);
@@ -243,7 +242,7 @@ function applyConstraints(
  * Calculate finish time from start
  * 
  * Handles:
- * - duration_mode: 'elapsed' (calendar time) vs 'work_hours' (resource calendar)
+ * - duration_mode: 'elapsed' (calendar time) vs 'work' (resource calendar)
  * - Resource calendar integration (work shifts, blackouts)
  */
 function calculateFinish(
@@ -252,7 +251,7 @@ function calculateFinish(
   ssot: OptionC
 ): string {
   const startDate = new Date(start);
-  const durationMin = activity.plan.duration_min;
+  const durationMin = activity.plan.duration_min ?? 0;
   
   if (activity.plan.duration_mode === 'elapsed') {
     // Simple elapsed time (calendar time)
@@ -266,7 +265,7 @@ function calculateFinish(
 /**
  * Calculate finish time considering resource work calendars
  * 
- * Adds work_hours duration accounting for:
+ * Adds work duration accounting for:
  * - Work shifts (e.g., 08:00-17:00)
  * - Blackout periods (holidays, shutdowns)
  */
@@ -284,7 +283,7 @@ function calculateWorkHoursFinish(
   }
   
   const resource = ssot.entities.resources[resourceId];
-  if (!resource || !resource.calendar_id) {
+  if (!resource || !resource.calendar) {
     // No calendar - fall back to elapsed time
     return addMinutes(start, durationMin).toISOString();
   }

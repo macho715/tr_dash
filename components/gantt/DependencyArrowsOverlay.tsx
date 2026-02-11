@@ -23,6 +23,13 @@ type RenderPath = {
     text: string
     color: string
   }
+  /** Dependency type label (FS/SS/FF/SF) shown on the midpoint */
+  typeLabel?: {
+    x: number
+    y: number
+    text: string
+    color: string
+  }
 }
 
 type Props = {
@@ -144,6 +151,18 @@ export function DependencyArrowsOverlay({
               }
             : undefined
 
+        // Type label (FS/SS/FF/SF) near the arrowhead
+        const typeLabelOffset = edge.lagDays !== 0 ? 14 : 6
+        const typeLabel =
+          edge.type !== "FS"
+            ? {
+                x: midX,
+                y: (y1 + y2) / 2 + typeLabelOffset,
+                text: edge.type,
+                color: style.stroke,
+              }
+            : undefined
+
         paths.push({
           id: `${edge.predId}-${edge.succId}-${edge.type}-${edge.lagDays}`,
           d,
@@ -152,6 +171,7 @@ export function DependencyArrowsOverlay({
           strokeWidth: style.width,
           dash: style.dash,
           label,
+          typeLabel,
         })
       }
 
@@ -214,6 +234,20 @@ export function DependencyArrowsOverlay({
               textAnchor="middle"
             >
               {path.label.text}
+            </text>
+          )}
+          {path.typeLabel && (
+            <text
+              x={path.typeLabel.x}
+              y={path.typeLabel.y}
+              fontSize="9"
+              fontWeight="600"
+              fontFamily="'JetBrains Mono', monospace"
+              fill={path.typeLabel.color}
+              fillOpacity="0.7"
+              textAnchor="middle"
+            >
+              {path.typeLabel.text}
             </text>
           )}
         </g>

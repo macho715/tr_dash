@@ -273,8 +273,10 @@ export function UnifiedCommandPalette({ activities, setActivities, onFocusActivi
     (filter: ShiftFilter | undefined, deltaDays: number) => {
       const safeFilter = filter || {};
       const affected = activities.filter((a) => {
-        const matchVoyage = !safeFilter.voyage_ids || safeFilter.voyage_ids.includes(a.voyage_id);
-        const matchTR = !safeFilter.tr_unit_ids || safeFilter.tr_unit_ids.includes(a.tr_unit_id);
+        const voyageId = a.voyage_id ?? "";
+        const trUnitId = a.tr_unit_id ?? "";
+        const matchVoyage = !safeFilter.voyage_ids || safeFilter.voyage_ids.includes(voyageId);
+        const matchTR = !safeFilter.tr_unit_ids || safeFilter.tr_unit_ids.includes(trUnitId);
         const matchAnchor =
           !safeFilter.anchor_types || safeFilter.anchor_types.includes(a.anchor_type || "");
         const matchId =

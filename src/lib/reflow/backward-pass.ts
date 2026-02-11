@@ -72,7 +72,7 @@ export function backwardPass(
     );
     
     // Calculate LS from LF and duration
-    const ls = subtractDuration(lf, activity.plan.duration_min);
+    const ls = subtractDuration(lf, activity.plan.duration_min ?? 0);
     
     // Calculate slack
     const es = new Date(esef.es_ts);
@@ -171,7 +171,7 @@ function calculateLateFinish(
       case 'ss': // Start-to-Start
         // For backward pass: pred_LF = succ_LS - lag + duration
         succTime = new Date(succResult.ls_ts);
-        succTime = new Date(succTime.getTime() + activity.plan.duration_min * 60000);
+        succTime = new Date(succTime.getTime() + (activity.plan.duration_min ?? 0) * 60000);
         break;
       case 'ff': // Finish-to-Finish
         succTime = new Date(succResult.lf_ts);

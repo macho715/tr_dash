@@ -13,7 +13,7 @@ function createMockActivity(
   options: {
     actualStart?: string;
     lockLevel?: 'none' | 'soft' | 'hard' | 'baseline';
-    durationMode?: 'elapsed' | 'work_hours';
+    durationMode?: 'elapsed' | 'work';
     constraints?: Activity['plan']['constraints'];
   } = {}
 ): Activity {
@@ -72,8 +72,11 @@ function createMockActivity(
 function createMinimalSSOT(): OptionC {
   return {
     contract: {
+      name: 'Test Project',
       version: '0.8.0',
-      ssot: { activity_is_source_of_truth: true }
+      timezone: 'Asia/Dubai',
+      generated_at: '2026-01-01T00:00:00+04:00',
+      ssot: { activity_is_source_of_truth: true, derived_fields_read_only: true }
     },
     constraint_rules: {} as any,
     activity_types: {},
@@ -88,7 +91,7 @@ function createMinimalSSOT(): OptionC {
     },
     collisions: {},
     reflow_runs: [],
-    baselines: { current: null, history: [] },
+    baselines: { current_baseline_id: null, items: {} },
     history_events: []
   };
 }
@@ -252,7 +255,9 @@ describe('Forward Pass', () => {
       const activities = [
         createMockActivity('A', [], 60, {
           constraints: [{
-            constraint_type: 'not_before',
+            kind: 'not_before',
+            hardness: 'hard',
+            rule_ref: 'TEST_NOT_BEFORE',
             params: { target_ts: notBefore }
           }]
         })
@@ -272,7 +277,9 @@ describe('Forward Pass', () => {
       const activities = [
         createMockActivity('A', [], 60, {
           constraints: [{
-            constraint_type: 'within_window',
+            kind: 'within_window',
+            hardness: 'hard',
+            rule_ref: 'TEST_WINDOW',
             params: {
               start_ts: windowStart,
               end_ts: '2026-02-05T17:00:00+04:00'
@@ -296,8 +303,18 @@ describe('Forward Pass', () => {
       const activities = [
         createMockActivity('A', [], 60, {
           constraints: [
-            { constraint_type: 'not_before', params: { target_ts: notBefore1 } },
-            { constraint_type: 'not_before', params: { target_ts: notBefore2 } }
+            {
+              kind: 'not_before',
+              hardness: 'hard',
+              rule_ref: 'TEST_NOT_BEFORE_1',
+              params: { target_ts: notBefore1 }
+            },
+            {
+              kind: 'not_before',
+              hardness: 'hard',
+              rule_ref: 'TEST_NOT_BEFORE_2',
+              params: { target_ts: notBefore2 }
+            }
           ]
         })
       ];

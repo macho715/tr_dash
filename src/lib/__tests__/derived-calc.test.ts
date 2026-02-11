@@ -220,9 +220,10 @@ describe('Derived Calculation Engine', () => {
       const ssot = loadSSOTSync('tests/fixtures/option_c_baseline.json');
       const calc = calculateTripCalc(ssot, 'TRIP_2026_02A');
       
+      expect(calc).toBeDefined();
       expect(calc).toHaveProperty('collision_ids');
       expect(calc).toHaveProperty('risk_score');
-      expect(Array.isArray(calc.collision_ids)).toBe(true);
+      expect(Array.isArray(calc?.collision_ids)).toBe(true);
     });
   });
   

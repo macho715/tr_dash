@@ -66,6 +66,15 @@ AGI Schedule Updater 컴포넌트의 기능과 UI를 검증한 결과, 모든 �
 
 ---
 
+
+## 3.0 Reflow Authority & Bypass Policy (2026-02-11 update)
+
+- **Authoritative entrypoint:** `src/lib/reflow/schedule-reflow-manager.ts`
+  - `previewScheduleReflow()` for preview
+  - `applySchedulePreview()` for apply gating
+- **Unified preview DTO:** `nextActivities`, `changes`, `collisions`, `impact`, `meta`
+- **Forbidden bypass path:** `lib/utils/schedule-reflow.ts` direct UI usage is prohibited (kept as deprecated wrapper only).
+
 ## 3. Functional Verification (Code Analysis)
 
 ### 3.1 Single Mode Features
@@ -86,12 +95,17 @@ AGI Schedule Updater 컴포넌트의 기능과 UI를 검증한 결과, 모든 �
 ```typescript
 // ✅ Reflow Schedule Function
 function runReflow(base: ScheduleActivity[], anchorId: string, start: string) {
-  return reflowSchedule(base, anchorId, start, {
+  return previewScheduleReflow({
+  activities: base,
+  anchors: [{ activityId: anchorId, newStart: start }],
+  options: {
     respectLocks: true,              // SSOT compliance
     respectConstraints: true,         // Time window constraints
     checkResourceConflicts: true,     // Resource allocation
     detectCycles: true,               // Dependency cycle detection
-  });
+  },
+  mode: "shift",
+});
 }
 ```
 
@@ -110,13 +124,13 @@ function runPreviewSingle() {
   const result = runReflow(activities, selectedId, newStart);
   
   // 3. Change Tracking
-  const changes = buildChanges(activities, result.activities);
+  const changes = result.changes;
   
   // 4. Preview State
   setPreview({
-    next: result.activities,
+    next: result.nextActivities,
     changes,
-    impactReport: result.impact_report,
+    impactReport: result.impact,
     raw: result,
     anchors: [{ activityId: selectedId, newStart }]
   });

@@ -28,6 +28,7 @@ type MapPanelWrapperProps = {
   highlightedRouteId?: string | null
   onTrClick?: (trId: string) => void
   onActivitySelect?: (activityId: string) => void
+  onCollisionClick?: (collisionId: string, activityId: string) => void
 }
 
 export function MapPanelWrapper({
@@ -38,6 +39,7 @@ export function MapPanelWrapper({
   highlightedRouteId = null,
   onTrClick,
   onActivitySelect,
+  onCollisionClick,
 }: MapPanelWrapperProps) {
   const [internalSsot, setInternalSsot] = useState<OptionC | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -80,6 +82,7 @@ export function MapPanelWrapper({
       viewMode={viewMode}
       onTrClick={onTrClick}
       onActivitySelect={onActivitySelect}
+      onCollisionClick={onCollisionClick}
     />
   )
 }

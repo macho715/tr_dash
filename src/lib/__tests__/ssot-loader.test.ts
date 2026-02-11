@@ -55,7 +55,7 @@ describe('SSOT Loader', () => {
       };
       
       expect(() => {
-        isValidSSOT(invalidData as OptionC);
+        isValidSSOT(invalidData as unknown as OptionC);
       }).not.toThrow();
       
       expect(isValidSSOT(invalidData)).toBe(false);

@@ -66,7 +66,13 @@ function createCycleDependency(cycleIds: string[]): OptionC {
     } as Activity;
   }
   return {
-    contract: { version: '0.8.0', ssot: { activity_is_source_of_truth: true } },
+    contract: {
+      name: 'Test Project',
+      version: '0.8.0',
+      timezone: 'Asia/Dubai',
+      generated_at: '2026-01-01T00:00:00+04:00',
+      ssot: { activity_is_source_of_truth: true, derived_fields_read_only: true }
+    },
     constraint_rules: {} as any,
     activity_types: {},
     entities: {
@@ -97,7 +103,7 @@ function createCycleDependency(cycleIds: string[]): OptionC {
     reflow_runs: [],
     baselines: { current_baseline_id: null, items: {} },
     history_events: []
-  } as OptionC;
+  } as unknown as OptionC;
 }
 
 describe('Reflow Manager', () => {

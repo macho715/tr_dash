@@ -148,6 +148,8 @@ export function buildGroupedVisData(params: {
   eventLogByActivity?: Map<string, EventLogItem[]>
   eventOverlay?: EventOverlayOptions
   actualOverlay?: ActualOverlayOptions
+  /** Slack map for critical path highlighting */
+  slackMap?: Map<string, SlackResult>
 }): GroupedVisData {
   const {
     activities,
@@ -159,6 +161,7 @@ export function buildGroupedVisData(params: {
     eventLogByActivity,
     eventOverlay,
     actualOverlay,
+    slackMap,
   } = params
 
   const reflowChanges = Array.isArray(reflowPreview)
@@ -281,6 +284,8 @@ export function buildGroupedVisData(params: {
         const typeClass = `gantt-type-${mapAnchorToType(activity.anchor_type)}`
         const whatIfClass =
           isWhatIfPreview && changedActivityIds.has(activityId) ? " what-if-affected" : ""
+        const criticalClass =
+          slackMap?.get(activityId)?.isCriticalPath ? " critical-path" : ""
         items.push({
           id: activityId,
           group: datePhaseId, // Activities directly under Date+Phase
@@ -288,7 +293,7 @@ export function buildGroupedVisData(params: {
           start,
           end,
           type: "range",
-          className: `${typeClass}${whatIfClass}`,
+          className: `${typeClass}${whatIfClass}${criticalClass}`,
           title: buildLabel(activity),
         })
 

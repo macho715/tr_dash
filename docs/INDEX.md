@@ -1,14 +1,14 @@
 ---
 doc_id: docs-index
-refs: [../patch.md, ../AGENTS.md, LAYOUT.md, SYSTEM_ARCHITECTURE.md, WORK_LOG_20260202.md, WORK_LOG_20260209.md, WORK_LOG_20260210_AI_UPGRADE.md, BUGFIX_APPLIED_20260202.md, plan/gantt-reset-button-fix-plan.md]
+refs: [../patch.md, ../AGENTS.md, ../CHANGELOG.md, LAYOUT.md, SYSTEM_ARCHITECTURE.md, TYPECHECK_AND_LINT_FAILURES.md, WORK_LOG_20260202.md, WORK_LOG_20260209.md, WORK_LOG_20260210_AI_UPGRADE.md, WORK_LOG_20260211.md, BUGFIX_APPLIED_20260202.md, plan/gantt-reset-button-fix-plan.md, plan/document-integration-plan.md]
 updated: 2026-02-11
 ---
 
 # Docs Index
 
-문서 진입점. SSOT 우선으로 정렬. **각 문서는 최신 작업 내용(WORK_LOG/BUGFIX/plan)을 반영하도록 유지한다.**
+문서 진입점. SSOT 우선으로 정렬. **각 문서는 최신 작업 내용(WORK_LOG/BUGFIX/plan)을 반영하도록 유지한다.** 요약은 [CHANGELOG](../CHANGELOG.md), 일별/Phase 상세는 WORK_LOG_* 참조.
 
-**최신 작업 소스**: [AI_FEATURES](AI_FEATURES.md), [WORK_LOG_20260210_AI_UPGRADE](WORK_LOG_20260210_AI_UPGRADE.md), [NL_COMMAND_INTERFACE_IMPLEMENTATION_REPORT](NL_COMMAND_INTERFACE_IMPLEMENTATION_REPORT.md), [NL_COMMAND_INTERFACE_COMPLETE](NL_COMMAND_INTERFACE_COMPLETE.md), [WORK_LOG_20260209](WORK_LOG_20260209.md), [WORK_LOG_20260202](WORK_LOG_20260202.md), [BUGFIX_APPLIED_20260202](BUGFIX_APPLIED_20260202.md), [IMPLEMENTATION_SUMMARY](IMPLEMENTATION_SUMMARY.md), [plan/](plan/)
+**최신 작업 소스**: [CHANGELOG](../CHANGELOG.md), [TYPECHECK_AND_LINT_FAILURES](TYPECHECK_AND_LINT_FAILURES.md), [AI_FEATURES](AI_FEATURES.md), [WORK_LOG_20260211](WORK_LOG_20260211.md), [WORK_LOG_20260210_AI_UPGRADE](WORK_LOG_20260210_AI_UPGRADE.md), [NL_COMMAND_INTERFACE_IMPLEMENTATION_REPORT](NL_COMMAND_INTERFACE_IMPLEMENTATION_REPORT.md), [NL_COMMAND_INTERFACE_COMPLETE](NL_COMMAND_INTERFACE_COMPLETE.md), [WORK_LOG_20260209](WORK_LOG_20260209.md), [WORK_LOG_20260202](WORK_LOG_20260202.md), [BUGFIX_APPLIED_20260202](BUGFIX_APPLIED_20260202.md), [IMPLEMENTATION_SUMMARY](IMPLEMENTATION_SUMMARY.md), [plan/](plan/)
 
 ### 문서 REF 관계 (Mermaid)
 
@@ -50,6 +50,7 @@ graph LR
 
 | 문서 | 설명 |
 |------|------|
+| [document-integration-plan.md](plan/document-integration-plan.md) | 문서 통합·Ref 일관성 (Phase A~C, tr-planner 참조) |
 | [plan_patchmain_14.md](plan/plan_patchmain_14.md) | patchmain 14-item (Tidy First, 2026-02-04) |
 | [tr-dashboard-plan.md](plan/tr-dashboard-plan.md) | 대시보드 계획 |
 | [tr-dashboard-plan-patch4.md](plan/tr-dashboard-plan-patch4.md) | 패치4 계획 |
@@ -72,6 +73,8 @@ graph LR
 
 | 문서 | 설명 |
 |------|------|
+| [CHANGELOG.md](../CHANGELOG.md) | 릴리즈·배포 요약 (Added/Fixed 등) |
+| [TYPECHECK_AND_LINT_FAILURES.md](TYPECHECK_AND_LINT_FAILURES.md) | Typecheck/Lint 실패 원인 정리 및 해결 내역 (2026-02-11, 0 errors 달성) |
 | [WORK_LOG_20260210_AI_UPGRADE.md](WORK_LOG_20260210_AI_UPGRADE.md) | AI 업그레이드 작업 로그 (Ollama/EXAONE, ambiguity 재질의 포함) |
 | [AI_FEATURES.md](AI_FEATURES.md) | AI 기능 전용 상세 문서 (아키텍처/정책/테스트/운영) |
 | [NL_COMMAND_INTERFACE_IMPLEMENTATION_REPORT.md](NL_COMMAND_INTERFACE_IMPLEMENTATION_REPORT.md) | NL Command 구현 리포트 (현재 구현 기준) |
@@ -107,9 +110,12 @@ graph LR
 
 - [patch.md](../patch.md)
 - [AGENTS.md](../AGENTS.md)
+- [CHANGELOG.md](../CHANGELOG.md)
 - [LAYOUT.md](LAYOUT.md)
 - [SYSTEM_ARCHITECTURE.md](SYSTEM_ARCHITECTURE.md)
+- [plan/document-integration-plan.md](plan/document-integration-plan.md)
 - [WORK_LOG_20260210_AI_UPGRADE.md](WORK_LOG_20260210_AI_UPGRADE.md)
 - [AI_FEATURES.md](AI_FEATURES.md)
 - [NL_COMMAND_INTERFACE_IMPLEMENTATION_REPORT.md](NL_COMMAND_INTERFACE_IMPLEMENTATION_REPORT.md)
 - [NL_COMMAND_INTERFACE_COMPLETE.md](NL_COMMAND_INTERFACE_COMPLETE.md)
+- [TYPECHECK_AND_LINT_FAILURES.md](TYPECHECK_AND_LINT_FAILURES.md)

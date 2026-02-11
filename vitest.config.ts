@@ -12,6 +12,7 @@ export default defineConfig({
       'components/detail/__tests__/**/*.test.{ts,tsx}',
       'components/dashboard/__tests__/**/*.test.{ts,tsx}',
       'components/control-bar/__tests__/**/*.test.{ts,tsx}',
+      'components/gantt/__tests__/**/*.test.{ts,tsx}',
       'components/ops/__tests__/**/*.test.{ts,tsx}',
       'components/map/__tests__/**/*.test.{ts,tsx}',
       'app/api/**/__tests__/**/*.test.{ts,tsx}',

@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { isTransitionAllowed, getEvidenceGateStages } from '../states';
+import { isTransitionAllowed, getEvidenceGateStages, TERMINAL_STATES } from '../states';
 import { checkEvidenceGate } from '../evidence-gate';
 import { transitionState } from '../transition';
 import type { Activity, OptionC } from '../../../types/ssot';
@@ -64,7 +64,13 @@ function createMockActivity(overrides: Partial<Activity> = {}): Activity {
 
 function createMinimalSSOT(): OptionC {
   return {
-    contract: { version: '0.8.0', ssot: { activity_is_source_of_truth: true } },
+    contract: {
+      name: 'Test Project',
+      version: '0.8.0',
+      timezone: 'Asia/Dubai',
+      generated_at: '2026-01-01T00:00:00+04:00',
+      ssot: { activity_is_source_of_truth: true, derived_fields_read_only: true },
+    },
     constraint_rules: {} as any,
     activity_types: {},
     entities: {
@@ -110,9 +116,10 @@ describe('State Machine', () => {
       expect(result.allowed).toBe(true);
     });
 
-    it('should reject completed -> any (terminal)', () => {
-      const result = isTransitionAllowed('completed', 'planned');
-      expect(result.allowed).toBe(false);
+
+    it('should allow completed -> verified', () => {
+      const result = isTransitionAllowed('completed', 'verified');
+      expect(result.allowed).toBe(true);
     });
 
     it('should reject planned -> in_progress (not adjacent)', () => {
@@ -163,6 +170,12 @@ describe('State Machine', () => {
     it('should return empty for transitions without gate', () => {
       const stages = getEvidenceGateStages('in_progress', 'paused');
       expect(stages).toEqual([]);
+    });
+
+
+    it('should return after_end for completed->verified', () => {
+      const stages = getEvidenceGateStages('completed', 'verified');
+      expect(stages).toContain('after_end');
     });
   });
 
@@ -300,6 +313,64 @@ describe('State Machine', () => {
 
       expect(result.success).toBe(false);
       expect(result.blocker_code).toMatch(/EVIDENCE_MISSING/);
+    });
+
+
+    it('should block COMPLETED->VERIFIED when after_end evidence missing', () => {
+      const activity = createMockActivity({
+        state: 'completed',
+        evidence_required: [
+          {
+            evidence_type: 'completion_photo',
+            stage: 'after_end',
+            min_count: 1,
+            required: true,
+            validity_min: null,
+            tags: []
+          }
+        ],
+        evidence_ids: []
+      });
+
+      const ssot = createMinimalSSOT();
+      const result = transitionState(activity, 'verified', 'user:ops', { ssot });
+
+      expect(result.success).toBe(false);
+      expect(activity.state).toBe('completed');
+      expect(result.blocker_code).toMatch(/EVIDENCE_MISSING/);
+    });
+
+    it('should allow COMPLETED->VERIFIED when after_end evidence exists', () => {
+      const activity = createMockActivity({
+        state: 'completed',
+        evidence_required: [
+          {
+            evidence_type: 'ptw_approval',
+            stage: 'after_end',
+            min_count: 1,
+            required: true,
+            validity_min: null,
+            tags: []
+          }
+        ],
+        evidence_ids: ['EVD_001']
+      });
+
+      const ssot = createMinimalSSOT();
+      const result = transitionState(activity, 'verified', 'user:ops', { ssot });
+
+      expect(result.success).toBe(true);
+      expect(activity.state).toBe('verified');
+    });
+
+    it('should block transitions from terminal states', () => {
+      for (const terminalState of TERMINAL_STATES) {
+        const activity = createMockActivity({ state: terminalState });
+        const result = transitionState(activity, 'planned', 'user:ops');
+
+        expect(result.success).toBe(false);
+        expect(activity.state).toBe(terminalState);
+      }
     });
 
     it('should allow PLANNED->CANCELED when no actual.start_ts', () => {

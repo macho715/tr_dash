@@ -1,5 +1,6 @@
 import type { ScheduleActivity } from "@/lib/ssot/schedule"
-import { reflowSchedule } from "@/lib/utils/schedule-reflow"
+import { previewScheduleReflow } from "@/src/lib/reflow/schedule-reflow-manager"
+import type { IsoDate } from "@/lib/ops/agi/types"
 import type { WeatherDelayChange } from "@/lib/weather/weather-delay-preview"
 
 export interface WeatherReflowChainResult {
@@ -33,17 +34,17 @@ export function propagateWeatherDelays(
   })
   const pivot = sorted[0]
   const lockedActivities = withActualsLocked(activities)
-  const reflowResult = reflowSchedule(
-    lockedActivities,
-    pivot.activity_id,
-    pivot.new_start,
-    {
+  const reflowResult = previewScheduleReflow({
+    activities: lockedActivities,
+    anchors: [{ activityId: pivot.activity_id, newStart: pivot.new_start as IsoDate }],
+    options: {
       respectLocks: true,
       checkResourceConflicts: false,
-    }
-  )
+    },
+    mode: "shift",
+  })
   const directIds = new Set(weatherChanges.map((c) => c.activity_id))
-  const propagated = reflowResult.impact_report.changes
+  const propagated = reflowResult.impact.changes
     .filter((change) => !directIds.has(change.activity_id))
     .map((change) => ({
       ...change,

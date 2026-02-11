@@ -1,6 +1,7 @@
 // lib/ops/agi/types.ts
 import type { ScheduleActivity } from "@/lib/ssot/schedule";
 import type { ScheduleConflict } from "@/lib/ssot/schedule";
+import type { ImpactReport } from "@/lib/ssot/schedule";
 
 export type IsoDate = `${number}-${number}-${number}`;
 
@@ -79,7 +80,8 @@ export type ChangeRow = {
 export type PreviewResult = {
   nextActivities: ScheduleActivity[];
   changes: ChangeRow[];
-  conflicts: ScheduleConflict[];
+  collisions: ScheduleConflict[];
+  impact: ImpactReport;
   meta: {
     mode: "shift" | "bulk";
     anchors: Array<{ activityId?: string; pivot?: IsoDate; newStart?: IsoDate; deltaDays?: number }>;

@@ -1,14 +1,15 @@
 ---
 doc_id: system-architecture
 refs: [../patch.md, ../AGENTS.md, LAYOUT.md, plan/plan_patchmain_14.md]
-updated: 2026-02-10
+updated: 2026-02-11
 ---
 
 # HVDC TR Transport Dashboard - 시스템 아키텍처
 
-**버전**: 1.9  
-**최종 업데이트**: 2026-02-10  
-**최신 작업 반영**: 2026-02-10 — AI Command Phase 1 업그레이드. Ollama(EXAONE) 우선 provider + OpenAI fallback, confirm-first 실행(`AIExplainDialog`), ambiguity 재질의(`clarification`) 흐름, intent 스모크 12케이스 PASS. [WORK_LOG_20260210_AI_UPGRADE.md](WORK_LOG_20260210_AI_UPGRADE.md), [NL_COMMAND_INTERFACE_IMPLEMENTATION_REPORT.md](NL_COMMAND_INTERFACE_IMPLEMENTATION_REPORT.md)
+**버전**: 1.10  
+**최종 업데이트**: 2026-02-11  
+**최신 작업 반영**: 2026-02-11 — Merge·Reflow 통합, Typecheck/Lint 0 errors. 권위 진입점 `schedule-reflow-manager.ts`, deprecated wrapper `schedule-reflow.ts`. freeze_lock_violations(preview 우선 + fallback). page/MapPanel 충돌 클릭 통일, #water-tide·Compare KPI 유지. History append-only tombstone. [TYPECHECK_AND_LINT_FAILURES.md](TYPECHECK_AND_LINT_FAILURES.md).
+
 **프로젝트**: HVDC TR Transport - AGI Site Logistics Dashboard  
 **SSOT**: patch.md, option_c.json (AGENTS.md)
 
@@ -48,6 +49,7 @@ HVDC TR Transport Dashboard는 **7개의 Transformer Unit**을 **LCT BUSHRA**로
 
 | Phase | 반영 내용 (본문과 일치하도록 유지) |
 |-------|-----------------------------------|
+| **2026-02-11** | **Merge·Reflow**: page/MapPanel/schedule-reflow 충돌 해소. Reflow 단일 진입점(schedule-reflow-manager), collectFreezeLockViolations·impact.freeze_lock_violations. History tombstone. **Typecheck/Lint**: tsc·eslint 0 errors (24파일 수정). 스크립트 dev:webpack, sync:wa-events. |
 | **Phase 13 (2026-02-05)** | **Gantt Reset 버튼 & Activity 디버깅**: Timeline controls에 Reset 버튼 추가 (⟲, 주황색 hover). handleResetGantt() — View/Filters/Highlights/Groups/Overlays/Heatmap 일괄 초기화. 디버그 로그: `[Gantt Debug]`, `[Grouping Debug]`, `[Reset]`. |
 | **Phase 12 (2026-02-05)** | **Event Sourcing Layer**: Event Log → Actual/Hold/Milestone → Gantt 오버레이. 3-PR Pipeline (ID Resolution/JSON Patch/KPI Calc). Plan 불변, actual만 갱신. lib/ops/event-sourcing/, lib/gantt/event-sourcing-mapper.ts. |
 | **Phase 12 (2026-02-05)** | Event Sourcing Overlay Pipeline: Event Log → Actual/Hold/Milestone → Gantt 오버레이. 3-PR (ID Resolution/JSON Patch/KPI Calc). Plan 불변, actual만 갱신. |
@@ -185,7 +187,8 @@ function GanttChart() {
 #### 2. Business Logic Layer
 - **역할**: 비즈니스 로직 및 데이터 변환
 - **구성요소**:
-  - **재계산 공개 API**: `lib/utils/schedule-reflow.ts` — `reflowSchedule()` (applyBulkAnchors, buildChanges, detectResourceConflicts 조합 래퍼)
+  - **재계산 권위 진입점**: `src/lib/reflow/schedule-reflow-manager.ts` — `previewScheduleReflow`, `applySchedulePreview`. Preview DTO: nextActivities, changes, collisions, impact(freeze_lock_violations 포함), meta. UI(components/ops, dashboard, lib/weather)에서 `lib/utils/schedule-reflow.ts` 직접 호출 금지.
+  - **Deprecated 래퍼**: `lib/utils/schedule-reflow.ts` — `reflowSchedule()` 하위 호환용. 신규 코드는 schedule-reflow-manager만 사용.
   - **재계산 내부 구현**: `src/lib/reflow/` — forward-pass, backward-pass, reflow-manager, dag-cycle, collision-detect 등 (DFS/위상정렬/사이클 탐지)
   - **AGI 일정 연산**: `lib/ops/agi/`, `lib/ops/agi-schedule/` — applyShift, parseCommand, pipeline (reflowSchedule가 사용)
   - **AGI / pipeline**: `lib/ops/agi-schedule/pipeline-check.ts` — `runPipelineCheck` 입력 null/empty/partial 허용, 순수 함수.
@@ -405,6 +408,11 @@ Collision 배지 클릭
 - `before_ready`: PTW, Risk Assessment 필수
 - `before_start`: Start checklist 필수
 - `after_end`: Completion photos 필수
+
+**State Enum (code contract)**:
+- `draft | planned | ready | in_progress | paused | blocked | completed | verified | canceled | cancelled | aborted | done(legacy alias)`
+- 핵심 검증 전이: `ready→in_progress`(before_start), `completed→verified`(after_end mandatory)
+- terminal states: `verified`, `canceled/cancelled`, `aborted`, `done(legacy)`
 
 **테스트**: 22 tests passed (state transitions, evidence gates, blocker codes)
 
@@ -654,7 +662,7 @@ z-0:  WeatherOverlay (Canvas)
 
 ---
 
-**Last Updated**: 2026-02-10 (AI Command Phase 1 반영)
+**Last Updated**: 2026-02-11
 
 ## Refs
 

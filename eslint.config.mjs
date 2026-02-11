@@ -21,6 +21,8 @@ const eslintConfig = defineConfig([
     'build/**',
     'node_modules/**',
     '_archive/**',
+    'archive/**',
+    'tr_dash-main/**',
   ]),
 ])
 

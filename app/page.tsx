@@ -61,6 +61,7 @@ import type { Activity, ActivityState, OptionC } from "@/src/types/ssot"
 import { calculateCurrentActivityForTR, calculateCurrentLocationForTR } from "@/src/lib/derived-calc"
 import { checkEvidenceGate } from "@/src/lib/state-machine/evidence-gate"
 import type {
+  FreezeLockViolation,
   ImpactReport,
   ScheduleActivity,
   ScheduleConflict,
@@ -193,6 +194,7 @@ export default function Page() {
     scenario?: WhatIfScenario
     affected_count?: number
     conflict_count?: number
+    freezeLockViolations?: FreezeLockViolation[]
   } | null>(null)
   const [whatIfMetrics, setWhatIfMetrics] = useState<WhatIfMetrics | null>(null)
   const [showWhatIfPanel, setShowWhatIfPanel] = useState(false)
@@ -469,7 +471,16 @@ export default function Page() {
     focusTimelineActivity(targetId)
   }
 
-  const handleJumpToEvidence = () => {
+  const handleJumpToEvidence = (collision: ScheduleConflict) => {
+    const resolvedActivityId =
+      (collision.activity_id && collision.activity_id.trim()) ||
+      collision.activity_ids?.[0] ||
+      null
+    if (resolvedActivityId) {
+      setSelectedActivityId(resolvedActivityId)
+      setFocusedActivityId(resolvedActivityId)
+    }
+    setEvidenceTab("evidence")
     evidenceRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
   }
 
@@ -638,6 +649,56 @@ export default function Page() {
     }
   }
 
+  // Drag-to-Edit: user drags a Gantt bar → generate reflow preview
+  const handleDragMove = (activityId: string, newStart: string) => {
+    const activity = activities.find(a => a.activity_id === activityId)
+    if (!activity) return
+
+    // Select the activity being dragged
+    setActiveDetailTab("detail")
+    setSelectedActivityId(activityId)
+    setFocusedActivityId(activityId)
+    setShowWhatIfPanel(true)
+
+    try {
+      const result = reflowSchedule(activities, activityId, newStart, {
+        respectLocks: true,
+        checkResourceConflicts: true,
+      })
+
+      const dragDays = Math.round(
+        (new Date(newStart).getTime() - new Date(activity.planned_start).getTime()) /
+          (1000 * 60 * 60 * 24)
+      )
+
+      setReflowPreview({
+        changes: result.impact_report.changes,
+        conflicts: result.impact_report.conflicts,
+        nextActivities: result.activities,
+        scenario: {
+          activity_id: activityId,
+          delay_days: dragDays,
+          reason: "Drag-to-edit",
+          confidence: 1,
+          activity_name: activity.activity_name,
+        },
+        affected_count: result.impact_report.changes.length,
+        conflict_count: result.impact_report.conflicts.length,
+        freezeLockViolations: result.impact_report.freeze_lock_violations ?? [],
+      })
+
+      setWhatIfMetrics({
+        affected_activities: result.impact_report.changes.length,
+        total_delay_days: dragDays,
+        new_conflicts: result.impact_report.conflicts.length,
+        project_eta_change: dragDays,
+      })
+    } catch {
+      setReflowPreview(null)
+      setWhatIfMetrics(null)
+    }
+  }
+
   // What-If Simulation handlers
   const handleWhatIfSimulate = (scenario: WhatIfScenario) => {
     const activity = activities.find(a => a.activity_id === scenario.activity_id)
@@ -683,6 +744,7 @@ export default function Page() {
         scenario,
         affected_count: affectedCount,
         conflict_count: newConflicts,
+        freezeLockViolations: result.impact_report.freeze_lock_violations ?? [],
       })
     } catch (error) {
       console.error("What-If simulation failed:", error)
@@ -903,6 +965,7 @@ export default function Page() {
                       weatherOverlayOpacity={0.15}
                       onOpenEvidence={handleOpenEvidence}
                       onOpenHistory={handleOpenHistory}
+                      onDragMove={handleDragMove}
                     />
                     </WidgetErrorBoundary>
                   </div>
@@ -1000,6 +1063,7 @@ export default function Page() {
                               onApply={handleApplyPreviewFromWhy}
                               onCancel={() => setReflowPreview(null)}
                               canApply={canApplyReflow}
+                              freezeLockViolations={reflowPreview.freezeLockViolations ?? []}
                             />
                           )}
                           {undoCount > 0 && (
