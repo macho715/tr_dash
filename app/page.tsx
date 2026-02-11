@@ -65,7 +65,9 @@ import type {
   ScheduleActivity,
   ScheduleConflict,
   SuggestedAction,
+  FreezeLockViolation,
 } from "@/lib/ssot/schedule"
+import { mapSsotCollisionToScheduleConflict } from "@/src/lib/collision-card"
 
 type SectionItem = {
   id: string
@@ -166,11 +168,38 @@ export default function Page() {
   const [focusedActivityId, setFocusedActivityId] = useState<string | null>(null)
   const [activeDetailTab, setActiveDetailTab] = useState<DetailTab>("tide")
   const [selectedTrId, setSelectedTrId] = useState<string | null>(null)
+  const viewMode = useViewModeOptional()
   const conflicts = useMemo(() => detectResourceConflicts(activities), [activities])
   const baselineConflicts = useMemo(
     () => detectResourceConflicts(scheduleActivities).length,
     []
   )
+  const baselineConflictBySeverity = useMemo(() => {
+    const baseConflicts = detectResourceConflicts(scheduleActivities)
+    return {
+      error: baseConflicts.filter((c) => c.severity === "error").length,
+      warn: baseConflicts.filter((c) => c.severity === "warn").length,
+    }
+  }, [])
+  const compareConflictBySeverity = useMemo(() => ({
+    error: conflicts.filter((c) => c.severity === "error").length,
+    warn: conflicts.filter((c) => c.severity === "warn").length,
+  }), [conflicts])
+  const compareResult = useMemo(() => {
+    if (viewMode?.state.mode !== "compare") return null
+    return calculateDelta(scheduleActivities, activities, baselineConflicts, conflicts.length, {
+      baselineConflictBySeverity,
+      compareConflictBySeverity,
+      asOf: new Date().toISOString(),
+    })
+  }, [
+    activities,
+    baselineConflictBySeverity,
+    baselineConflicts,
+    compareConflictBySeverity,
+    conflicts.length,
+    viewMode?.state.mode,
+  ])
   const slackMap = useMemo(
     () => calculateSlack(activities, PROJECT_END_DATE),
     [activities]
@@ -181,6 +210,7 @@ export default function Page() {
   )
   const ganttRef = useRef<GanttChartHandle>(null)
   const evidenceRef = useRef<HTMLElement>(null)
+  const detailPanelRef = useRef<HTMLDivElement>(null)
   const [evidenceTab, setEvidenceTab] = useState<HistoryEvidenceTab | null>(null)
   const [trips, setTrips] = useState<{ trip_id: string; name: string }[]>([])
   const [trs, setTrs] = useState<{ tr_id: string; name: string }[]>([])
@@ -193,6 +223,7 @@ export default function Page() {
     scenario?: WhatIfScenario
     affected_count?: number
     conflict_count?: number
+    freezeLockViolations?: FreezeLockViolation[]
   } | null>(null)
   const [whatIfMetrics, setWhatIfMetrics] = useState<WhatIfMetrics | null>(null)
   const [showWhatIfPanel, setShowWhatIfPanel] = useState(false)
@@ -470,7 +501,49 @@ export default function Page() {
   }
 
   const handleJumpToEvidence = () => {
+    setEvidenceTab("evidence")
     evidenceRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+  }
+
+  const handleJumpToHistory = () => {
+    setEvidenceTab("history")
+    evidenceRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+  }
+
+  const handleCollisionCardOpen = (params: {
+    collisionId?: string
+    conflict?: ScheduleConflict
+    activityId?: string | null
+  }) => {
+    const mapped =
+      params.collisionId && ssot?.collisions?.[params.collisionId]
+        ? mapSsotCollisionToScheduleConflict(ssot.collisions[params.collisionId])
+        : params.conflict ?? null
+    if (!mapped) return
+
+    const resolvedActivityId = params.activityId ?? mapped.activity_id ?? mapped.activity_ids?.[0] ?? null
+    const normalized = resolvedActivityId ? { ...mapped, activity_id: resolvedActivityId } : mapped
+
+    setSelectedCollision(normalized)
+    if (resolvedActivityId) {
+      setSelectedActivityId(resolvedActivityId)
+      setFocusedActivityId(resolvedActivityId)
+      ganttRef.current?.scrollToActivity(resolvedActivityId)
+      setShowWhatIfPanel(true)
+    }
+  }
+
+  const handleOpenWhyDetail = (collision: ScheduleConflict) => {
+    const resolvedActivityId =
+      (collision.activity_id && collision.activity_id.trim()) ||
+      collision.activity_ids?.[0] ||
+      null
+    if (resolvedActivityId) {
+      setSelectedActivityId(resolvedActivityId)
+      setFocusedActivityId(resolvedActivityId)
+    }
+    detailPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
+    detailPanelRef.current?.focus()
   }
 
   const openActivityFromGantt = (activityId: string) => {
@@ -572,7 +645,6 @@ export default function Page() {
     return { transition: data.transition }
   }
 
-  const viewMode = useViewModeOptional()
   const selectedTripId = viewMode?.state.selectedTripId ?? null
   const canApplyReflow = viewMode?.canApplyReflow ?? true
   const isLiveMode = viewMode?.state.mode ? viewMode.state.mode === "live" : true
@@ -603,6 +675,7 @@ export default function Page() {
         changes: result.impact_report.changes,
         conflicts: result.impact_report.conflicts,
         nextActivities: result.activities,
+        freezeLockViolations: result.impact_report.freeze_lock_violations ?? [],
       })
     } catch {
       setReflowPreview(null)
@@ -683,6 +756,7 @@ export default function Page() {
         scenario,
         affected_count: affectedCount,
         conflict_count: newConflicts,
+        freezeLockViolations: result.impact_report.freeze_lock_violations ?? [],
       })
     } catch (error) {
       console.error("What-If simulation failed:", error)
@@ -712,6 +786,16 @@ export default function Page() {
     window.addEventListener("hashchange", syncWaterTideHash)
     return () => window.removeEventListener("hashchange", syncWaterTideHash)
   }, [])
+
+  const handleCompareDrillDown = (activityIds: string[]) => {
+    const targetId = activityIds[0]
+    if (!targetId) return
+    setSelectedActivityId(targetId)
+    setFocusedActivityId(targetId)
+    ganttRef.current?.scrollToActivity(targetId)
+    const ganttSection = document.getElementById("gantt")
+    ganttSection?.scrollIntoView({ behavior: "smooth", block: "start" })
+  }
 
   return (
     <DateProvider>
@@ -747,13 +831,7 @@ export default function Page() {
             onReflowPreview={() => setJumpTrigger((n) => n + 1)}
           >
             <ApprovalModeBanner activities={activities} />
-            <CompareModeBanner
-              compareResult={
-                viewMode?.state.mode === "compare"
-                  ? calculateDelta(scheduleActivities, activities, baselineConflicts, conflicts.length)
-                  : null
-              }
-            />
+            <CompareModeBanner compareResult={compareResult} onDrillDown={handleCompareDrillDown} />
                 <StoryHeader
               trId={storyHeaderData.trId}
               where={storyHeaderData.where}
@@ -810,6 +888,9 @@ export default function Page() {
                           const ganttSection = document.getElementById("gantt")
                           ganttSection?.scrollIntoView({ behavior: "smooth", block: "start" })
                         }}
+                        onCollisionClick={(collisionId, activityId) =>
+                          handleCollisionCardOpen({ collisionId, activityId })
+                        }
                       />
                     </WidgetErrorBoundary>
                     <VoyagesSection
@@ -854,27 +935,11 @@ export default function Page() {
                       }}
                       conflicts={conflicts}
                       onCollisionClick={(col) => {
-                        setActiveDetailTab("detail")
-                        setSelectedCollision(col)
-                        if (col.activity_id) {
-                          setSelectedActivityId(col.activity_id)
-                          setFocusedActivityId(col.activity_id)
-                          ganttRef.current?.scrollToActivity(col.activity_id)
-                          setShowWhatIfPanel(true)
-                        }
+                        handleCollisionCardOpen({ conflict: col, activityId: col.activity_id })
                       }}
                       focusedActivityId={focusedActivityId}
                       projectEndDate={PROJECT_END_DATE}
-                      compareDelta={
-                        viewMode?.state.mode === "compare"
-                          ? calculateDelta(
-                              scheduleActivities,
-                              activities,
-                              baselineConflicts,
-                              conflicts.length
-                            )
-                          : null
-                      }
+                      compareDelta={compareResult}
                       reflowPreview={
                         reflowPreview
                           ? {
@@ -956,37 +1021,34 @@ export default function Page() {
                               isSimulating={false}
                             />
                           )}
-                          <DetailPanel
-                            activity={
-                              selectedActivityId
-                                ? activities.find((a) => a.activity_id === selectedActivityId) ?? null
-                                : null
-                            }
-                            slackResult={
-                              selectedActivityId ? slackMap.get(selectedActivityId) ?? null : null
-                            }
-                            conflicts={conflicts}
-                            onClose={() => {
-                              setSelectedActivityId(null)
-                              setActiveDetailTab("tide")
-                            }}
-                            onActualUpdate={handleActualUpdate}
-                            onCollisionClick={(col) => {
-                              setActiveDetailTab("detail")
-                              setSelectedCollision(col)
-                              if (col.activity_id) {
-                                setSelectedActivityId(col.activity_id)
-                                setFocusedActivityId(col.activity_id)
-                                ganttRef.current?.scrollToActivity(col.activity_id)
-                                setShowWhatIfPanel(true)
+                          <div ref={detailPanelRef} tabIndex={-1} className="outline-none">
+                            <DetailPanel
+                              activity={
+                                selectedActivityId
+                                  ? activities.find((a) => a.activity_id === selectedActivityId) ?? null
+                                  : null
                               }
-                            }}
-                          />
+                              slackResult={
+                                selectedActivityId ? slackMap.get(selectedActivityId) ?? null : null
+                              }
+                              conflicts={conflicts}
+                              onClose={() => {
+                                setSelectedActivityId(null)
+                                setActiveDetailTab("tide")
+                              }}
+                              onActualUpdate={handleActualUpdate}
+                              onCollisionClick={(col) => {
+                                handleCollisionCardOpen({ conflict: col, activityId: col.activity_id })
+                              }}
+                            />
+                          </div>
                           <WhyPanel
                             collision={selectedCollision}
                             onClose={() => setSelectedCollision(null)}
                             onViewInTimeline={handleViewInTimeline}
                             onJumpToEvidence={handleJumpToEvidence}
+                            onJumpToHistory={handleJumpToHistory}
+                            onOpenWhyDetail={handleOpenWhyDetail}
                             onRelatedActivityClick={focusTimelineActivity}
                             onApplyAction={handleApplyAction}
                           />
@@ -1000,17 +1062,19 @@ export default function Page() {
                               onApply={handleApplyPreviewFromWhy}
                               onCancel={() => setReflowPreview(null)}
                               canApply={canApplyReflow}
+                              isApprovalMode={viewMode?.state.mode === "approval"}
+                              freezeLockViolations={reflowPreview.freezeLockViolations ?? []}
                             />
                           )}
                           {undoCount > 0 && (
                             <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200 flex items-center justify-between gap-2">
-                              <span>Undo available{undoCount > 1 ? " (" + undoCount + ")" : ""}</span>
+                              <span>일정 적용됨.{undoCount > 1 ? ` 실행 취소 ${undoCount}회 가능.` : ""}</span>
                               <button
                                 type="button"
                                 onClick={handleUndoLastApply}
                                 className="font-semibold text-cyan-300 hover:text-cyan-200 underline"
                               >
-                                Undo{undoCount > 1 ? " (" + undoCount + ")" : ""}
+                                실행 취소{undoCount > 1 ? ` (${undoCount})` : ""}
                               </button>
                             </div>
                           )}
