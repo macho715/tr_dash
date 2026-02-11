@@ -65,4 +65,20 @@ export type AiIntentResult = {
   confidence: number;
   risk_level: AiRiskLevel;
   requires_confirmation: true;
+  model_trace?: {
+    provider: "ollama" | "openai";
+    primary_model?: string;
+    review_model?: string;
+    review_verdict?: "approve" | "clarify";
+    review_reason?: string;
+  };
+  recommendations?: {
+    what_if_shift_days?: number[];
+    next_steps?: string[];
+  };
+  governance_checks?: Array<{
+    code: string;
+    status: "pass" | "warn" | "fail";
+    message: string;
+  }>;
 };

@@ -86,4 +86,40 @@ describe("AIExplainDialog", () => {
     fireEvent.click(screen.getByRole("button", { name: "Voyage 2" }));
     expect(onSelectAmbiguity).toHaveBeenCalledWith("Voyage 2");
   });
+
+  it("renders model trace, what-if suggestions, and governance checks", () => {
+    const enriched: AiIntentResult = {
+      ...baseResult,
+      model_trace: {
+        provider: "ollama",
+        primary_model: "exaone3.5:7.8b",
+        review_model: "llama3.1:8b",
+        review_verdict: "approve",
+      },
+      recommendations: {
+        what_if_shift_days: [1, 2],
+      },
+      governance_checks: [
+        { code: "CONFIRM_REQUIRED", status: "pass", message: "Confirmation is required." },
+        { code: "HIGH_RISK_CONFIRM", status: "warn", message: "Needs explicit confirmation." },
+      ],
+    };
+
+    render(
+      <AIExplainDialog
+        open={true}
+        aiResult={enriched}
+        canExecute={true}
+        actionSummary="Preview before apply"
+        onConfirm={vi.fn()}
+        onCancel={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText(/model: exaone3.5:7.8b/i)).toBeTruthy();
+    expect(screen.getByText(/What-if Suggestions/i)).toBeTruthy();
+    expect(screen.getByText(/shift \+1d/i)).toBeTruthy();
+    expect(screen.getByText(/Governance Checks/i)).toBeTruthy();
+    expect(screen.getByText(/CONFIRM_REQUIRED/i)).toBeTruthy();
+  });
 });

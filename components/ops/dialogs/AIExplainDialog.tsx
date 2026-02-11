@@ -66,6 +66,14 @@ export function AIExplainDialog({
             <span className="rounded bg-cyan-500/20 px-2 py-1 text-cyan-100">
               confirm: required
             </span>
+            {aiResult.model_trace ? (
+              <span className="rounded bg-indigo-500/20 px-2 py-1 text-indigo-100">
+                model: {aiResult.model_trace.primary_model ?? aiResult.model_trace.provider}
+                {aiResult.model_trace.review_model
+                  ? ` -> review(${aiResult.model_trace.review_model}:${aiResult.model_trace.review_verdict ?? "n/a"})`
+                  : ""}
+              </span>
+            ) : null}
           </div>
 
           <div className="mb-4 rounded-lg bg-slate-800/60 p-4 text-sm text-slate-200">
@@ -118,6 +126,46 @@ export function AIExplainDialog({
                 {JSON.stringify(aiResult.parameters, null, 2)}
               </pre>
             </details>
+          ) : null}
+
+          {aiResult.recommendations?.what_if_shift_days?.length ? (
+            <div className="mb-4 rounded-lg border border-indigo-500/30 bg-indigo-500/10 p-3 text-sm text-indigo-100">
+              <div className="text-xs font-semibold text-indigo-300">What-if Suggestions</div>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {aiResult.recommendations.what_if_shift_days.map((delta) => (
+                  <span
+                    key={delta}
+                    className="rounded bg-indigo-500/20 px-2 py-1 text-xs font-medium text-indigo-100"
+                  >
+                    shift {delta > 0 ? `+${delta}` : delta}d
+                  </span>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          {aiResult.governance_checks?.length ? (
+            <div className="mb-4 rounded-lg border border-slate-600/40 bg-slate-800/60 p-3 text-sm text-slate-200">
+              <div className="text-xs font-semibold text-slate-300">Governance Checks</div>
+              <ul className="mt-2 space-y-1 text-xs">
+                {aiResult.governance_checks.map((check) => (
+                  <li key={check.code} className="flex items-start gap-2">
+                    <span
+                      className={`mt-0.5 inline-block h-2 w-2 rounded-full ${
+                        check.status === "pass"
+                          ? "bg-emerald-400"
+                          : check.status === "warn"
+                          ? "bg-amber-400"
+                          : "bg-rose-400"
+                      }`}
+                    />
+                    <span className="text-slate-300">
+                      <strong className="text-slate-200">{check.code}</strong>: {check.message}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           ) : null}
 
           <div className="flex justify-end gap-2">

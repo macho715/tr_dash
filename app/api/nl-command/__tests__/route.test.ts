@@ -58,6 +58,8 @@ beforeEach(() => {
   process.env.AI_PROVIDER = "ollama";
   process.env.OLLAMA_MODEL = "exaone3.5:7.8b";
   process.env.OLLAMA_FALLBACK_MODELS = "llama3.1:8b";
+  process.env.OLLAMA_REVIEW_MODEL = "llama3.1:8b";
+  process.env.AI_DUAL_REVIEW_ENABLED = "0";
   process.env.OPENAI_API_KEY = "";
 });
 
@@ -201,5 +203,99 @@ describe("/api/nl-command", () => {
 
     expect(firstBody.model).toBe("exaone3.5:7.8b");
     expect(secondBody.model).toBe("llama3.1:8b");
+  });
+
+  it("uses secondary review model and converts strict intents to unclear when reviewer flags ambiguity", async () => {
+    process.env.AI_DUAL_REVIEW_ENABLED = "1";
+    global.fetch = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          message: {
+            content: JSON.stringify({
+              intent: "apply_preview",
+              explanation: "Apply current preview",
+              parameters: {
+                preview_ref: "current",
+              },
+              confidence: 0.83,
+              risk_level: "high",
+            }),
+          },
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          message: {
+            content: JSON.stringify({
+              verdict: "clarify",
+              reason: "Target scope is too broad",
+              confidence: 0.92,
+              clarification_question: "Voyage 3 전체를 이동할까요, Load-out만 이동할까요?",
+              options: ["Voyage 3 all", "Load-out only"],
+            }),
+          },
+        }),
+      }) as unknown as typeof fetch;
+
+    const { POST } = await loadRoute();
+    const res = await POST(makeRequest("현재 프리뷰 바로 적용해"));
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body.intent).toBe("unclear");
+    expect(body.ambiguity?.question).toMatch(/Load-out/);
+    expect(body.model_trace?.provider).toBe("ollama");
+    expect(body.model_trace?.review_model).toBe("llama3.1:8b");
+    expect(body.model_trace?.review_verdict).toBe("clarify");
+  });
+
+  it("keeps non-strict intents and adds review warning when secondary model requests clarification", async () => {
+    process.env.AI_DUAL_REVIEW_ENABLED = "1";
+    global.fetch = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          message: {
+            content: JSON.stringify({
+              intent: "shift_activities",
+              explanation: "Shift Voyage 3 by 2 days",
+              parameters: {
+                filter: { voyage_ids: ["V3"] },
+                action: { type: "shift_days", delta_days: 2 },
+              },
+              confidence: 0.83,
+              risk_level: "medium",
+            }),
+          },
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          message: {
+            content: JSON.stringify({
+              verdict: "clarify",
+              reason: "Need tighter scope",
+              confidence: 0.9,
+              clarification_question: "Load-out만 이동할까요?",
+            }),
+          },
+        }),
+      }) as unknown as typeof fetch;
+
+    const { POST } = await loadRoute();
+    const res = await POST(makeRequest("Voyage 3를 2일 미뤄"));
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body.intent).toBe("shift_activities");
+    expect(
+      Array.isArray(body.governance_checks) &&
+        body.governance_checks.some((c: { code?: string }) => c.code === "SECONDARY_REVIEW_NOTE")
+    ).toBe(true);
   });
 });

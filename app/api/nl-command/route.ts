@@ -8,10 +8,13 @@ const DEFAULT_OLLAMA_MODEL = process.env.OLLAMA_MODEL || "exaone3.5:7.8b";
 const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL || "http://127.0.0.1:11434";
 const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4-turbo-preview";
 const AI_PROVIDER = (process.env.AI_PROVIDER || "").toLowerCase();
+const AI_DUAL_REVIEW_ENABLED = process.env.AI_DUAL_REVIEW_ENABLED !== "0";
 const OLLAMA_FALLBACK_MODELS = (process.env.OLLAMA_FALLBACK_MODELS || "llama3.1:8b")
   .split(",")
   .map((x) => x.trim())
   .filter((x) => x.length > 0 && x !== DEFAULT_OLLAMA_MODEL);
+const OLLAMA_REVIEW_MODEL =
+  (process.env.OLLAMA_REVIEW_MODEL || OLLAMA_FALLBACK_MODELS[0] || "").trim() || null;
 
 // TR Logistics Domain Prompt
 const SYSTEM_PROMPT = `You are an AI assistant for a Transformer (TR) logistics scheduling system.
@@ -78,6 +81,26 @@ Output: {"intent":"explain_conflict","explanation":"Explain likely root causes f
 
 Input: "승인 모드로 바꿔"
 Output: {"intent":"set_mode","explanation":"Switch view mode to approval","parameters":{"mode":"approval","reason":"review and sign-off"},"confidence":0.91,"risk_level":"low","requires_confirmation":true,"ambiguity":null}
+`;
+
+const REVIEW_PROMPT = `You are a strict reviewer for TR scheduling intent parsing.
+You receive a user query and a parsed AI result.
+Decide whether the parsed result is safe and unambiguous.
+
+Return JSON only:
+{
+  "verdict": "approve" | "clarify",
+  "reason": "short reason",
+  "confidence": 0.0-1.0,
+  "clarification_question": "required when verdict=clarify",
+  "options": ["optional", "choices"]
+}
+
+Rules:
+1. If intent/action may violate policy or is ambiguous, choose "clarify".
+2. For apply_preview, require preview_ref="current".
+3. For set_mode, mode must be one of live/history/approval/compare.
+4. Prefer "approve" when the parse is clear and policy-safe.
 `;
 
 function extractJsonObject(text: string): Record<string, unknown> | null {
@@ -205,46 +228,174 @@ async function callOpenAI(apiKey: string, userContent: string): Promise<string |
   return completion.choices[0]?.message?.content ?? null;
 }
 
-async function callOllama(userContent: string): Promise<string | null> {
+async function callOllamaWithModel(
+  userContent: string,
+  model: string,
+  systemPrompt = SYSTEM_PROMPT
+): Promise<string | null> {
+  const ollamaRes = await fetch(`${OLLAMA_BASE_URL}/api/chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model,
+      format: "json",
+      stream: false,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userContent },
+      ],
+      options: {
+        temperature: 0.2,
+      },
+    }),
+  });
+
+  if (!ollamaRes.ok) {
+    const err = new Error(`Ollama request failed (${ollamaRes.status})`);
+    (err as Error & { status?: number }).status = ollamaRes.status;
+    throw err;
+  }
+
+  const ollamaJson = (await ollamaRes.json()) as {
+    message?: { content?: string };
+  };
+  return ollamaJson?.message?.content ?? null;
+}
+
+async function callOllama(userContent: string): Promise<{ content: string | null; model: string }> {
   const models = [DEFAULT_OLLAMA_MODEL, ...OLLAMA_FALLBACK_MODELS];
   const modelErrors: string[] = [];
   let lastStatus: number | undefined;
 
   for (const model of models) {
-    const ollamaRes = await fetch(`${OLLAMA_BASE_URL}/api/chat`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model,
-        format: "json",
-        stream: false,
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: userContent },
-        ],
-        options: {
-          temperature: 0.2,
-        },
-      }),
-    });
-
-    if (!ollamaRes.ok) {
-      lastStatus = ollamaRes.status;
-      modelErrors.push(`${model}:${ollamaRes.status}`);
-      continue;
+    try {
+      const content = await callOllamaWithModel(userContent, model);
+      if (content) return { content, model };
+      modelErrors.push(`${model}:empty`);
+    } catch (error: unknown) {
+      const status = getErrorStatus(error);
+      lastStatus = status;
+      modelErrors.push(`${model}:${status ?? "ERR"}`);
     }
-
-    const ollamaJson = (await ollamaRes.json()) as {
-      message?: { content?: string };
-    };
-    const content = ollamaJson?.message?.content ?? null;
-    if (content) return content;
-    modelErrors.push(`${model}:empty`);
   }
 
   const err = new Error(`Ollama request failed (${modelErrors.join(", ")})`);
   (err as Error & { status?: number }).status = lastStatus;
   throw err;
+}
+
+function buildShiftWhatIfCandidates(result: AiIntentResult): number[] {
+  const delta = result.parameters?.action?.delta_days;
+  if (result.intent !== "shift_activities" || typeof delta !== "number") return [];
+  const raw = [delta - 1, delta + 1, delta + 2].filter((value) => value !== delta);
+  const unique = Array.from(new Set(raw));
+  return unique.filter((value) => value >= -14 && value <= 14);
+}
+
+function buildGovernanceChecks(result: AiIntentResult) {
+  const checks: NonNullable<AiIntentResult["governance_checks"]> = [
+    {
+      code: "CONFIRM_REQUIRED",
+      status: result.requires_confirmation ? "pass" : "fail",
+      message: result.requires_confirmation
+        ? "Confirmation is required before execution."
+        : "Execution confirmation flag is missing.",
+    },
+  ];
+
+  if (result.intent === "apply_preview") {
+    const isCurrent = result.parameters?.preview_ref === "current";
+    checks.push({
+      code: "APPLY_PREVIEW_REF",
+      status: isCurrent ? "pass" : "fail",
+      message: isCurrent
+        ? "preview_ref='current' confirmed."
+        : "preview_ref must be 'current'.",
+    });
+  }
+
+  if (result.intent === "set_mode") {
+    const mode = result.parameters?.mode;
+    const allowed = ["live", "history", "approval", "compare"];
+    const ok = typeof mode === "string" && allowed.includes(mode);
+    checks.push({
+      code: "MODE_ALLOWED",
+      status: ok ? "pass" : "fail",
+      message: ok
+        ? `Mode '${mode}' is allowed.`
+        : "Mode must be one of live/history/approval/compare.",
+    });
+  }
+
+  if (result.risk_level === "high") {
+    checks.push({
+      code: "HIGH_RISK_CONFIRM",
+      status: "warn",
+      message: "High-risk intent requires explicit operator confirmation.",
+    });
+  }
+
+  return checks;
+}
+
+async function reviewWithSecondaryModel(
+  query: string,
+  parsed: AiIntentResult,
+  primaryModel: string | null
+): Promise<{
+  verdict: "approve" | "clarify";
+  reason: string;
+  confidence: number;
+  clarification_question?: string;
+  options?: string[];
+  review_model: string;
+} | null> {
+  if (!AI_DUAL_REVIEW_ENABLED) return null;
+  if (!OLLAMA_REVIEW_MODEL) return null;
+  if (primaryModel && OLLAMA_REVIEW_MODEL === primaryModel) return null;
+  if (parsed.intent === "unclear" || parsed.intent === "explain_conflict") return null;
+
+  const reviewInput = `Query: "${query}"
+Parsed result:
+${JSON.stringify(parsed, null, 2)}
+`;
+
+  try {
+    const responseText = await callOllamaWithModel(reviewInput, OLLAMA_REVIEW_MODEL, REVIEW_PROMPT);
+    if (!responseText) return null;
+    const raw = extractJsonObject(responseText);
+    if (!raw) return null;
+
+    const verdictRaw = raw.verdict;
+    const reasonRaw = raw.reason;
+    const confidenceRaw = raw.confidence;
+    const questionRaw = raw.clarification_question;
+    const optionsRaw = raw.options;
+
+    const verdict = verdictRaw === "clarify" ? "clarify" : "approve";
+    const reason = typeof reasonRaw === "string" && reasonRaw.length > 0 ? reasonRaw : "No reason";
+    const confidence =
+      typeof confidenceRaw === "number" ? Math.max(0, Math.min(1, confidenceRaw)) : 0.5;
+    const clarification_question =
+      typeof questionRaw === "string" && questionRaw.trim().length > 0
+        ? questionRaw.trim()
+        : undefined;
+    const options = Array.isArray(optionsRaw)
+      ? optionsRaw.filter((x): x is string => typeof x === "string" && x.trim().length > 0)
+      : undefined;
+
+    return {
+      verdict,
+      reason,
+      confidence,
+      clarification_question,
+      options,
+      review_model: OLLAMA_REVIEW_MODEL,
+    };
+  } catch {
+    // Fail-soft: keep primary parse when reviewer is unavailable.
+    return null;
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -289,14 +440,26 @@ export async function POST(request: NextRequest) {
         : ([...(hasValidOpenAIKey ? ["openai"] : []), "ollama"] as const);
 
     let responseText: string | null = null;
+    let usedProvider: "openai" | "ollama" | null = null;
+    let primaryModel: string | null = null;
     const providerErrors: string[] = [];
 
     for (const provider of providerOrder) {
       try {
-        responseText =
-          provider === "openai"
-            ? await callOpenAI(apiKey, userContent)
-            : await callOllama(userContent);
+        if (provider === "openai") {
+          responseText = await callOpenAI(apiKey, userContent);
+          if (responseText) {
+            usedProvider = "openai";
+            primaryModel = OPENAI_MODEL;
+          }
+        } else {
+          const ollama = await callOllama(userContent);
+          responseText = ollama.content;
+          if (responseText) {
+            usedProvider = "ollama";
+            primaryModel = ollama.model;
+          }
+        }
         if (responseText) break;
       } catch (error: unknown) {
         const status = getErrorStatus(error);
@@ -369,6 +532,72 @@ export async function POST(request: NextRequest) {
         .filter((x): x is string => typeof x === "string");
       parsed.affected_activities = ids;
       parsed.affected_count = ids.length;
+    }
+
+    let secondaryReviewNote: string | null = null;
+    // Optional dual-model safety pass for local Ollama operation.
+    if (usedProvider === "ollama") {
+      const review = await reviewWithSecondaryModel(query, parsed, primaryModel);
+      if (review) {
+        parsed.model_trace = {
+          provider: "ollama",
+          primary_model: primaryModel ?? undefined,
+          review_model: review.review_model,
+          review_verdict: review.verdict,
+          review_reason: review.reason,
+        };
+
+        const isStrictIntent =
+          parsed.intent === "apply_preview" ||
+          parsed.intent === "set_mode" ||
+          parsed.risk_level === "high";
+        if (review.verdict === "clarify" && review.confidence >= 0.65 && isStrictIntent) {
+          parsed.intent = "unclear";
+          parsed.ambiguity = {
+            question:
+              review.clarification_question ??
+              "Please clarify target voyage/activity before execution.",
+            options: review.options,
+          };
+          parsed.explanation = `${parsed.explanation} (secondary review requested clarification)`;
+          parsed.risk_level = "low";
+        } else if (review.verdict === "clarify") {
+          secondaryReviewNote =
+            review.clarification_question ??
+            `Secondary review raised ambiguity: ${review.reason}`;
+        }
+      } else {
+        parsed.model_trace = {
+          provider: "ollama",
+          primary_model: primaryModel ?? undefined,
+        };
+      }
+    } else if (usedProvider === "openai") {
+      parsed.model_trace = {
+        provider: "openai",
+        primary_model: primaryModel ?? undefined,
+      };
+    }
+
+    const whatIfShiftDays = buildShiftWhatIfCandidates(parsed);
+    const nextSteps: string[] = [];
+    if (parsed.intent === "shift_activities" || parsed.intent === "prepare_bulk") {
+      nextSteps.push("Run Preview first, then review collisions and freeze/lock violations.");
+    }
+    if (parsed.risk_level === "high") {
+      nextSteps.push("High-risk command: require explicit operator confirmation.");
+    }
+    parsed.recommendations = {
+      ...(whatIfShiftDays.length > 0 ? { what_if_shift_days: whatIfShiftDays } : {}),
+      ...(nextSteps.length > 0 ? { next_steps: nextSteps } : {}),
+    };
+    parsed.governance_checks = buildGovernanceChecks(parsed);
+    if (secondaryReviewNote) {
+      parsed.governance_checks.push({
+        code: "SECONDARY_REVIEW_NOTE",
+        status: "warn",
+        message: secondaryReviewNote,
+      });
     }
 
     return NextResponse.json(parsed);
