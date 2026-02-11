@@ -5,6 +5,7 @@ import { Trash2, RotateCcw } from 'lucide-react'
 import type { OptionC, HistoryEvent } from '@/src/types/ssot'
 import { toast } from 'sonner'
 import { AddHistoryModal } from './AddHistoryModal'
+import { composeHistoryEventsWithDeletionState } from '@/lib/ssot/history-deletion'
 
 const EVENT_TYPE_LABELS: Record<string, string> = {
   plan_changed: 'Plan changed',
@@ -23,6 +24,8 @@ const EVENT_TYPE_LABELS: Record<string, string> = {
   risk: 'Risk',
   milestone: 'Milestone',
   issue: 'Issue',
+  history_soft_deleted: 'History soft deleted',
+  history_restored: 'History restored',
 }
 
 type HistoryTabProps = {
@@ -55,7 +58,7 @@ export function HistoryTab({
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const events = ssot?.history_events ?? []
   const filtered = useMemo(() => {
-    let list = [...events].sort(
+    let list = composeHistoryEventsWithDeletionState(events).sort(
       (a, b) => new Date(b.ts || 0).getTime() - new Date(a.ts || 0).getTime()
     )
     if (filterEventType) {

@@ -6,6 +6,13 @@
 
 ---
 
+## 문서 통합·Ref 일관성
+
+- plan/ 갱신 시 **WORK_LOG**·**LAYOUT**·**SYSTEM_ARCHITECTURE**·**README**·**AGENTS**와 Ref를 일치시킨다.
+- 상세 규칙 및 Phase A~C: [document-integration-plan.md](document-integration-plan.md) 참조.
+
+---
+
 ## Gantt 차트 전체 레이아웃 (검토 결과)
 
 ```

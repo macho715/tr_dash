@@ -3,10 +3,9 @@
 import * as React from "react";
 import type { ScheduleActivity } from "@/lib/ssot/schedule";
 import { useViewModeOptional } from "@/src/lib/stores/view-mode-store";
-import { detectResourceConflicts } from "@/lib/utils/detect-resource-conflicts";
+import { applySchedulePreview, toReflowPreviewDTO } from "@/src/lib/reflow/schedule-reflow-manager";
 
 import type { AgiCommand, PreviewResult } from "@/lib/ops/agi/types";
-import { buildChanges } from "@/lib/ops/agi/adapters";
 import { applyBulkAnchors, computeDeltaByNewDate, shiftAfterPivot } from "@/lib/ops/agi/applyShift";
 import { makeFullJSON, makePatchJSON, downloadJSON } from "@/lib/ops/agi/exporters";
 import { initHistory, pushPast, undo, redo, type HistoryState } from "@/lib/ops/agi/history";
@@ -44,9 +43,15 @@ export function AgiOpsDock(props: {
   };
 
   const buildPreview = (before: ScheduleActivity[], next: ScheduleActivity[], meta: PreviewResult["meta"]): PreviewResult => {
-    const changes = buildChanges(before, next);
-    const conflicts = detectResourceConflicts(next);
-    return { nextActivities: next, changes, conflicts, meta };
+    return {
+      ...toReflowPreviewDTO({
+        beforeActivities: before,
+        nextActivities: next,
+        anchors: [],
+        mode: meta.mode,
+      }),
+      meta,
+    };
   };
 
   const openPreview = (p: PreviewResult) => {
@@ -56,12 +61,11 @@ export function AgiOpsDock(props: {
 
   const execute = (cmd: AgiCommand, raw: string) => {
     if (cmd.kind === "CONFLICTS") {
-      const conflicts = detectResourceConflicts(props.activities);
       const p = buildPreview(props.activities, props.activities, {
         mode: "shift",
         anchors: [{ pivot: props.activities[0]?.planned_start as any }],
       });
-      openPreview({ ...p, conflicts });
+      openPreview(p);
       return;
     }
 
@@ -146,10 +150,11 @@ export function AgiOpsDock(props: {
   };
 
   const applyPreview = () => {
-    if (!preview) return;
+    const next = applySchedulePreview(preview, { canApply: canApplyReflow });
+    if (!next) return;
 
     setHistory((h) => pushPast(h, props.activities));
-    props.setActivities(preview.nextActivities);
+    props.setActivities(next);
 
     setDrawerOpen(false);
   };

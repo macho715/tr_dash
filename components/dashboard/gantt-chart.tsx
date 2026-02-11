@@ -81,12 +81,24 @@ import { GanttMiniMap } from "@/components/gantt/GanttMiniMap"
 import { DensityHeatmapOverlay } from "@/components/gantt/DensityHeatmapOverlay"
 import type { EventLogItem } from "@/lib/ops/event-sourcing/types"
 import type { Activity as SsotActivity, ActivityState, OptionC } from "@/src/types/ssot"
+import { buildTideWindows, fetchTideData, type TideWindow } from "@/lib/services/tideService"
+import {
+  composeDragTideGuidance,
+  type DragTideGuidance,
+} from "@/components/dashboard/gantt-chart.tide-guidance"
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24
 const DAYS_PER_WEEK = 7
 const INITIAL_VIS_RANGE = {
   start: PROJECT_START,
   end: PROJECT_END,
+}
+
+const TIDE_RULE = {
+  workStartHour: 6,
+  workEndHour: 17,
+  safeHeightThreshold: 1.8,
+  minConsecutiveSafeHours: 2,
 }
 
 const activityColors: Record<ActivityType, string> = {
@@ -168,6 +180,10 @@ function formatShortDateUtc(date: Date) {
   const month = String(date.getUTCMonth() + 1).padStart(2, "0")
   const day = String(date.getUTCDate()).padStart(2, "0")
   return `${month}-${day}`
+}
+
+function formatUtcDateTime(value: Date): string {
+  return value.toISOString().slice(0, 16).replace("T", " ") + "Z"
 }
 
 function getEvidenceTargetState(state: ActivityState): ActivityState {
@@ -338,6 +354,9 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
   const [weatherOverlayOpacityValue, setWeatherOverlayOpacityValue] = useState(
     weatherOverlayOpacity
   )
+  const [tideWindows, setTideWindows] = useState<TideWindow[]>([])
+  const [tideGuidance, setTideGuidance] = useState<DragTideGuidance | null>(null)
+  const [tideGuidanceReady, setTideGuidanceReady] = useState(false)
   // AGENTS.md §5.1: VisTimelineGantt 필수 사용 (vis-timeline 기반)
   const raw = (process.env.NEXT_PUBLIC_GANTT_ENGINE || "vis").trim().toLowerCase()
   const useVisEngine = raw === "vis"
@@ -556,6 +575,26 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
   }, [weatherOverlayOpacity])
 
   useEffect(() => {
+    let active = true
+    fetchTideData()
+      .then((response) => {
+        if (!active) return
+        setTideWindows(buildTideWindows(response.days, TIDE_RULE))
+      })
+      .catch(() => {
+        if (!active) return
+        // Fail-soft: tide guidance is optional for drag preview flow.
+        setTideWindows([])
+      })
+      .finally(() => {
+        if (active) setTideGuidanceReady(true)
+      })
+    return () => {
+      active = false
+    }
+  }, [])
+
+  useEffect(() => {
     if (!eventOverlayEnabled) return
     if (eventLogLoading || eventLogAttempted) return
     let active = true
@@ -642,6 +681,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
     setTooltip({ visible: false, x: 0, y: 0, activity: null })
     setHoverCard(null)
     setLegendDrawerItem(null)
+    setTideGuidance(null)
 
     // 11. Reset event log state
     setEventLogByActivity(new Map())
@@ -830,18 +870,66 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
       })()
     : "Planned"
 
+  const applyGuidancePreview = (activityId: string, nextStart: Date) => {
+    const nextStartIso = dateToIsoUtc(toUtcNoon(nextStart))
+    onDragMove?.(activityId, nextStartIso)
+    setTideGuidance(null)
+    toast.info(`Tide guidance preview: ${activityId} → ${nextStartIso}`, { duration: 2200 })
+  }
+
   const handleDragMove = (payload: DragMovePayload) => {
     if (!canEdit) return
     const activityId = normalizeItemId(payload.itemId)
-    if (!activityMeta.has(activityId)) return
+    const activity = activityMeta.get(activityId)
+    if (!activity) return
     // Convert date to YYYY-MM-DD UTC noon string
     const d = new Date(payload.newStart)
     const year = d.getUTCFullYear()
     const month = String(d.getUTCMonth() + 1).padStart(2, "0")
     const day = String(d.getUTCDate()).padStart(2, "0")
     const newStartIso = `${year}-${month}-${day}`
+    const taskStart = new Date(payload.newStart)
+    const taskEnd = new Date(payload.newEnd)
+    if (taskEnd.getTime() <= taskStart.getTime()) {
+      taskEnd.setUTCDate(taskEnd.getUTCDate() + 1)
+    }
+
+    let hasDangerGuidance = false
+    if (tideGuidanceReady && tideWindows.length > 0) {
+      const guidance = composeDragTideGuidance({
+        task: {
+          id: activityId,
+          name: activity.activity_name || activityId,
+          start: taskStart,
+          end: taskEnd,
+        },
+        windows: tideWindows,
+        config: TIDE_RULE,
+      })
+
+      if (guidance) {
+        hasDangerGuidance = true
+        setTideGuidance(guidance)
+        const nearestLabel = guidance.nearestSafe
+          ? `Nearest SAFE: ${formatUtcDateTime(guidance.nearestSafe.start)} (+${guidance.nearestSafe.shiftHours}h)`
+          : "Nearest SAFE: not found in 14d horizon"
+        const whatIfLabel = guidance.whatIf
+          .map((option) => `+${option.shiftDays}d ${option.safety.status}`)
+          .join(", ")
+        toast.warning(`${activityId}: unsafe tide window`, {
+          description: `${nearestLabel} | What-if: ${whatIfLabel}`,
+        })
+      } else {
+        setTideGuidance(null)
+      }
+    } else {
+      setTideGuidance(null)
+    }
+
     onDragMove?.(activityId, newStartIso)
-    toast.info(`Drag preview: ${activityId} → ${newStartIso}`, { duration: 2000 })
+    if (!hasDangerGuidance) {
+      toast.info(`Drag preview: ${activityId} → ${newStartIso}`, { duration: 2000 })
+    }
   }
 
   const handleQuickEdit = (activityId: string) => {
@@ -900,6 +988,66 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
             : undefined
         }
       />
+      {canEdit && useVisEngine && tideGuidance && (
+        <div
+          data-testid="vis-tide-guidance"
+          className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs"
+        >
+          <p className="font-semibold text-amber-200">
+            Tide warning: {tideGuidance.taskName} is in DANGER window.
+          </p>
+          {tideGuidance.nearestSafe ? (
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-amber-100">
+              <span>
+                Nearest SAFE: {formatUtcDateTime(tideGuidance.nearestSafe.start)} (
+                +{tideGuidance.nearestSafe.shiftHours}h)
+              </span>
+              <button
+                type="button"
+                data-testid="vis-apply-nearest-safe"
+                onClick={() => {
+                  const suggestion = tideGuidance.nearestSafe
+                  if (!suggestion) return
+                  applyGuidancePreview(tideGuidance.taskId, suggestion.start)
+                }}
+                className="rounded border border-emerald-400/40 bg-emerald-500/20 px-2 py-0.5 text-[11px] font-semibold text-emerald-100 hover:bg-emerald-500/30"
+              >
+                Preview nearest SAFE
+              </button>
+            </div>
+          ) : (
+            <p className="mt-2 text-amber-100">No SAFE slot found within next 14 days.</p>
+          )}
+          <div className="mt-2 flex flex-wrap gap-2">
+            {tideGuidance.whatIf.map((option) => (
+              <span
+                key={`${tideGuidance.taskId}-${option.shiftDays}`}
+                data-testid={`vis-whatif-${option.shiftDays}d`}
+                className={cn(
+                  "inline-flex items-center gap-2 rounded border px-2 py-1",
+                  option.safety.status === "SAFE"
+                    ? "border-emerald-400/40 bg-emerald-500/15 text-emerald-100"
+                    : option.safety.status === "DANGER"
+                      ? "border-red-400/40 bg-red-500/15 text-red-100"
+                      : "border-slate-400/30 bg-slate-500/15 text-slate-100"
+                )}
+              >
+                <span>
+                  +{option.shiftDays}d {option.safety.status}
+                </span>
+                <button
+                  type="button"
+                  data-testid={`vis-apply-whatif-${option.shiftDays}d`}
+                  onClick={() => applyGuidancePreview(tideGuidance.taskId, option.start)}
+                  className="rounded border border-current/40 px-1.5 py-0.5 text-[10px] font-semibold hover:bg-white/10"
+                >
+                  Preview
+                </button>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
       {!useVisEngine && (
         <div className="mb-4 rounded-lg border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-xs text-amber-200">
           Advanced grouping, mini-map, hover cards, and density heatmap are available in the vis-timeline engine.

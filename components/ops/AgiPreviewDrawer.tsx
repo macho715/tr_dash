@@ -22,7 +22,7 @@ export function AgiPreviewDrawer(props: {
       <div className="absolute bottom-0 left-0 right-0 max-h-[85vh] rounded-t-xl bg-background p-4 shadow-lg">
         <div className="flex items-center justify-between gap-2">
           <div className="text-sm font-semibold">
-            Preview — changes {preview.changes.length}, conflicts {preview.conflicts.length}
+            Preview — changes {preview.changes.length}, collisions {preview.collisions.length}
           </div>
           <button className="rounded-md border px-3 py-1 text-sm" onClick={props.onClose}>
             Close
@@ -30,7 +30,7 @@ export function AgiPreviewDrawer(props: {
         </div>
 
         <div className="mt-3 space-y-3">
-          <AgiConflictsPanel conflicts={preview.conflicts} />
+          <AgiConflictsPanel conflicts={preview.collisions} />
           <AgiDiffTable changes={preview.changes} />
 
           <div className="flex flex-wrap gap-2">

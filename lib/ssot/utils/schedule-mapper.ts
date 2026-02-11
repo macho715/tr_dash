@@ -79,6 +79,10 @@ export function mapOptionCToScheduleActivity(
   const calendar = typeof raw.calendar === "object" && raw.calendar !== null
     ? (raw.calendar as ScheduleActivity["calendar"])
     : undefined
+  const lockLevel = typeof raw.lock_level === "string" ? raw.lock_level : undefined
+  const reflowPins = Array.isArray(raw.reflow_pins)
+    ? (raw.reflow_pins as ScheduleActivity["reflow_pins"])
+    : undefined
 
   return {
     activity_id: activityId,
@@ -102,6 +106,8 @@ export function mapOptionCToScheduleActivity(
         ? resourceTags
         : undefined,
     is_locked: typeof raw.is_locked === "boolean" ? raw.is_locked : undefined,
+    lock_level: lockLevel,
+    reflow_pins: reflowPins,
     _is_summary: isSummary,
     tr_unit_id: trUnitId,
     anchor_type: anchorType,

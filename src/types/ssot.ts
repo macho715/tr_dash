@@ -17,6 +17,7 @@ export type ActivityState =
   | 'paused'
   | 'blocked'
   | 'completed'
+  | 'verified'
   | 'done'  // patchm1 alias for completed
   | 'canceled'
   | 'cancelled'  // patchm1 spelling
@@ -588,6 +589,25 @@ export interface TripReportMilestone {
   delta_minutes: number;
 }
 
+export interface TripReportCompareKpiSummary {
+  total_delay_minutes: {
+    baseline: number;
+    compare: number;
+    delta: number;
+  };
+  collision_count_by_severity: {
+    blocking: { baseline: number; compare: number; delta: number };
+    warning: { baseline: number; compare: number; delta: number };
+    info: { baseline: number; compare: number; delta: number };
+  };
+  evidence_risk_delta: {
+    baseline_missing: number;
+    compare_missing: number;
+    delta: number;
+  };
+  as_of: string;
+}
+
 export interface TripReport {
   report_id: string;
   trip_id: string;
@@ -608,6 +628,7 @@ export interface TripReport {
     }>;
   };
   narrative_closeout_id?: string;
+  compare_kpi_summary?: TripReportCompareKpiSummary;
 }
 
 export interface ProjectReport {

@@ -86,4 +86,23 @@ describe("compare-loader (T10.3)", () => {
     expect(result.summary.removedCount).toBe(0)
     expect(result.summary.changedCount).toBe(0)
   })
+
+
+  it("builds compare KPI snapshot with delay/collision/evidence signals", () => {
+    const baseline = [makeActivity("A1000", "2026-02-01", "2026-02-02")]
+    const compare = [makeActivity("A1000", "2026-02-01", "2026-02-03")]
+
+    const result = calculateDelta(baseline, compare, 2, 4, {
+      baselineConflictBySeverity: { error: 1, warn: 1 },
+      compareConflictBySeverity: { error: 2, warn: 2 },
+      asOf: "2026-02-04T10:00:00.000Z",
+    })
+
+    expect(result.kpis.totalDelayMinutes.delta).toBe(1440)
+    expect(result.kpis.collisionCountBySeverity.error.delta).toBe(1)
+    expect(result.kpis.collisionCountBySeverity.warn.delta).toBe(1)
+    expect(result.kpis.evidenceRiskCount.delta).toBe(1)
+    expect(result.kpis.drilldownActivityIds.evidenceRiskCount).toEqual(["A1000"])
+    expect(result.kpis.asOf).toBe("2026-02-04T10:00:00.000Z")
+  })
 })

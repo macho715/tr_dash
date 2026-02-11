@@ -1,14 +1,14 @@
 ---
 doc_id: layout
 refs: [../patch.md, ../AGENTS.md, SYSTEM_ARCHITECTURE.md, plan/plan_patchmain_14.md]
-updated: 2026-02-10
+updated: 2026-02-11
 ---
 
 # HVDC TR Transport Dashboard - Layout 문서
 
-> **버전**: 1.9.0  
-> **최종 업데이트**: 2026-02-10  
-> **최신 작업 반영**: 2026-02-10 — AI Command Phase 1 업그레이드. Unified Command Palette AI 모드, confirm-first 실행(`AIExplainDialog`), ambiguity 옵션 기반 재질의(`clarification`) 반영. [WORK_LOG_20260210_AI_UPGRADE.md](WORK_LOG_20260210_AI_UPGRADE.md), [NL_COMMAND_INTERFACE_COMPLETE.md](NL_COMMAND_INTERFACE_COMPLETE.md)  
+> **버전**: 1.10.0  
+> **최종 업데이트**: 2026-02-11  
+> **최신 작업 반영**: 2026-02-11 — Merge 정리·충돌 UX 통일, Typecheck/Lint 0 errors. Gantt/Map/Detail 충돌 클릭 → `handleCollisionCardOpen` 단일 핸들러, #water-tide 해시·Compare KPI 드릴다운 유지. MapPanel `mapInstanceKey`+`mapContentVisible`, `onCollisionClick` 공통 전달. Detail|Tide 탭, WhyPanel `onJumpToHistory`/`onOpenWhyDetail`. [CHANGELOG.md](../CHANGELOG.md), [TYPECHECK_AND_LINT_FAILURES.md](TYPECHECK_AND_LINT_FAILURES.md).  
 > **프로젝트**: HVDC TR Transport Dashboard - AGI Site  
 > **SSOT**: patch.md, option_c.json (AGENTS.md)
 
@@ -80,6 +80,8 @@ graph TB
 ```
 
 > **참고**: 실제 DOM에서는 HistoryEvidencePanel, ReadinessPanel, NotesDecisions는 TrThreeColumnLayout 밖, 페이지 하단(#evidence 다음)에 렌더됨.
+
+**detailSlot 구성** (page.tsx 기준): **Detail | Tide** 탭으로 전환 가능. 기본은 Tide; Gantt/Map/충돌에서 활동 선택 시 Detail 탭으로 전환. `#water-tide` 해시는 Tide 탭으로 스크롤·포커스. Gantt·Map·Detail 충돌 클릭은 모두 `handleCollisionCardOpen`으로 통일되어 WhyPanel·DetailPanel로 연결됨.
 
 ### 페이지 구조 (위에서 아래로)
 
@@ -251,6 +253,7 @@ graph TB
 ```
 
 **detailSlot 구성** (page.tsx 기준):
+- **Detail | Tide 탭**: `activeDetailTab === "tide"` 시 WaterTidePanel, 아니면 DetailPanel·WhyPanel·ReflowPreviewPanel·Undo. `#water-tide` 앵커 유지. Gantt/Map/충돌 클릭 시 `handleCollisionCardOpen` → WhyPanel·DetailPanel 포커스(`detailPanelRef`).
 - DetailPanel (ActivityHeader, StateSection, PlanVsActualSection, ResourcesSection, ConstraintsSection, CollisionTray)
 - WhyPanel (2-click: root_cause_code, suggested_actions)
 - ReflowPreviewPanel (onApplyAction → reflowSchedule → Preview UI)
@@ -688,7 +691,7 @@ components/
 │   └── CompareModeBanner.tsx
 ├── map/
 │   ├── MapPanelWrapper.tsx
-│   ├── MapPanel.tsx
+│   ├── MapPanel.tsx         # mapInstanceKey·mapContentVisible 안정화, onCollisionClick 공통 핸들러
 │   ├── MapContent.tsx
 │   └── MapLegend.tsx        # TR 상태·충돌 범례 (patch §4.1, 좌하단 오버레이)
 ├── approval/
@@ -785,8 +788,8 @@ files/
 ### 4. Collision 2-Click UX (Phase 7)
 
 **1클릭: Collision 배지**
-- **CollisionTray** 또는 **Timeline 배지** 클릭
-- WhyPanel 표시 (root_cause_code, description, suggested_actions)
+- **CollisionTray**, **Timeline(Gantt) 배지**, **Map 충돌** 클릭 시 공통 `handleCollisionCardOpen` 호출.
+- WhyPanel 표시 (root_cause_code, description, suggested_actions). `onJumpToHistory`, `onOpenWhyDetail`로 History/Detail로 점프.
 
 **2클릭: Suggested Action**
 - WhyPanel에서 suggested_action 클릭
@@ -914,11 +917,12 @@ sequenceDiagram
 ---
 
 **문서 작성일**: 2025-01-31  
-**최종 업데이트**: 2026-02-10 (AI Command Phase 1 반영)  
+**최종 업데이트**: 2026-02-11 (Merge 정리·충돌 UX 통일·Water Tide 탭 반영)  
 **프로젝트**: HVDC TR Transport Dashboard  
 
 ## Refs
 
+- [CHANGELOG.md](../CHANGELOG.md) — 2026-02-11 Merge·Reflow·Tombstone 반영
 - [patch.md](../patch.md) §2.1, §2.2, §4.2
 - [AGENTS.md](../AGENTS.md)
 - [README.md](../README.md) — 프로젝트 개요

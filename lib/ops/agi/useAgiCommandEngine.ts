@@ -1,8 +1,10 @@
 import { useCallback, useMemo, useState } from "react";
 import type { ScheduleActivity } from "@/lib/ssot/schedule";
-import { reflowSchedule } from "@/lib/utils/schedule-reflow";
-import { detectResourceConflicts } from "@/lib/utils/detect-resource-conflicts";
-import { buildChanges } from "@/lib/ops/agi/adapters";
+import {
+  previewScheduleReflow,
+  applySchedulePreview,
+  toReflowPreviewDTO,
+} from "@/src/lib/reflow/schedule-reflow-manager";
 import {
   applyBulkAnchors,
   computeDeltaByNewDate,
@@ -45,20 +47,20 @@ type EngineArgs = {
 export function useAgiCommandEngine({ activities, setActivities, canApply = true }: EngineArgs) {
   const [history, setHistory] = useState<HistoryState>(() => initHistory());
 
-  const buildPreview = useCallback(
-    (before: ScheduleActivity[], next: ScheduleActivity[], meta: PreviewMeta): PreviewResult => {
-      const changes = buildChanges(before, next);
-      const conflicts = detectResourceConflicts(next);
-      return { nextActivities: next, changes, conflicts, meta };
-    },
-    []
-  );
+  const buildPreview = useCallback((
+    preview: Omit<PreviewResult, "meta">,
+    meta: PreviewMeta
+  ): PreviewResult => ({ ...preview, meta }), []);
 
   /** Preview a reflow for one selected activity start date change. */
   const previewShiftByActivity = useCallback(
     (activityId: string, newStart: IsoDate): PreviewResult => {
-      const result = reflowSchedule(activities, activityId, newStart, DEFAULT_REFLOW_OPTIONS);
-      return buildPreview(activities, result.activities, {
+      const result = previewScheduleReflow({
+        activities,
+        anchors: [{ activityId, newStart }],
+        options: DEFAULT_REFLOW_OPTIONS,
+      });
+      return buildPreview(result, {
         mode: "shift",
         anchors: [{ activityId, newStart }],
       });
@@ -80,7 +82,14 @@ export function useAgiCommandEngine({ activities, setActivities, canApply = true
         deltaDays: computedDelta,
         includeLocked: includeLocked ?? false,
       });
-      return buildPreview(activities, next, {
+      const result = toReflowPreviewDTO({
+        beforeActivities: activities,
+        nextActivities: next,
+        anchors: [{ activityId: "__pivot__", newStart: pivot }],
+        mode: "shift",
+        options: DEFAULT_REFLOW_OPTIONS,
+      });
+      return buildPreview(result, {
         mode: "shift",
         anchors: [{ pivot, deltaDays: computedDelta }],
       });
@@ -95,7 +104,14 @@ export function useAgiCommandEngine({ activities, setActivities, canApply = true
         anchors,
         includeLocked: includeLocked ?? false,
       });
-      return buildPreview(activities, next, {
+      const result = toReflowPreviewDTO({
+        beforeActivities: activities,
+        nextActivities: next,
+        anchors,
+        mode: "bulk",
+        options: DEFAULT_REFLOW_OPTIONS,
+      });
+      return buildPreview(result, {
         mode: "bulk",
         anchors: anchors.map((a) => ({ activityId: a.activityId, newStart: a.newStart })),
       });
@@ -109,9 +125,10 @@ export function useAgiCommandEngine({ activities, setActivities, canApply = true
    */
   const applyPreview = useCallback(
     (preview: PreviewResult | null) => {
-      if (!preview || !canApply) return false;
+      const next = applySchedulePreview(preview, { canApply });
+      if (!next) return false;
       setHistory((h) => pushPast(h, activities));
-      setActivities(preview.nextActivities);
+      setActivities(next);
       return true;
     },
     [activities, canApply, setActivities]

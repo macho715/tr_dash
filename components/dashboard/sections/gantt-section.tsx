@@ -41,6 +41,8 @@ type GanttSectionProps = {
   projectEndDate: string
   onOpenEvidence?: (activityId: string) => void
   onOpenHistory?: (activityId: string) => void
+  /** Drag-to-Edit: called when user drags an activity bar to a new date */
+  onDragMove?: (activityId: string, newStart: string) => void
 }
 
 export function GanttSection({
@@ -71,6 +73,7 @@ export function GanttSection({
   projectEndDate,
   onOpenEvidence,
   onOpenHistory,
+  onDragMove,
 }: GanttSectionProps) {
   return (
     <section id="gantt" aria-label="Gantt Chart" className="flex flex-1 flex-col min-h-0">
@@ -102,6 +105,7 @@ export function GanttSection({
         projectEndDate={projectEndDate}
         onOpenEvidence={onOpenEvidence}
         onOpenHistory={onOpenHistory}
+        onDragMove={onDragMove}
       />
     </section>
   )

@@ -45,11 +45,13 @@ export type MapContentProps = {
     label: string
     currentActivityName: string | null
     currentActivityId: string | null
+    primaryCollisionId: string | null
     locationName: string | null
     eta: string | null
     isHighlighted: boolean
   }>
   onTrMarkerClick: (trId: string) => void
+  onCollisionClick?: (collisionId: string, activityId: string) => void
   mapStatusHex: Record<string, string>
   showGeofence?: boolean
   showHeatmapLegend?: boolean
@@ -87,6 +89,7 @@ export function MapContent({
   routeSegments,
   trMarkers,
   onTrMarkerClick,
+  onCollisionClick,
   mapStatusHex,
   showGeofence = false,
   showHeatmapLegend = false,
@@ -241,6 +244,18 @@ export function MapContent({
                   {m.hasBlockingCollision && <span className="badge badge-red">blocked</span>}
                   {m.hasWarningCollision && <span className="badge badge-yellow">warning</span>}
                 </div>
+                {m.primaryCollisionId && m.currentActivityId && (
+                  <button
+                    type="button"
+                    className="mt-2 rounded bg-red-900/60 px-2 py-1 text-xs font-semibold text-red-100 hover:bg-red-800/70"
+                    onClick={() => {
+                      if (!m.primaryCollisionId || !m.currentActivityId) return
+                      onCollisionClick?.(m.primaryCollisionId, m.currentActivityId)
+                    }}
+                  >
+                    Collision 카드 열기
+                  </button>
+                )}
               </div>
             </Popup>
           </Marker>

@@ -47,6 +47,13 @@ export interface ScheduleActivity {
   anchor_type?: AnchorType
   depends_on?: ScheduleDependency[]
   is_locked?: boolean
+  lock_level?: string
+  reflow_pins?: Array<{
+    path?: string
+    pin_kind?: "fixed" | "soft" | string
+    strength?: "HARD" | "SOFT" | string
+    hardness?: "hard" | "soft" | string
+  }>
   constraint?: ScheduleConstraint
   calendar?: ScheduleCalendar
   resource_tags?: string[]
@@ -61,6 +68,14 @@ export interface ScheduleActivity {
 
   // Derived flag for runtime use only.
   _is_summary?: boolean
+}
+
+export interface FreezeLockViolation {
+  activity_id: string
+  old_start: string
+  new_start: string
+  reason: "actual_frozen" | "hard_lock_or_pin"
+  reason_label: string
 }
 
 export interface DateChange {
@@ -80,11 +95,19 @@ export interface SuggestedAction {
 
 export interface ScheduleConflict {
   type: "RESOURCE" | "CONSTRAINT" | "LOCK_VIOLATION" | "DEPENDENCY_CYCLE"
+  collision_id?: string
+  kind?: string
   activity_id: string
+  activity_ids?: string[]
   message: string
   severity: "warn" | "error"
   related_activity_ids?: string[]
+  resource_ids?: string[]
   resource?: string
+  time_range?: {
+    start: string | null
+    end: string | null
+  }
   overlapStart?: string
   overlapEnd?: string
   overlapMinutes?: number
@@ -102,6 +125,7 @@ export interface ImpactReport {
   affected_ids: string[]
   changes: DateChange[]
   conflicts: ScheduleConflict[]
+  freeze_lock_violations?: FreezeLockViolation[]
 }
 
 export interface ReflowResult {

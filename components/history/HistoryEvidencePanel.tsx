@@ -7,6 +7,7 @@ import { CompareDiffPanel } from '@/components/compare/CompareDiffPanel'
 import { TripCloseoutForm } from '@/components/history/TripCloseoutForm'
 import type { OptionC } from '@/src/types/ssot'
 import { getHistoryEvents, getEvidenceItems, appendEvidenceItem, subscribe } from '@/lib/store/trip-store'
+import { composeHistoryEventsWithDeletionState } from '@/lib/ssot/history-deletion'
 
 export type HistoryEvidenceTab = "history" | "evidence" | "compare" | "closeout"
 
@@ -53,8 +54,10 @@ export function HistoryEvidencePanel({
   const mergedSsot = ssot
     ? {
         ...ssot,
-        history_events: [...(ssot.history_events ?? []), ...getHistoryEvents()].sort(
-          (a, b) => new Date(b.ts).getTime() - new Date(a.ts).getTime()
+        history_events: composeHistoryEventsWithDeletionState(
+          [...(ssot.history_events ?? []), ...getHistoryEvents()].sort(
+            (a, b) => new Date(b.ts || 0).getTime() - new Date(a.ts || 0).getTime()
+          )
         ),
         entities: {
           ...ssot.entities,

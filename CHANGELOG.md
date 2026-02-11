@@ -1,13 +1,40 @@
 # Changelog — TR Movement Dashboard
 
 **형식**: [Keep a Changelog](https://keepachangelog.com/).  
-**참조**: [docs/WORK_LOG_20260202.md](docs/WORK_LOG_20260202.md), [docs/BUGFIX_APPLIED_20260202.md](docs/BUGFIX_APPLIED_20260202.md), [README.md](README.md).
+**참조**: [docs/WORK_LOG_20260211.md](docs/WORK_LOG_20260211.md), [docs/WORK_LOG_20260202.md](docs/WORK_LOG_20260202.md), [docs/BUGFIX_APPLIED_20260202.md](docs/BUGFIX_APPLIED_20260202.md), [README.md](README.md).
 
 ---
 
 ## [Unreleased]
 
 ### Added
+
+- **Merge 정리 및 Reflow 통합 (2026-02-11)**:
+  - page.tsx: Gantt/Detail 충돌 클릭 → `handleCollisionCardOpen` 통일, `detailPanelRef`·WhyPanel(`onJumpToHistory`, `onOpenWhyDetail`) 유지, #water-tide 해시 동기화(775), Compare KPI 카드 드릴다운(790), 배너 연결(834).
+  - MapPanel.tsx: 맵 안정화(`mapInstanceKey` + `mapContentVisible`), Map → `onCollisionClick` 공통 핸들러 전달.
+  - schedule-reflow.ts: 머지 마커 제거, `freeze_lock_violations` preview 우선 + 래퍼 fallback, actual freeze/hard lock 위반 분류 유지.
+  - Reflow 권위: `src/lib/reflow/schedule-reflow-manager.ts`의 `previewScheduleReflow`/`applySchedulePreview` 단일 진입점, `collectFreezeLockViolations`(55), `impact.freeze_lock_violations` 채움(140). `lib/utils/schedule-reflow.ts` deprecated wrapper 유지. UI에서 schedule-reflow.ts 직접 호출 금지.
+- **History append-only tombstone (2026-02-11)**: update-history.ts, history-deletion.ts, HistoryTab.tsx, HistoryEvidencePanel.tsx. Soft delete·Restore, append-only SSOT 유지. update-history.test.ts, history-evidence.test.ts 통과.
+- **스크립트 추가 (package.json)**: `dev:webpack` (next dev), `sync:wa-events` (sync_wa_events_to_ssot.py).
+
+- **Tide Phase 1 구현 + Phase 3 준비 (2026-02-11)**:
+  - **Tide 서비스**: `lib/services/tideService.ts` — `fetchTideData`(5분 TTL 캐시), `buildTideWindows`, `validateTaskSafety`, `summarizeTideCoverage`. 규칙: UTC, 06~17, height ≥ 1.8m, 2시간 연속일 때만 SAFE. 테스트용 `__resetTideCacheForTests`.
+  - **독립 Gantt 화면**: `components/gantt/TideOverlayGantt.tsx` — SAFE/DANGER/CLOSED strip, 드래그 후 재검증, DANGER 시 toast.warning, summary chip, fail-soft fallback table, debug JSON. `page.tsx` 연동.
+  - **VisTimeline 연계 준비**: `lib/gantt/tide-overlay-adapter.ts` — TideWindow[] → VisItem[] (type: background), class 매핑 (tide-safe|tide-danger|tide-closed), view clipping.
+  - **스타일**: `globals.css` — `.tide-safe`, `.tide-danger`, `.tide-closed`, `.task-safe`, `.task-danger`, `.task-closed` (Vis background 준비).
+  - **테스트**: tideService.test.ts, TideOverlayGantt.test.tsx, tide-overlay-adapter.test.ts. vitest.config.ts에 `components/gantt/__tests__` 포함.
+  - **의존성**: `gantt-task-react` 추가 (React 18 peer 경고 있으나 typecheck/테스트 통과).
+- **Tide 고급 기능 — SAFE 추천·DANGER What-if (2026-02-11)**:
+  - **SAFE 2h 연속 슬롯 자동 추천**: `tideService.ts` — `findNearestSafeSlot`, `TideSafeSlotSuggestion`. DANGER task 기준 시간 단위(최대 14일) 전진 탐색으로 가장 가까운 SAFE 시작 시각 추천.
+  - **DANGER 드래그 시 What-if(+1/+2일) 제안**: `tideService.ts` — `buildShiftDayWhatIf`, `TideShiftWhatIf`. +1일/+2일 이동 시 결과를 SAFE/DANGER/CLOSED로 계산.
+  - **UI**: TideOverlayGantt — DANGER 드래그 시 toast.warning(Nearest SAFE + What-if 요약), 가이던스 패널(Nearest SAFE, +1d/+2d status), **Apply nearest SAFE** / **Apply +1d** / **Apply +2d** 버튼으로 즉시 반영.
+  - **테스트**: tideService.test.ts(nearest SAFE slot, +1/+2 day what-if), TideOverlayGantt.test.tsx(DANGER 드래그 → 경고·가이던스·what-if 표시). tsc·eslint·tide-overlay-adapter.test 통과. 4파일 +314/-7.
+  - **다음 후보**: Compare KPI에 Tide risk delta.
+- **VisTimeline 메인 Gantt Tide 연동 (2026-02-11)**:
+  - **gantt-chart.tsx**: Tide 데이터 로드(fetchTideData + buildTideWindows, fail-soft). 드래그 시 DANGER면 가이던스 생성·toast(Nearest SAFE + What-if 요약)·가이던스 UI(`data-testid="vis-tide-guidance"`). Preview nearest SAFE / Preview +1d·+2d 버튼으로 기존 `onDragMove(activityId, YYYY-MM-DD)` 호출.
+  - **gantt-chart.tide-guidance.ts**: `composeDragTideGuidance` — 드래그 태스크 + tide windows + rule → dragSafety, nearestSafe, whatIf(+1/+2d). DANGER가 아니면 null.
+  - **테스트**: `gantt-chart.tide-guidance.test.ts`(DANGER 시 nearest SAFE·what-if, SAFE 시 null, SAFE 없을 때 nearestSafe=null), `tideService.test.ts` 정합성 유지. tsc·eslint 0 유지.
+  - **문서**: AGENTS.md 최신 작업 반영 라인에 Tide 고급 한 줄 요약 추가.
 
 - **AI Command Phase 1 업그레이드 (2026-02-10)**: Unified Command Palette AI 실행 흐름 고도화.
   - `/api/nl-command` intent 계약 확장: `shift_activities|prepare_bulk|explain_conflict|set_mode|apply_preview|unclear`
@@ -51,6 +78,9 @@
 - **StoryHeader SSOT 연동**: 선택된 TR/Activity 기준으로 Location, Schedule, Evidence 요약을 파생 계산하도록 갱신.
 
 ### Fixed
+
+- **Typecheck/Lint 전면 해결 (2026-02-11)**: `tsc --noEmit`, `eslint . --quiet` 0 errors 달성. ESLint 범위 설정(eslint.config.mjs), Ref 렌더 접근 제거(gantt-chart, VisTimelineGantt), map 타입·@ts 정리(PoiLocationsLayer, createHeatmapLayer), 누락 타입/모듈 보강(types/logistics.ts, deckgl-aggregation-layers.d.ts, lib/map/poiTypes, hvdcPoiLocations), 런타임·테스트 타입 수정(route, UnifiedCommandPalette, kpi-calculator, ssot-queries, forward/backward-pass, 9개 테스트 파일). 24파일 +470/-271. [docs/TYPECHECK_AND_LINT_FAILURES.md](docs/TYPECHECK_AND_LINT_FAILURES.md).
+- **빌드 실패 (2026-02-11)**: tsconfig.tsbuildinfo·app/page.tsx 머지 충돌 마커 제거, .next 캐시 정리 후 빌드 성공.
 
 - **Performance Optimization (P0)**: Turbopack + React 19 Compiler 활성화로 개발 경험 개선.
   - `next dev --turbo`: HMR 2~5배 빠름, 개발 서버 시작 1.2초.

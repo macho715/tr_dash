@@ -28,6 +28,7 @@ export type MapPanelProps = {
   viewMode?: ViewMode
   onTrClick?: (trId: string) => void
   onActivitySelect?: (activityId: string) => void
+  onCollisionClick?: (collisionId: string, activityId: string) => void
 }
 
 /** Verified coordinates: Mina Zayed (vesselfinder/AEMZD), Al Ghallan Island (Upper Zakum) */
@@ -70,6 +71,7 @@ export function MapPanel({
   viewMode = 'live',
   onTrClick,
   onActivitySelect,
+  onCollisionClick,
 }: MapPanelProps) {
   const [mounted, setMounted] = useState(false)
   const [mapReady, setMapReady] = useState(false)
@@ -179,6 +181,7 @@ export function MapPanel({
       label: string
       currentActivityName: string | null
       currentActivityId: string | null
+      primaryCollisionId: string | null
       locationName: string | null
       eta: string | null
       isHighlighted: boolean
@@ -233,6 +236,7 @@ export function MapPanel({
         label: tr?.name ?? trId,
         currentActivityName: activity?.title || null,
         currentActivityId,
+        primaryCollisionId: activity?.calc.collision_ids?.[0] ?? null,
         locationName: loc?.name || null,
         eta,
         isHighlighted: selectedActivityId ? activity?.activity_id === selectedActivityId : false,
@@ -327,6 +331,7 @@ export function MapPanel({
               mapStatusHex={MAP_STATUS_HEX}
               showGeofence={false}
               showHeatmapLegend={showHeatmapLegend}
+              onCollisionClick={onCollisionClick}
             />
           ) : null}
         </div>
