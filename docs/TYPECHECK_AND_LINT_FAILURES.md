@@ -10,9 +10,9 @@
 
 - **`pnpm exec tsc --noEmit --incremental false`**: 0 errors ✅  
 - **`pnpm exec eslint . --quiet`**: 0 errors ✅  
-- **관련 테스트**: dependency-cascade, schedule-preview-paths, what-if-simulation, TideOverlayGantt, tideService 등 통과 ✅  
+- **관련 테스트**: dependency-cascade, schedule-preview-paths, what-if-simulation, TideOverlayGantt, tideService, voyage-map-view, MapPanel, immediate-actions, alerts 등 통과 ✅  
 
-이후 반영(Reflow dependency cascade, TideOverlayGantt 수동 가이던스)에서도 tsc·eslint 0 유지. 적용된 변경 요약은 [§4. 적용 완료 내역](#4-적용-완료-내역-2026-02-11) 참고. 아래 §1–§3은 **당시 실패 원인 및 조치 방향** 참고용으로 유지.
+이후 반영(Reflow cascade, Tide 가이던스, Voyage Map View, 즉시 조치 체크리스트)에서도 tsc·eslint 0 유지. 적용된 변경 요약은 [§4. 적용 완료 내역](#4-적용-완료-내역-2026-02-11) 참고. 아래 §1–§3은 **당시 실패 원인 및 조치 방향** 참고용으로 유지.
 
 ---
 

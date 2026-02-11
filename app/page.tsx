@@ -462,6 +462,18 @@ export default function Page() {
     setShowWhatIfPanel(Boolean(activity))
   }
 
+  const handleNavigateSection = (
+    sectionId: "voyages" | "schedule" | "gantt" | "water-tide"
+  ) => {
+    if (sectionId === "water-tide") {
+      setActiveDetailTab("tide")
+    }
+    document.getElementById(sectionId)?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    })
+  }
+
   const handleOpsCommand = (cmd: Parameters<typeof runAgiOpsPipeline>[0]["command"]) => {
     const { nextActivities, nextOps } = runAgiOpsPipeline({
       activities,
@@ -859,7 +871,11 @@ export default function Page() {
 
             <div className="flex flex-1 flex-col min-h-0 space-y-6">
               <KPISection />
-              <AlertsSection activities={activities} />
+              <AlertsSection
+                activities={activities}
+                onSelectVoyageNo={setSelectedVoyageNo}
+                onNavigateSection={handleNavigateSection}
+              />
               <TrThreeColumnLayout
                 mapSlot={
                   <div className="space-y-3">

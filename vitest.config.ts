@@ -28,6 +28,7 @@ export default defineConfig({
   },
   resolve: {
     alias: [
+      { find: '@/components', replacement: path.resolve(__dirname, './components') },
       { find: '@/lib/ssot', replacement: path.resolve(__dirname, './lib/ssot') },
       { find: '@/lib', replacement: path.resolve(__dirname, './lib') },
       { find: '@/src', replacement: path.resolve(__dirname, './src') },

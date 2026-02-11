@@ -8,7 +8,7 @@ updated: 2026-02-11
 
 **버전**: 1.10  
 **최종 업데이트**: 2026-02-11  
-**최신 작업 반영**: 2026-02-11 — Merge·Reflow 통합, Typecheck/Lint 0 errors. Reflow: **dependency cascade** 엔진·canonical preview 경로(`previewScheduleReflow`) 통일. TideOverlayGantt: DANGER 시 가이던스 자동, 비-DANGER 시 View guidance 버튼으로 수동 오픈. 권위 진입점 `schedule-reflow-manager.ts`, deprecated wrapper `schedule-reflow.ts`. freeze_lock_violations, page/MapPanel 충돌 클릭 통일, #water-tide·Compare KPI 유지. History append-only tombstone. [TYPECHECK_AND_LINT_FAILURES.md](TYPECHECK_AND_LINT_FAILURES.md).
+**최신 작업 반영**: 2026-02-11 — Merge·Reflow 통합, Typecheck/Lint 0 errors. Reflow: **dependency cascade**·canonical preview 경로 통일. TideOverlayGantt: 가이던스 자동/View guidance 수동. Voyage Map View: voyage-map-view.ts·카드/맵·Drift·active만 경로. 즉시 조치: 3항목 체크리스트(immediate-actions.ts)·AlertsSection onSelectVoyageNo/onNavigateSection·page handleNavigateSection. 권위 진입점 schedule-reflow-manager.ts, freeze_lock_violations, #water-tide·Compare KPI 유지. History append-only tombstone. [TYPECHECK_AND_LINT_FAILURES.md](TYPECHECK_AND_LINT_FAILURES.md).
 
 **프로젝트**: HVDC TR Transport - AGI Site Logistics Dashboard  
 **SSOT**: patch.md, option_c.json (AGENTS.md)

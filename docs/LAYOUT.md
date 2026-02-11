@@ -8,7 +8,7 @@ updated: 2026-02-11
 
 > **버전**: 1.10.0  
 > **최종 업데이트**: 2026-02-11  
-> **최신 작업 반영**: 2026-02-11 — Merge 정리·충돌 UX 통일, Typecheck/Lint 0 errors. Reflow: dependency cascade preview 경로(`previewScheduleReflow`) 통일. TideOverlayGantt: DANGER 시 가이던스 자동 표시, 비-DANGER 시 View guidance 버튼으로 수동 오픈. Gantt/Map/Detail 충돌 클릭 → `handleCollisionCardOpen`, #water-tide·Compare KPI 유지. [CHANGELOG.md](../CHANGELOG.md), [TYPECHECK_AND_LINT_FAILURES.md](TYPECHECK_AND_LINT_FAILURES.md).  
+> **최신 작업 반영**: 2026-02-11 — Merge 정리·충돌 UX 통일, Typecheck/Lint 0 errors. Reflow: dependency cascade preview 경로 통일. TideOverlayGantt: 가이던스 자동/View guidance 수동. Voyage Map View: 카드·맵 hover/select·Drift·active만 경로. 즉시 조치 3항목 체크리스트(Go→voyages/schedule/gantt). Gantt/Map/Detail 충돌 클릭·#water-tide·Compare KPI 유지. [CHANGELOG.md](../CHANGELOG.md), [TYPECHECK_AND_LINT_FAILURES.md](TYPECHECK_AND_LINT_FAILURES.md).  
 > **프로젝트**: HVDC TR Transport Dashboard - AGI Site  
 > **SSOT**: patch.md, option_c.json (AGENTS.md)
 

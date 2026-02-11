@@ -54,6 +54,11 @@
   - **Page state**: selectedVoyageNo, hoveredVoyageNo 추가, selectedVoyage 파생화, 카드↔맵 연결(page.tsx).
   - **테스트**: voyage-map-view.test.ts 신규, MapPanel.test.tsx DateProvider 래핑 보강. MapPanel.test.tsx·tsc·eslint(지정 파일) 통과, lint errors 0.
   - **스크린샷 기준 보정 (2026-02-11)**: 카드 배지 겹침 수정 — 상단 여백 추가 + 배지 compact 2줄화(`voyage-cards.tsx`). 지도 경로 중첩 개선 — active voyage만 overlay 표시(`MapPanel.tsx`). tsc·MapPanel.test 통과.
+- **즉시 조치(Immediate Action) 체크리스트 (2026-02-11)**:
+  - **체크리스트 3항목 고정**: 1차 항차 TR 1유닛 로드(LCT 밸러스팅 제외), SPMT 2세트 유지·MOB 1/26 변경 없음, 잔여 일정 확정 후 반영. `lib/alerts/immediate-actions.ts` — 항목 상수, `toSelectedDateKey`, localStorage 키 `tr-dashboard-immediate-actions:{YYYY-MM-DD}`, load/save/toggle, invalid JSON fail-soft.
+  - **OperationalNotice** (alerts.tsx): 체크박스·완료율(n/3 done)·Go 버튼. 항목1 Go → `onSelectVoyageNo(1)` + `onNavigateSection("voyages")`, 항목2 → `onNavigateSection("schedule")`, 항목3 → `onNavigateSection("gantt")`. 선택일 라벨 유지.
+  - **AlertsSection** props: `onSelectVoyageNo?`, `onNavigateSection?`. **page.tsx**: `handleNavigateSection`(scrollIntoView), AlertsSection에 콜백 전달·voyage 선택 연동.
+  - **테스트**: immediate-actions.test.ts(날짜 키·round-trip·invalid JSON), alerts.test.tsx(토글 완료율·날짜별 상태 분리·Go 콜백 payload). tsc 통과.
 
 - **AI Command Phase 1 업그레이드 (2026-02-10)**: Unified Command Palette AI 실행 흐름 고도화.
   - `/api/nl-command` intent 계약 확장: `shift_activities|prepare_bulk|explain_conflict|set_mode|apply_preview|unclear`
