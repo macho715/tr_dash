@@ -22,6 +22,7 @@
     "validate:ssot": "python scripts/validate_optionc.py tests/fixtures/option_c_baseline.json",
     "schema:smoke": "tsx scripts/schema-smoke.ts",
     "smoke:nl-intent": "tsx scripts/smoke-nl-intent.ts",
+    "smoke:nl-intent:quick": "tsx scripts/smoke-nl-intent.ts --quick",
     "tdd:red": "tsx scripts/tdd-workflow.ts red",
     "tdd:green": "tsx scripts/tdd-workflow.ts green",
     "tdd:refactor": "tsx scripts/tdd-workflow.ts refactor",

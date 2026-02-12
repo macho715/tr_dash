@@ -383,10 +383,13 @@ function buildAiBriefing(
       ? `증빙 부족 ${missingTotal}건 (시작 ${missingStart}, 완료 ${missingFinish}, 차단사유 ${missingBlocker})`
       : "증빙 부족 없음";
 
+  const nl_summary = `현재 ${where}에서 ${whenWhat}. ${evidenceGap}.`;
+
   return {
     where,
     when_what: whenWhat,
     evidence_gap: evidenceGap,
+    nl_summary,
   };
 }
 
@@ -538,12 +541,25 @@ export function UnifiedCommandPalette({
         impacted = result.affected_activities?.length ?? result.affected_count ?? 0;
       }
 
+      const conflicts = Math.max(0, estimatedConflicts);
+      const riskLabel =
+        result.risk_level === "high"
+          ? "높음"
+          : result.risk_level === "medium"
+            ? "중간"
+            : "낮음";
+      const summary =
+        impacted > 0 || conflicts > 0
+          ? `${impacted}개 활동에 영향, ${conflicts}건 충돌 예상. 위험도 ${riskLabel}.`
+          : undefined;
+
       return {
         ...result,
         impact_preview: {
           impacted_activities: impacted,
-          estimated_conflicts: Math.max(0, estimatedConflicts),
+          estimated_conflicts: conflicts,
           risk_level: result.risk_level,
+          summary,
         },
       };
     },

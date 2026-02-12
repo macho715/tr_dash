@@ -31,6 +31,7 @@ export function WeatherOverlay({
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const lastDrawRef = useRef(0)
+  const lastDrawSignatureRef = useRef("")
   const pendingRafRef = useRef<number | null>(null)
   const [metrics, setMetrics] = useState({
     width: 0,
@@ -91,12 +92,24 @@ export function WeatherOverlay({
       if (ctx) {
         ctx.clearRect(0, 0, canvas.width, canvas.height)
       }
+      lastDrawSignatureRef.current = ""
       return
     }
 
     const cssWidth = metrics.width
     const cssHeight = metrics.height
     const dpr = metrics.dpr
+    const drawSignature = [
+      viewStart.getTime(),
+      viewEnd.getTime(),
+      cssWidth,
+      cssHeight,
+      opacity.toFixed(3),
+      dayStatusMap.size,
+    ].join("|")
+    if (drawSignature === lastDrawSignatureRef.current) {
+      return
+    }
     const scheduleDraw = () => {
       const now = performance.now()
       if (now - lastDrawRef.current < 100) {
@@ -107,6 +120,7 @@ export function WeatherOverlay({
       }
       lastDrawRef.current = now
       pendingRafRef.current = null
+      lastDrawSignatureRef.current = drawSignature
 
       canvas.width = Math.max(1, Math.floor(cssWidth * dpr))
       canvas.height = Math.max(1, Math.floor(cssHeight * dpr))

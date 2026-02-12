@@ -59,6 +59,8 @@ type Props = {
   onRangeChange?: (range: { start: Date; end: Date }) => void
   /** Vis timeline render tick (after redraw) */
   onRender?: () => void
+  /** Called once per drag completion (debounced per activity id) */
+  onPreviewGenerated?: (payload: { itemId: string }) => void
 }
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24
@@ -84,6 +86,7 @@ export const VisTimelineGantt = forwardRef<VisTimelineGanttHandle, Props>(
       tripId = 1,
       onRangeChange,
       onRender,
+      onPreviewGenerated,
     },
     ref
   ) {
@@ -99,6 +102,8 @@ export const VisTimelineGantt = forwardRef<VisTimelineGanttHandle, Props>(
     const onEventRef = useRef(onEvent)
     const onRangeChangeRef = useRef(onRangeChange)
     const onRenderRef = useRef(onRender)
+    const onPreviewGeneratedRef = useRef(onPreviewGenerated)
+    const lastPreviewNoticeRef = useRef<Map<string, number>>(new Map())
 
     useEffect(() => {
       tripIdRef.current = tripId
@@ -113,6 +118,7 @@ export const VisTimelineGantt = forwardRef<VisTimelineGanttHandle, Props>(
       onEventRef.current = onEvent
       onRangeChangeRef.current = onRangeChange
       onRenderRef.current = onRender
+      onPreviewGeneratedRef.current = onPreviewGenerated
     }, [
       onItemClick,
       onItemHover,
@@ -123,6 +129,7 @@ export const VisTimelineGantt = forwardRef<VisTimelineGanttHandle, Props>(
       onEvent,
       onRangeChange,
       onRender,
+      onPreviewGenerated,
     ])
 
     const groupsDS = useMemo(() => new DataSet<VisGroup>([]), [])
@@ -231,6 +238,12 @@ export const VisTimelineGantt = forwardRef<VisTimelineGanttHandle, Props>(
             newStart: item.start,
             newEnd: item.end,
           })
+          const now = Date.now()
+          const prev = lastPreviewNoticeRef.current.get(itemId) ?? 0
+          if (now - prev >= 800) {
+            lastPreviewNoticeRef.current.set(itemId, now)
+            onPreviewGeneratedRef.current?.({ itemId })
+          }
           callback(null) // Revert visual — parent handles via reflow preview
         },
         groupTemplate: (group?: { content?: string; level?: number }) => {
@@ -282,7 +295,6 @@ export const VisTimelineGantt = forwardRef<VisTimelineGanttHandle, Props>(
           onGroupClickRef.current?.(String(props.group))
         }
       })
-      timeline.on("rangechange", emitRange)
       timeline.on("rangechanged", emitRange)
       timeline.on("changed", emitRender)
 
@@ -349,6 +361,12 @@ export const VisTimelineGantt = forwardRef<VisTimelineGanttHandle, Props>(
       timeline.setWindow(start, end, { animation: false })
     }, [view, selectedDate])
 
-    return <div ref={containerRef} className="gantt-vis-wrapper h-full min-h-[400px] w-full" />
+    return (
+      <div
+        ref={containerRef}
+        title={dragEnabled ? "Preview-only drag: drop creates preview, then apply separately." : undefined}
+        className={`gantt-vis-wrapper h-full min-h-[400px] w-full ${dragEnabled ? "cursor-grab" : ""}`}
+      />
+    )
   }
 )

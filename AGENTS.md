@@ -1,7 +1,7 @@
 # AGENTS.md — TR Movement Dashboard (SSOT: option_c.json)
 
 **Last updated:** 2026-02-12 (Asia/Dubai)  
-**최신 작업 반영:** 2026-02-12 — AI intent 확장: **explain_why**(Why 2-click 요약), **navigate_query**(Where/When/What 질의→Map/Detail 포커스). selectedActivityId·onNavigateToMap 연동. 이전: 2026-02-11 — AI LLM 타임아웃(9초)·fallback·컨텍스트 축소. 2모델 Dual-pass, Governance·What-if. FilterDrawer. Release Split. [CHANGELOG.md](CHANGELOG.md).
+**최신 작업 반영:** 2026-02-12 — 스크롤 RAF 스로틀·passive 리스너, Gantt range render tick 제거, 드래그 UX·Preview·DependencyArrows·WeatherOverlay 최적화. AI Llama 옵션(`kwangsuklee/SEOKDONG-llama3.1_korean_Q5_K_M`). 이전: AI intent explain_why·navigate_query, 2모델 Dual-pass. [CHANGELOG.md](CHANGELOG.md).
 
 > 이 저장소에서 작업하는 모든 AI 코딩 에이전트는 아래 규칙을 "절대 우선"으로 준수한다.  
 > **목표:** TR 하나 = 하나의 이동 스토리. 한 화면에서 Where → When/What → Evidence가 3초 내 읽혀야 한다.

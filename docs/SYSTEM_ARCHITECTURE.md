@@ -8,7 +8,7 @@ updated: 2026-02-12
 
 **버전**: 1.10  
 **최종 업데이트**: 2026-02-12  
-**최신 작업 반영**: 2026-02-12 — AI intent 확장(explain_why, navigate_query). 8개 intent, selectedActivityId·onNavigateToMap. 이전: Merge·Reflow·Typecheck/Lint 0 errors. Reflow: dependency cascade preview 경로 통일. TideOverlayGantt: 가이던스 자동/View guidance 수동. Voyage Map View: 카드/맵·Drift·active만 경로. 즉시 조치 3항목 체크리스트. [TYPECHECK_AND_LINT_FAILURES.md](TYPECHECK_AND_LINT_FAILURES.md).
+**최신 작업 반영**: 2026-02-12 — 스크롤 RAF 스로틀·passive 리스너·동일 섹션 setState 스킵; Gantt range render tick 제거(rangechange/rangechanged); 드래그 UX·Preview·onPreviewGenerated·DependencyArrows·WeatherOverlay 최적화. AI Llama 옵션(`kwangsuklee/SEOKDONG-llama3.1_korean_Q5_K_M`). 이전: AI intent explain_why·navigate_query, Merge·Reflow. [CHANGELOG.md](../CHANGELOG.md), [TYPECHECK_AND_LINT_FAILURES.md](TYPECHECK_AND_LINT_FAILURES.md).
 
 **프로젝트**: HVDC TR Transport - AGI Site Logistics Dashboard  
 **SSOT**: patch.md, option_c.json (AGENTS.md)
@@ -49,6 +49,7 @@ HVDC TR Transport Dashboard는 **7개의 Transformer Unit**을 **LCT BUSHRA**로
 
 | Phase | 반영 내용 (본문과 일치하도록 유지) |
 |-------|-----------------------------------|
+| **2026-02-12** | **성능**: 스크롤 RAF 스로틀·passive 리스너·동일 섹션 setState 스킵. **Gantt**: rangechange/rangechanged 시 render tick 제거(pan/zoom 상위 재렌더 감소); 드래그 스냅백 완화·Preview·onPreviewGenerated·800ms 디바운스; DependencyArrowsOverlay rect 캐시·viewport skip·edge>250 시 라벨 생략·40ms 가드; WeatherOverlay 동일 range/metrics 시 redraw skip. **AI**: OLLAMA_MODEL Llama 옵션(kwangsuklee/SEOKDONG-llama3.1_korean_Q5_K_M). |
 | **2026-02-11** | **Merge·Reflow**: page/MapPanel/schedule-reflow 충돌 해소. Reflow 단일 진입점(schedule-reflow-manager), **dependency cascade** preview 경로 통일(previewScheduleReflow). collectFreezeLockViolations·impact.freeze_lock_violations. History tombstone. **TideOverlayGantt**: DANGER 시 가이던스 자동, 비-DANGER 시 View guidance 버튼으로 수동 오픈. **Typecheck/Lint**: tsc·eslint 0 errors. 스크립트 dev:webpack, sync:wa-events. |
 | **Phase 13 (2026-02-05)** | **Gantt Reset 버튼 & Activity 디버깅**: Timeline controls에 Reset 버튼 추가 (⟲, 주황색 hover). handleResetGantt() — View/Filters/Highlights/Groups/Overlays/Heatmap 일괄 초기화. 디버그 로그: `[Gantt Debug]`, `[Grouping Debug]`, `[Reset]`. |
 | **Phase 12 (2026-02-05)** | **Event Sourcing Layer**: Event Log → Actual/Hold/Milestone → Gantt 오버레이. 3-PR Pipeline (ID Resolution/JSON Patch/KPI Calc). Plan 불변, actual만 갱신. lib/ops/event-sourcing/, lib/gantt/event-sourcing-mapper.ts. |
@@ -67,7 +68,7 @@ HVDC TR Transport Dashboard는 **7개의 Transformer Unit**을 **LCT BUSHRA**로
 | **P1-4 GanttLegendDrawer** | 범례 태그 클릭 → 우측 Drawer에 정의·의사결정 영향 표시. `lib/gantt-legend-guide.ts`(LegendDefinition: stage/constraint/collision/meta) 기반. 2-click 내 도달. |
 | **MapLegend** | `MapPanel` 좌하단 오버레이. TR 상태(Planned/Ready/In progress/Completed/Blocked/Delayed) 색상·충돌(Blocking/Warning) 배지. patch §4.1, `lib/ssot/map-status-colors.ts` 연동. |
 | **Vis Gantt 패치·UX** | [visganttpatch.md](../visganttpatch.md) 참조. `gantt-chart.tsx`의 `useVisEngine`(= `NEXT_PUBLIC_GANTT_ENGINE` trim/toLowerCase `"vis"`)으로 vis-timeline(VisTimelineGantt) vs 자체 렌더 전환. `.env.local` 예: `NEXT_PUBLIC_GANTT_ENGINE=vis`, `PORT=3001`. `lib/gantt/visTimelineMapper.ts`: GanttRow → Vis groups/items, 동일일 막대 보정(min 1-day). VisTimelineGantt: DataSet, customTime(Selected Date), editable/draggable. 액티비티 클릭 → scrollToActivity + #gantt scrollIntoView. |
-| **AI Phase 1 (2026-02-10) · 확장 (2026-02-12)** | `app/api/nl-command/route.ts`: intent 파싱 API(**8 intents**). Phase 1: shift_activities, prepare_bulk, explain_conflict, set_mode, apply_preview, unclear. **확장**: explain_why(해당 activity planned/actual/blocker 요약), navigate_query(Where/When/What → Map/Timeline 포커스). `selectedActivityId`·`onNavigateToMap` 콜백 지원. provider order(ollama 우선), 정책 가드(422), `clarification` 재질의. `UnifiedCommandPalette`는 review-first→Confirm 실행. |
+| **AI Phase 1 (2026-02-10) · 확장 (2026-02-12)** | `app/api/nl-command/route.ts`: intent 파싱 API(**8 intents**). Phase 1: shift_activities, prepare_bulk, explain_conflict, set_mode, apply_preview, unclear. **확장**: explain_why(해당 activity planned/actual/blocker 요약), navigate_query(Where/When/What → Map/Timeline 포커스). `selectedActivityId`·`onNavigateToMap` 콜백 지원. provider order(ollama 우선), OLLAMA_MODEL=exaone3.5:7.8b 또는 **kwangsuklee/SEOKDONG-llama3.1_korean_Q5_K_M** (Llama 3.1 한국어). 정책 가드(422), `clarification` 재질의. `UnifiedCommandPalette`는 review-first→Confirm 실행. |
 
 ---
 
@@ -134,40 +135,46 @@ function GanttChart() {
 
 ## 레이어 구조
 
+```mermaid
+flowchart TB
+    subgraph Presentation["Presentation Layer"]
+        App[app/<br/>page.tsx, layout.tsx]
+        Comp[components/<br/>dashboard, gantt]
+        Public[public/<br/>assets]
+    end
+    
+    subgraph Business["Business Logic Layer"]
+        Reflow[reflow<br/>schedule-reflow, src/lib/reflow]
+        DataSSOT[data·ssot<br/>schedule-data, go-nogo, tide]
+        Ops[ops·contexts<br/>lib/ops/agi, lib/gantt]
+    end
+    
+    subgraph Data["Data Layer"]
+        SSOT[lib/ssot/schedule.ts<br/>types]
+        OptionC[option_c.json<br/>139 activities]
+    end
+    
+    Presentation --> Business
+    Business --> Data
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    Presentation Layer                    │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐ │
-│  │   app/       │  │ components/  │  │   public/    │ │
-│  │  page.tsx    │  │  dashboard/  │  │   assets     │ │
-│  │  layout.tsx  │  │  gantt/      │  │              │ │
-│  └──────────────┘  └──────────────┘  └──────────────┘ │
-└─────────────────────────────────────────────────────────┘
-                          │
-                          ▼
-┌─────────────────────────────────────────────────────────┐
-│                     Business Logic Layer                 │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐ │
-│  │ reflow       │  │ data·ssot    │  │ ops·contexts │ │
-│  │ lib/utils/   │  │ lib/data/    │  │ lib/ops/agi  │ │
-│  │ schedule-    │  │ schedule-    │  │ agi-schedule │ │
-│  │ reflow +     │  │ go-nogo,     │  │ lib/contexts │ │
-│  │ src/lib/     │  │ tide, weather│  │ lib/gantt     │ │
-│  │ reflow       │  │ lib/ssot/    │  │              │ │
-│  │ lib/ssot/    │  │ utils/       │  │              │ │
-│  │ utils/mapper │  │ schedule-data│  │              │ │
-│  └──────────────┘  └──────────────┘  └──────────────┘ │
-└─────────────────────────────────────────────────────────┘
-                          │
-                          ▼
-┌─────────────────────────────────────────────────────────┐
-│                      Data Layer                          │
-│  ┌──────────────────┐  ┌─────────────────────────────┐  │
-│  │ lib/ssot/        │  │ data/schedule/option_c.json│  │
-│  │ schedule.ts      │  │ (139 activities)            │  │
-│  │ (types)          │  │                             │  │
-│  └──────────────────┘  └─────────────────────────────┘  │
-└─────────────────────────────────────────────────────────┘
+
+```mermaid
+flowchart LR
+    subgraph P["Presentation"]
+        A[app] --> B[components]
+    end
+    
+    subgraph L["Business Logic"]
+        C[reflow] --> D[data·ssot]
+        D --> E[ops·contexts]
+    end
+    
+    subgraph D2["Data"]
+        F[option_c.json]
+    end
+    
+    B --> C
+    E --> F
 ```
 
 ### 레이어별 책임
@@ -228,16 +235,16 @@ function GanttChart() {
 
 ```mermaid
 graph TD
-    A[data/schedule/option_c.json<br/>139개 활동] --> B[schedule-data.ts<br/>진입점·ScheduleActivity[] 생성]
+    A["data/schedule/option_c.json<br/>139개 활동"] --> B["schedule-data.ts<br/>진입점 ScheduleActivity 배열 생성"]
     B --> B2[lib/ssot/utils/schedule-mapper 사용<br/>TR Unit, Anchor 타입 추출]
-    B2 --> C[scheduleActivitiesToGanttRows<br/>GanttRow[] 변환]
+    B2 --> C["scheduleActivitiesToGanttRows<br/>GanttRow 배열 변환"]
     C --> D[gantt-chart.tsx<br/>currentActivities 상태]
     D --> D1{useVisEngine?<br/>NEXT_PUBLIC_GANTT_ENGINE=vis}
     D1 -->|yes| D2[ganttRowsToVisData<br/>Vis groups/items]
     D2 --> D3[VisTimelineGantt]
     D1 -->|no| D4[커스텀 막대 렌더]
     D --> E[사용자 클릭<br/>날짜 변경 Dialog]
-    E --> F[reflowSchedule<br/>의존성 기반 재계산]
+    E --> F[previewScheduleReflow<br/>의존성 기반 재계산]
     F --> G[Preview 패널<br/>변경 사항 표시]
     G --> H[적용 버튼<br/>setCurrentActivities]
     H --> D
@@ -257,7 +264,7 @@ sequenceDiagram
     User->>GanttChart: 활동 바 클릭
     GanttChart->>Dialog: 날짜 변경 Dialog 열기
     User->>Dialog: 새 날짜 입력
-    Dialog->>ReflowEngine: reflowSchedule() 호출
+    Dialog->>ReflowEngine: previewScheduleReflow() 호출
     ReflowEngine->>ReflowEngine: 의존성 그래프 탐색
     ReflowEngine->>ReflowEngine: 날짜 재계산
     ReflowEngine->>ReflowEngine: 충돌 검사
@@ -275,7 +282,8 @@ sequenceDiagram
 ### 1. 스케줄 재계산 엔진
 
 **역할 구분**:
-- **공개 API**: `lib/utils/schedule-reflow.ts` — `reflowSchedule()` 한 곳에서 호출. 내부적으로 `lib/ops/agi/applyShift`의 `applyBulkAnchors()`, `buildChanges`, `detectResourceConflicts`를 조합한 얇은 래퍼.
+- **권위 진입점**: `src/lib/reflow/schedule-reflow-manager.ts` — `previewScheduleReflow()`, `applySchedulePreview()`. UI는 이 API만 사용.
+- **Deprecated 래퍼**: `lib/utils/schedule-reflow.ts` — `reflowSchedule()` 하위 호환용. 내부적으로 `lib/ops/agi/applyShift`의 `applyBulkAnchors()`, `buildChanges`, `detectResourceConflicts`를 조합.
 - **내부 구현**: `src/lib/reflow/` — DFS 기반 후속 작업 탐색, 위상 정렬, 사이클 탐지, forward-pass, backward-pass, reflow-manager, collision-detect 등 상세 알고리즘.
 
 **책임**: 의존성 그래프 기반 자동 일정 조정
@@ -288,22 +296,19 @@ sequenceDiagram
 - **SUMMARY rollup**: 요약 활동 자동 계산
 - **불변성 보장**: 깊은 복사로 원본 데이터 보호
 
-**API** (`lib/utils/schedule-reflow.ts`):
+**API** (`src/lib/reflow/schedule-reflow-manager.ts`):
 ```typescript
-function reflowSchedule(
-  activities: ScheduleActivity[],
-  targetActivityId: string,
-  newStartDate: IsoDate,
-  options: ReflowOptions
-): ReflowResult
+function previewScheduleReflow({
+  activities,
+  anchors,  // [{ activityId, newStart }]
+  options,
+  mode = 'shift' | 'bulk'
+}): ReflowPreviewDTO
 
-interface ReflowResult {
-  activities: ScheduleActivity[]  // 재계산된 활동 목록
-  impact_report: ImpactReport      // 영향받은 작업 및 충돌 정보
-}
+// ReflowPreviewDTO: nextActivities, changes, collisions, impact, meta
 ```
 
-**알고리즘** (상세 구현: `src/lib/reflow/`, `lib/ops/agi/applyShift`):
+**알고리즘** (상세 구현: `src/lib/reflow/`, `lib/ops/agi/dependency-cascade`):
 1. 타겟 활동의 새 시작일 설정
 2. 의존성 그래프에서 후속 작업 탐색 (DFS)
 3. 각 후속 작업의 시작일 재계산
@@ -325,6 +330,11 @@ interface ReflowResult {
 - **GanttLegendDrawer** (P1-4): 범례 태그 클릭 시 우측 Drawer에 정의·의사결정 영향 표시. `lib/gantt-legend-guide.ts`의 LegendDefinition 기반. 2-click 내 도달.
 - **Activity 스크롤**: `scrollToActivity()` 함수로 특정 활동으로 이동
 
+**성능 최적화 (2026-02-12)**:
+- **range 이벤트**: rangechange 제거, rangechanged만 사용해 업데이트 경로 단일화. pan/zoom 시 상위 컴포넌트 재렌더 압력 감소.
+- **render tick**: `handleVisRangeChange`에서 제거, `onRender` 경로만 사용.
+- **드래그 UX**: Preview-only 유지, `onPreviewGenerated`, activity별 800ms 디바운스, 상단 "Preview generated" 배지. DependencyArrowsOverlay: rect 캐시(Map), viewport 밖 early skip, edge>250 시 라벨 생략. WeatherOverlay: 동일 range/metrics 시 redraw skip.
+
 **데이터 변환**:
 ```typescript
 ScheduleActivity[] 
@@ -334,13 +344,13 @@ ScheduleActivity[]
 
 ### 3. ReflowPreviewPanel (`components/dashboard/ReflowPreviewPanel.tsx`)
 
-**책임**: Why 패널 suggested_action → reflowSchedule 결과 미리보기 (Phase 7 T7.7)
+**책임**: Why 패널 suggested_action → previewScheduleReflow 결과 미리보기 (Phase 7 T7.7)
 
 **주요 기능**:
 - **변경 사항 목록**: 영향받은 작업의 이전/이후 날짜
 - **충돌 경고**: 의존성 사이클, 잠금 위반, 제약 조건 위반
 - **적용/취소**: Preview 적용 시 상태 업데이트
-- **연결**: `onApplyAction` → `reflowSchedule` → ReflowPreviewPanel 표시
+- **연결**: `onApplyAction` → `previewScheduleReflow` → ReflowPreviewPanel 표시
 
 ### 5. MapPanel + MapLegend
 
@@ -364,7 +374,7 @@ ScheduleActivity[]
 Collision 배지 클릭
   → WhyPanel 표시 (root cause + suggested_actions)
   → suggested_action 클릭
-  → reflowSchedule 실행
+  → previewScheduleReflow 실행
   → ReflowPreviewPanel 표시 (변경 사항 + 충돌)
   → Apply 버튼
   → Activities 상태 업데이트
@@ -396,6 +406,23 @@ Collision 배지 클릭
 3. `AIExplainDialog` 리뷰
 4. Confirm 시 intent dispatcher 실행
 5. ambiguity일 경우 옵션 선택 -> `clarification` 재질의
+
+**AI Provider 흐름**:
+
+```mermaid
+flowchart TD
+    User["자연어 입력"] --> API["POST /api/nl-command"]
+    API --> P{"AI_PROVIDER"}
+    P -->|ollama| H["Ollama 우선, OpenAI fallback"]
+    P -->|default| I["OpenAI 우선, Ollama fallback"]
+    H --> Parse["Intent 파싱"]
+    I --> Parse
+    Parse --> Review["OLLAMA_REVIEW_MODEL<br/>Dual-pass 검증"]
+    Review --> Dialog["AIExplainDialog"]
+    Dialog --> Confirm{"Confirm?"}
+    Confirm -->|Yes| Exec["executeAiIntent"]
+    Confirm -->|No| Cancel["취소"]
+```
 
 ### 7. State Machine & Evidence Gates (Phase 3)
 
@@ -526,7 +553,12 @@ const changeImpactItems = useMemo(() => {
 
 - Gantt 행 변환: 렌더링 시점에만 변환
 
-### 3. 가상화 (향후 계획)
+### 3. 스크롤·Gantt 성능 (2026-02-12)
+
+- **스크롤**: requestAnimationFrame 기반 스로틀링, passive 리스너, 동일 섹션 시 setState 스킵. 전체 화면 이동 체감 성능 향상.
+- **Gantt**: rangechange/rangechanged 시 불필요한 render tick 제거. pan/zoom 중 상위 컴포넌트 재렌더 압력 감소.
+
+### 4. 가상화 (향후 계획)
 
 - 대량 활동 렌더링 시 React Window 고려
 - Gantt 차트 스크롤 영역 가상화
@@ -625,12 +657,27 @@ const changeImpactItems = useMemo(() => {
 - `gantt-chart.tsx`: Overlay Legend (조건부 표시)
 
 **레이어 구조 (업데이트)**:
-```
-z-20: Today Marker (SVG)
-z-10: DependencyArrowsOverlay (SVG)
-z-1:  VisTimelineGantt (vis-timeline DOM)
-      → Actual/Hold/Milestone overlays (vis-timeline items)
-z-0:  WeatherOverlay (Canvas)
+
+```mermaid
+flowchart TB
+    subgraph Z20["z-20: Today Marker (SVG)"]
+        T[Today Marker]
+    end
+    
+    subgraph Z10["z-10: DependencyArrowsOverlay"]
+        D[DependencyArrows SVG]
+    end
+    
+    subgraph Z1["z-1: VisTimelineGantt"]
+        V[vis-timeline DOM]
+        O[Actual/Hold/Milestone overlays]
+    end
+    
+    subgraph Z0["z-0: WeatherOverlay"]
+        W[Canvas 배경]
+    end
+    
+    Z20 --> Z10 --> Z1 --> Z0
 ```
 
 ---
@@ -641,8 +688,9 @@ z-0:  WeatherOverlay (Canvas)
 
 | 위치 | 유형 | 설명 |
 |------|------|------|
-| [데이터 흐름](#데이터-흐름) | `graph TD` | 스케줄 데이터 흐름 (option_c.json → schedule-data → Gantt → reflow → Preview) |
+| [데이터 흐름](#데이터-흐름) | `graph TD` | 스케줄 데이터 흐름 (option_c.json → schedule-data → Gantt → previewScheduleReflow → Preview) |
 | [상태 업데이트 흐름](#데이터-흐름) | `sequenceDiagram` | 사용자·Gantt·Dialog·ReflowEngine·PreviewPanel·State 간 시퀀스 |
+| [AI Provider 흐름](#61-nl-command-interface-phase-1-2026-02-10--확장-2026-02-12) | `flowchart TD` | AI_PROVIDER별 Ollama/OpenAI 우선·fallback |
 | [의존성 그래프](#의존성-그래프) | `graph TD` | Activity A→B→C, A→D, C·D→E 의존성 예시 |
 
 **문법 요약**:
@@ -664,7 +712,7 @@ z-0:  WeatherOverlay (Canvas)
 
 ---
 
-**Last Updated**: 2026-02-11
+**Last Updated**: 2026-02-12
 
 ## Refs
 

@@ -93,6 +93,8 @@ const INITIAL_VIS_RANGE = {
   start: PROJECT_START,
   end: PROJECT_END,
 }
+const VIS_RENDER_TICK_INTERVAL_MS = 80
+const VIS_RANGE_UPDATE_INTERVAL_MS = 80
 
 const TIDE_RULE = {
   workStartHour: 6,
@@ -328,8 +330,14 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
   const activityRefs = useRef<Map<string, HTMLDivElement>>(new Map())
   const visTimelineRef = useRef<VisTimelineGanttHandle>(null)
   const visRenderRaf = useRef<number | null>(null)
+  const visRenderTimeout = useRef<number | null>(null)
+  const visRenderLastTickAt = useRef(0)
   const visRangeRaf = useRef<number | null>(null)
+  const visRangeTimeout = useRef<number | null>(null)
+  const visRangeLastUpdateAt = useRef(0)
+  const previewBadgeHideTimeoutRef = useRef<number | null>(null)
   const [visRenderTick, setVisRenderTick] = useState(0)
+  const [previewGeneratedItemId, setPreviewGeneratedItemId] = useState<string | null>(null)
   const visRangeRef = useRef<{ start: Date; end: Date }>(INITIAL_VIS_RANGE)
   const [visRange, setVisRange] = useState(INITIAL_VIS_RANGE)
   const [filters, setFilters] = useState<TimelineFilters>({
@@ -559,9 +567,21 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
         cancelAnimationFrame(visRenderRaf.current)
         visRenderRaf.current = null
       }
+      if (visRenderTimeout.current !== null) {
+        window.clearTimeout(visRenderTimeout.current)
+        visRenderTimeout.current = null
+      }
       if (visRangeRaf.current !== null) {
         cancelAnimationFrame(visRangeRaf.current)
         visRangeRaf.current = null
+      }
+      if (visRangeTimeout.current !== null) {
+        window.clearTimeout(visRangeTimeout.current)
+        visRangeTimeout.current = null
+      }
+      if (previewBadgeHideTimeoutRef.current !== null) {
+        window.clearTimeout(previewBadgeHideTimeoutRef.current)
+        previewBadgeHideTimeoutRef.current = null
       }
     }
   }, [])
@@ -613,25 +633,58 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
   }, [eventOverlayEnabled, eventLogLoading, eventLogAttempted])
 
   const scheduleVisRenderTick = () => {
-    if (visRenderRaf.current !== null) return
-    visRenderRaf.current = requestAnimationFrame(() => {
-      visRenderRaf.current = null
-      setVisRenderTick((prev) => prev + 1)
-    })
+    const scheduleRaf = () => {
+      if (visRenderRaf.current !== null) return
+      visRenderRaf.current = requestAnimationFrame(() => {
+        visRenderRaf.current = null
+        visRenderLastTickAt.current = Date.now()
+        setVisRenderTick((prev) => prev + 1)
+      })
+    }
+    const elapsed = Date.now() - visRenderLastTickAt.current
+    if (elapsed >= VIS_RENDER_TICK_INTERVAL_MS) {
+      if (visRenderTimeout.current !== null) {
+        window.clearTimeout(visRenderTimeout.current)
+        visRenderTimeout.current = null
+      }
+      scheduleRaf()
+      return
+    }
+    if (visRenderTimeout.current !== null) return
+    visRenderTimeout.current = window.setTimeout(() => {
+      visRenderTimeout.current = null
+      scheduleRaf()
+    }, VIS_RENDER_TICK_INTERVAL_MS - elapsed)
   }
 
   const scheduleVisRangeUpdate = () => {
-    if (visRangeRaf.current !== null) return
-    visRangeRaf.current = requestAnimationFrame(() => {
-      visRangeRaf.current = null
-      setVisRange({ ...visRangeRef.current })
-    })
+    const scheduleRaf = () => {
+      if (visRangeRaf.current !== null) return
+      visRangeRaf.current = requestAnimationFrame(() => {
+        visRangeRaf.current = null
+        visRangeLastUpdateAt.current = Date.now()
+        setVisRange({ ...visRangeRef.current })
+      })
+    }
+    const elapsed = Date.now() - visRangeLastUpdateAt.current
+    if (elapsed >= VIS_RANGE_UPDATE_INTERVAL_MS) {
+      if (visRangeTimeout.current !== null) {
+        window.clearTimeout(visRangeTimeout.current)
+        visRangeTimeout.current = null
+      }
+      scheduleRaf()
+      return
+    }
+    if (visRangeTimeout.current !== null) return
+    visRangeTimeout.current = window.setTimeout(() => {
+      visRangeTimeout.current = null
+      scheduleRaf()
+    }, VIS_RANGE_UPDATE_INTERVAL_MS - elapsed)
   }
 
   const handleVisRangeChange = (range: { start: Date; end: Date }) => {
     visRangeRef.current = range
     scheduleVisRangeUpdate()
-    scheduleVisRenderTick()
   }
 
   const handleCollapseAll = () => {
@@ -894,7 +947,6 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
       taskEnd.setUTCDate(taskEnd.getUTCDate() + 1)
     }
 
-    let hasDangerGuidance = false
     if (tideGuidanceReady && tideWindows.length > 0) {
       const guidance = composeDragTideGuidance({
         task: {
@@ -908,7 +960,6 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
       })
 
       if (guidance) {
-        hasDangerGuidance = true
         setTideGuidance(guidance)
         const nearestLabel = guidance.nearestSafe
           ? `Nearest SAFE: ${formatUtcDateTime(guidance.nearestSafe.start)} (+${guidance.nearestSafe.shiftHours}h)`
@@ -927,9 +978,17 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
     }
 
     onDragMove?.(activityId, newStartIso)
-    if (!hasDangerGuidance) {
-      toast.info(`Drag preview: ${activityId} → ${newStartIso}`, { duration: 2000 })
+  }
+
+  const handlePreviewGenerated = ({ itemId }: { itemId: string }) => {
+    setPreviewGeneratedItemId(itemId)
+    if (previewBadgeHideTimeoutRef.current !== null) {
+      window.clearTimeout(previewBadgeHideTimeoutRef.current)
     }
+    previewBadgeHideTimeoutRef.current = window.setTimeout(() => {
+      setPreviewGeneratedItemId(null)
+      previewBadgeHideTimeoutRef.current = null
+    }, 1600)
   }
 
   const handleQuickEdit = (activityId: string) => {
@@ -988,6 +1047,14 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
             : undefined
         }
       />
+      {previewGeneratedItemId && (
+        <div
+          data-testid="gantt-preview-generated-badge"
+          className="mt-2 inline-flex items-center rounded-full border border-cyan-500/40 bg-cyan-500/10 px-3 py-1 text-[11px] font-medium text-cyan-200"
+        >
+          Preview generated: {previewGeneratedItemId}
+        </div>
+      )}
       {canEdit && useVisEngine && tideGuidance && (
         <div
           data-testid="vis-tide-guidance"
@@ -1298,6 +1365,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
             }}
             onDeselect={onActivityDeselect}
             onItemMove={handleDragMove}
+            onPreviewGenerated={handlePreviewGenerated}
             dragEnabled={canEdit}
             focusedActivityId={focusedActivityId}
           />

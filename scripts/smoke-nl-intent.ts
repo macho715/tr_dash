@@ -88,6 +88,12 @@ async function run() {
   if (!process.env.AI_PROVIDER) process.env.AI_PROVIDER = "ollama";
   if (!process.env.OLLAMA_MODEL) process.env.OLLAMA_MODEL = "exaone3.5:7.8b";
 
+  const quick = process.argv.includes("--quick") || process.argv.includes("-q");
+  const casesToRun = quick
+    ? CASES.filter((c) => ["EN-02", "EN-08"].includes(c.id))
+    : CASES;
+  if (quick) console.log("--quick: running 2 EN cases (EN-02, EN-08)");
+
   const { POST } = await import("../app/api/nl-command/route");
   const results: Array<{
     id: string;
@@ -98,7 +104,7 @@ async function run() {
     error?: string;
   }> = [];
 
-  for (const c of CASES) {
+  for (const c of casesToRun) {
     try {
       const req = new NextRequest("http://localhost:3000/api/nl-command", {
         method: "POST",

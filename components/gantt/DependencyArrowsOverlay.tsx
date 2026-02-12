@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState, type RefObject } from "react"
+import { useEffect, useMemo, useRef, useState, type RefObject } from "react"
 import type { ScheduleDependency } from "@/lib/ssot/schedule"
 
 type DependencyEdge = {
@@ -48,6 +48,8 @@ const STYLES: Record<
   FF: { stroke: "rgb(6 182 212)", width: 2, marker: "arrow-ff" },
   SF: { stroke: "rgb(251 146 60)", dash: "8 4", width: 1.5, marker: "arrow-sf" },
 }
+const LABEL_EDGE_THRESHOLD = 250
+const MIN_RECALC_INTERVAL_MS = 40
 
 function escapeAttributeValue(value: string) {
   return value.replace(/"/g, '\\"')
@@ -71,6 +73,8 @@ export function DependencyArrowsOverlay({
     paths: RenderPath[]
   }>({ width: 0, height: 0, paths: [] })
   const [resizeTick, setResizeTick] = useState(0)
+  const lastComputeAtRef = useRef(0)
+  const lastComputeSignatureRef = useRef("")
 
   const edgesKey = useMemo(
     () => edges.map((e) => `${e.predId}->${e.succId}:${e.type}:${e.lagDays}`).join("|"),
@@ -96,6 +100,7 @@ export function DependencyArrowsOverlay({
 
     let raf = 0
     const update = () => {
+      const now = performance.now()
       const rect = container.getBoundingClientRect()
       const width = Math.max(0, Math.round(rect.width))
       const height = Math.max(0, Math.round(rect.height))
@@ -103,12 +108,36 @@ export function DependencyArrowsOverlay({
         setLayout({ width, height, paths: [] })
         return
       }
+      const signature = `${edgesKey}|${resizeTick}|${width}x${height}`
+      if (
+        signature === lastComputeSignatureRef.current &&
+        now - lastComputeAtRef.current < MIN_RECALC_INTERVAL_MS
+      ) {
+        return
+      }
+      lastComputeSignatureRef.current = signature
+      lastComputeAtRef.current = now
+
+      const showLabels = edges.length <= LABEL_EDGE_THRESHOLD
+      const rectCache = new Map<string, DOMRect | null>()
+      const getCachedRect = (id: string) => {
+        if (!rectCache.has(id)) {
+          rectCache.set(id, getItemRect(container, id))
+        }
+        return rectCache.get(id) ?? null
+      }
+      const isOutsideViewport = (itemRect: DOMRect) =>
+        itemRect.right < rect.left ||
+        itemRect.left > rect.right ||
+        itemRect.bottom < rect.top ||
+        itemRect.top > rect.bottom
 
       const paths: RenderPath[] = []
       for (const edge of edges) {
-        const predRect = getItemRect(container, edge.predId)
-        const succRect = getItemRect(container, edge.succId)
+        const predRect = getCachedRect(edge.predId)
+        const succRect = getCachedRect(edge.succId)
         if (!predRect || !succRect) continue
+        if (isOutsideViewport(predRect) && isOutsideViewport(succRect)) continue
 
         const predLeft = predRect.left - rect.left
         const predRight = predRect.right - rect.left
@@ -142,7 +171,7 @@ export function DependencyArrowsOverlay({
 
         const style = STYLES[edge.type] ?? STYLES.FS
         const label =
-          edge.lagDays !== 0
+          showLabels && edge.lagDays !== 0
             ? {
                 x: midX,
                 y: (y1 + y2) / 2 - 6,
@@ -154,7 +183,7 @@ export function DependencyArrowsOverlay({
         // Type label (FS/SS/FF/SF) near the arrowhead
         const typeLabelOffset = edge.lagDays !== 0 ? 14 : 6
         const typeLabel =
-          edge.type !== "FS"
+          showLabels && edge.type !== "FS"
             ? {
                 x: midX,
                 y: (y1 + y2) / 2 + typeLabelOffset,

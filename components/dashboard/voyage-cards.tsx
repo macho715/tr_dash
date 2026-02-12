@@ -82,12 +82,22 @@ export function VoyageCards({
             const isHovered = hoveredVoyageNo === v.voyage
 
             return (
-              <button
+              <div
                 key={v.voyage}
-                type="button"
+                role="button"
+                tabIndex={0}
+                aria-pressed={isSelected}
                 onClick={() => onSelectVoyage?.(v)}
                 onMouseEnter={() => onHoverVoyage?.(v.voyage)}
                 onMouseLeave={() => onHoverVoyage?.(null)}
+                onFocus={() => onHoverVoyage?.(v.voyage)}
+                onBlur={() => onHoverVoyage?.(null)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault()
+                    onSelectVoyage?.(v)
+                  }
+                }}
                 className={`relative rounded-xl p-4 pt-10 border text-center transition-all duration-300 hover:-translate-y-1 hover:scale-[1.02] hover:border-cyan-500 hover:shadow-voyage ${getMapStatusColor(
                   getVoyageStatus(v)
                 )} ${
@@ -96,7 +106,7 @@ export function VoyageCards({
                     : isHovered
                       ? "ring-1 ring-cyan-300/40"
                       : ""
-                }`}
+                } cursor-pointer`}
               >
                 <div
                   className="absolute right-2 top-2 min-w-[58px] rounded-md border px-2 py-1 text-right"
@@ -186,7 +196,7 @@ export function VoyageCards({
                     className="mt-3 overflow-hidden rounded-md border border-accent/10"
                   />
                 )}
-              </button>
+              </div>
             )
           })()
         ))}

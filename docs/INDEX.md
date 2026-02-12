@@ -1,7 +1,7 @@
 ---
 doc_id: docs-index
 refs: [../patch.md, ../AGENTS.md, ../CHANGELOG.md, LAYOUT.md, SYSTEM_ARCHITECTURE.md, TYPECHECK_AND_LINT_FAILURES.md, WORK_LOG_20260202.md, WORK_LOG_20260209.md, WORK_LOG_20260210_AI_UPGRADE.md, WORK_LOG_20260211.md, BUGFIX_APPLIED_20260202.md, plan/gantt-reset-button-fix-plan.md, plan/document-integration-plan.md]
-updated: 2026-02-11
+updated: 2026-02-12
 ---
 
 # Docs Index

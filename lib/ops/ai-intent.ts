@@ -62,6 +62,7 @@ export type ApplyPreviewParams = {
 export type AiIntentResult = {
   intent: AiIntent;
   explanation: string;
+  plain_summary?: string;
   parameters?: {
     filter?: ShiftFilter;
     action?: ShiftAction;
@@ -100,10 +101,12 @@ export type AiIntentResult = {
     where: string;
     when_what: string;
     evidence_gap: string;
+    nl_summary?: string;
   };
   impact_preview?: {
     impacted_activities: number;
     estimated_conflicts: number;
     risk_level: AiRiskLevel;
+    summary?: string;
   };
 };

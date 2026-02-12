@@ -9,6 +9,23 @@
 
 ### Added
 
+- **Gantt 드래그 UX·Preview·스로틀 개선 (2026-02-12)**:
+  - 드래그 스냅백 완화, Preview-only 유지(`callback(null)`), `onPreviewGenerated` 신호, activity별 800ms 디바운스.
+  - Gantt 상단 "Preview generated: \<activityId\>" 배지, 드래그 힌트 title/cursor.
+  - range 이벤트 중복 제거, rangechange 제거, rangechanged만 사용해 range 업데이트 1회 경로 통일.
+  - render tick 단일화: `handleVisRangeChange`에서 제거, `onRender` 경로만 사용. pan/zoom 시 상위 컴포넌트 재렌더 압력 감소.
+  - DependencyArrowsOverlay: 동일 프레임 rect 캐시(Map), viewport 밖 early skip, edge >250 시 lag/type 라벨 생략, 40ms 가드.
+  - WeatherOverlay: 동일 range/metrics/signature 시 redraw skip, 숨김 시 signature reset.
+  - 파일: VisTimelineGantt.tsx, gantt-chart.tsx, DependencyArrowsOverlay.tsx, WeatherOverlay.tsx. 테스트: VisTimelineGantt.motion.test.tsx, gantt-motion-pipeline.test.tsx.
+- **AI 모델 Llama 옵션 (2026-02-12)**:
+  - `OLLAMA_MODEL=kwangsuklee/SEOKDONG-llama3.1_korean_Q5_K_M` 지원. 한국어 Llama 3.1 기반 모델.
+- **AIExplainDialog 자연어 설명 개선 (2026-02-12)**:
+  - **Task 1**: SYSTEM_PROMPT의 explanation 지침을 2~3문장 사용자 친화적 요약으로 강화. 각 intent별 예시 보강(한/영 혼용).
+  - **Task 3**: impact_preview에 `summary` 필드 추가 — 규칙 기반 "N개 활동에 영향, M건 충돌 예상. 위험도 낮음/중간/높음." 한 문장 표시.
+  - **Task 4**: briefing에 `nl_summary` 필드 추가 — where/when_what/evidence_gap을 한 문장으로 재구성하여 3줄 위에 상단 표시.
+  - **Task 2**: `AI_ENHANCE_EXPLANATION=true` 시 explanation이 100자 이하일 때 2차 LLM 호출로 `plain_summary` 생성. AIExplainDialog에서 우선 표시.
+  - 파일: `app/api/nl-command/route.ts`, `lib/ops/ai-intent.ts`, `components/ops/UnifiedCommandPalette.tsx`, `components/ops/dialogs/AIExplainDialog.tsx`.
+  - 계획: `docs/plan/ai-explain-dialog-nl-plan.md`.
 - **AI explain_why · navigate_query 확장 (2026-02-12)**:
   - **explain_why**: "Why is this delayed?" → 선택된 activity의 planned/actual/blocker/status 요약. `selectedActivityId` 전달 시 Evidence/History 맥락 강화. fallback 시 activity 데이터로 자동 요약 생성.
   - **navigate_query**: "Where is TR-3 now?" / "When does V3 Load-out start?" → target(where|when|what)에 따라 Map 스크롤 또는 Timeline/Detail 포커스. `onNavigateToMap` 콜백으로 handleWhereClick 연동. filter → affected_activities 자동 해석.
@@ -120,6 +137,9 @@
 
 ### Changed
 
+- **스크롤·Gantt range 성능 개선 (2026-02-12)**:
+  - 스크롤: requestAnimationFrame 기반 스로틀링, passive 리스너, 동일 섹션 시 setState 스킵. 전체 화면 이동 체감 성능 향상.
+  - Gantt vis range: rangechange/rangechanged 시 불필요한 render tick 제거. pan/zoom 중 상위 컴포넌트 재렌더 압력 감소.
 - **문서 동기화 (2026-02-10)**: AI 기능 전용 문서 및 핵심 문서 최신화.
   - 신규: `docs/AI_FEATURES.md`, `docs/WORK_LOG_20260210_AI_UPGRADE.md`
   - 갱신: `docs/NL_COMMAND_INTERFACE_IMPLEMENTATION_REPORT.md`, `docs/NL_COMMAND_INTERFACE_COMPLETE.md`, `docs/INDEX.md`, `README.md`, `docs/SYSTEM_ARCHITECTURE.md`, `docs/LAYOUT.md`

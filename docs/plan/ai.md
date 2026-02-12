@@ -12,9 +12,9 @@
 | RAM         | 8GB                          | 16GB                        | 32GB+                        |
 | VRAM        | 없음                         | 4–8GB                      | 12GB+                        |
 | 가능 모델   | 3B 이하 (CPU)                | 3–7B                       | 7–14B                       |
-| Ollama 예시 | SmolLM2 1.7B, TinyLlama 1.1B | Qwen2.5 3B, Phi-3 Mini 3.8B | Llama 3.1 8B, exaone3.5 7.8b |
+| Ollama 예시 | SmolLM2 1.7B, TinyLlama 1.1B | Qwen2.5 3B, Phi-3 Mini 3.8B | Llama 3.1 8B, exaone3.5 7.8b, SEOKDONG-llama3.1_korean_Q5_K_M |
 
-현재 `exaone3.5:7.8b` 사용 중이므로 **16GB RAM + 8GB VRAM** 수준을 가정했습니다.
+현재 `exaone3.5:7.8b` 또는 `kwangsuklee/SEOKDONG-llama3.1_korean_Q5_K_M` 사용 가능. **16GB RAM + 8GB VRAM** 수준 가정.
 
 ---
 
@@ -52,7 +52,7 @@
 | -------- | ---------------------------- | ---------------------- | ------ |
 | RAM 8GB  | SmolLM2 1.7B, TinyLlama 1.1B | Intent 파싱, 짧은 요약 | ~2GB   |
 | RAM 16GB | Qwen2.5 3B, Phi-3 Mini 3.8B  | 의도 파싱 + 추천       | 4–5GB |
-| GPU 8GB  | exaone3.5 7.8b, Llama 3.1 8B | 현재와 동일            | 6–8GB |
+| GPU 8GB  | exaone3.5 7.8b, Llama 3.1 8B, SEOKDONG-llama3.1_korean_Q5_K_M | 현재와 동일, 한국어 Llama | 6–8GB |
 
 - **CPU만**: 3B 이하 (Q4_K_M) 권장, 4B+는 느림
 - **GPU 4–8GB**: 3–7B, Q4_K_M 사용 권장

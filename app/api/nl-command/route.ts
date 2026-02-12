@@ -17,6 +17,10 @@ const OLLAMA_FALLBACK_MODELS = (process.env.OLLAMA_FALLBACK_MODELS || "llama3.1:
   .filter((x) => x.length > 0 && x !== DEFAULT_OLLAMA_MODEL);
 const OLLAMA_REVIEW_MODEL =
   (process.env.OLLAMA_REVIEW_MODEL || OLLAMA_FALLBACK_MODELS[0] || "").trim() || null;
+const AI_ENHANCE_EXPLANATION = process.env.AI_ENHANCE_EXPLANATION === "true" || process.env.AI_ENHANCE_EXPLANATION === "1";
+const AI_ENHANCE_TIMEOUT_MS = Number(process.env.AI_ENHANCE_TIMEOUT_MS || 4000);
+
+const ENHANCE_EXPLANATION_PROMPT = `You are a plain-language rewriter. Given a technical or brief explanation, rewrite it in 1-2 user-friendly sentences. Keep the same language (Korean/English) as the original. Output only the rewritten text, no JSON or markdown.`;
 
 // TR Logistics Domain Prompt
 const SYSTEM_PROMPT = `You are an AI assistant for a Transformer (TR) logistics scheduling system.
@@ -37,7 +41,7 @@ Parse user's natural language command into structured schedule modification para
 # Output Format (JSON only, no markdown)
 {
   "intent": "shift_activities" | "prepare_bulk" | "explain_conflict" | "explain_why" | "navigate_query" | "set_mode" | "apply_preview" | "unclear",
-  "explanation": "Human-readable explanation of what you understood",
+  "explanation": "2~3 sentences, user-friendly plain-language summary. Example: 'Voyage 3 전체 활동을 5일 앞당깁니다. PTW 제약은 유지합니다.' Avoid technical jargon. State what will happen in natural terms.",
   "parameters": {
     "filter": {
       "voyage_ids": ["V3"],
@@ -73,27 +77,27 @@ Parse user's natural language command into structured schedule modification para
 9. navigate_query: User asks "Where is TR-3 now?" (target=where), "When does V3 Load-out start?" (target=when), "What's blocking Voyage 4?" (target=what). Return intent="navigate_query", parameters.target (where|when|what), parameters.filter (voyage_ids/tr_unit_ids/anchor_types), and affected_activities with matching activity IDs.
 10. Never execute actions. This API only parses intent and metadata.
 
-# Examples
+# Examples (explanation = user-friendly 2~3 sentences)
 Input: "Move all Voyage 3 forward by 5 days"
-Output: {"intent":"shift_activities","explanation":"Shift all Voyage 3 activities forward (advance) by 5 days","parameters":{"filter":{"voyage_ids":["V3"]},"action":{"type":"shift_days","delta_days":-5}},"ambiguity":null,"affected_activities":[...]}
+Output: {"intent":"shift_activities","explanation":"Voyage 3 전체 활동을 5일 앞당깁니다. Load-out, Sea Transit, Load-in 등 관련 일정이 함께 이동합니다.","parameters":{"filter":{"voyage_ids":["V3"]},"action":{"type":"shift_days","delta_days":-5}},"ambiguity":null,"affected_activities":[...]}
 
 Input: "Delay Load-out by 2 days but keep PTW"
-Output: {"intent":"shift_activities","explanation":"Delay all Load-out activities by 2 days while preserving PTW constraints","parameters":{"filter":{"anchor_types":["LOADOUT"]},"action":{"type":"shift_days","delta_days":2,"preserve_constraints":["PTW"]}},"ambiguity":null,"affected_activities":[...]}
+Output: {"intent":"shift_activities","explanation":"Load-out 활동을 2일 뒤로 미룹니다. PTW(작업 허가) 일정은 그대로 유지합니다.","parameters":{"filter":{"anchor_types":["LOADOUT"]},"action":{"type":"shift_days","delta_days":2,"preserve_constraints":["PTW"]}},"ambiguity":null,"affected_activities":[...]}
 
 Input: "충돌 원인 설명해줘"
-Output: {"intent":"explain_conflict","explanation":"Explain likely root causes for current conflicts","parameters":{"target":{"conflict_kind":"resource_overlap"},"analysis":{"root_cause_code":"resource_capacity","suggested_actions":["re-sequence non-critical activities","allocate backup crew"]}},"confidence":0.73,"risk_level":"low","requires_confirmation":true,"ambiguity":null}
+Output: {"intent":"explain_conflict","explanation":"현재 스케줄 충돌의 원인과 해결 방안을 분석합니다. 리소스 중복·의존성 위반 등을 확인한 뒤 대안을 제안합니다.","parameters":{"target":{"conflict_kind":"resource_overlap"},"analysis":{"root_cause_code":"resource_capacity","suggested_actions":["re-sequence non-critical activities","allocate backup crew"]}},"confidence":0.73,"risk_level":"low","requires_confirmation":true,"ambiguity":null}
 
 Input: "승인 모드로 바꿔"
-Output: {"intent":"set_mode","explanation":"Switch view mode to approval","parameters":{"mode":"approval","reason":"review and sign-off"},"confidence":0.91,"risk_level":"low","requires_confirmation":true,"ambiguity":null}
+Output: {"intent":"set_mode","explanation":"화면을 승인(Approval) 모드로 전환합니다. 계획 변경 없이 읽기 전용으로 검토·서명용입니다.","parameters":{"mode":"approval","reason":"review and sign-off"},"confidence":0.91,"risk_level":"low","requires_confirmation":true,"ambiguity":null}
 
 Input: "Why is this activity delayed?" (with selected activity A-300-LOADOUT, planned 2026-02-12, actual_start 2026-02-15)
-Output: {"intent":"explain_why","explanation":"A-300-LOADOUT (Load-out) started 3 days later than planned (2026-02-12 → 2026-02-15). Possible causes: PTW window, weather, or resource availability. Check Evidence tab for supporting documents.","parameters":{"target_activity_id":"A-300-LOADOUT"},"confidence":0.85,"risk_level":"low","requires_confirmation":true,"ambiguity":null}
+Output: {"intent":"explain_why","explanation":"Load-out(A-300)이 계획(2/12) 대비 3일 늦게 시작(2/15)되었습니다. PTW·기상·리소스 등을 확인해 보시고, Evidence 탭에서 증빙을 확인하세요.","parameters":{"target_activity_id":"A-300-LOADOUT"},"confidence":0.85,"risk_level":"low","requires_confirmation":true,"ambiguity":null}
 
 Input: "Where is TR-3 now?"
-Output: {"intent":"navigate_query","explanation":"Navigate to Map and highlight TR-3 location","parameters":{"target":"where","filter":{"tr_unit_ids":["TR-3"]}},"affected_activities":["A-300-LOADOUT","A-310-SEA_TRANSIT",...],"confidence":0.9,"risk_level":"low","requires_confirmation":true,"ambiguity":null}
+Output: {"intent":"navigate_query","explanation":"지도에서 TR-3 현재 위치를 표시합니다. Load-out 또는 Sea Transit 구간 중 어디에 있는지 확인할 수 있습니다.","parameters":{"target":"where","filter":{"tr_unit_ids":["TR-3"]}},"affected_activities":["A-300-LOADOUT","A-310-SEA_TRANSIT",...],"confidence":0.9,"risk_level":"low","requires_confirmation":true,"ambiguity":null}
 
 Input: "When does Voyage 3 Load-out start?"
-Output: {"intent":"navigate_query","explanation":"Navigate to Timeline for V3 Load-out start date","parameters":{"target":"when","filter":{"voyage_ids":["V3"],"anchor_types":["LOADOUT"]}},"affected_activities":["A-300-LOADOUT"],"confidence":0.9,"risk_level":"low","requires_confirmation":true,"ambiguity":null}
+Output: {"intent":"navigate_query","explanation":"타임라인에서 Voyage 3 Load-out 시작일을 확인합니다. 해당 작업으로 바로 이동합니다.","parameters":{"target":"when","filter":{"voyage_ids":["V3"],"anchor_types":["LOADOUT"]}},"affected_activities":["A-300-LOADOUT"],"confidence":0.9,"risk_level":"low","requires_confirmation":true,"ambiguity":null}
 `;
 
 const REVIEW_PROMPT = `You are a strict reviewer for TR scheduling intent parsing.
@@ -615,23 +619,24 @@ async function callOpenAI(apiKey: string, userContent: string): Promise<string |
 async function callOllamaWithModel(
   userContent: string,
   model: string,
-  systemPrompt = SYSTEM_PROMPT
+  systemPrompt = SYSTEM_PROMPT,
+  useJsonFormat = true
 ): Promise<string | null> {
+  const body: Record<string, unknown> = {
+    model,
+    stream: false,
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userContent },
+    ],
+    options: { temperature: 0.2 },
+  };
+  if (useJsonFormat) body.format = "json";
+
   const ollamaRes = await fetch(`${OLLAMA_BASE_URL}/api/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model,
-      format: "json",
-      stream: false,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userContent },
-      ],
-      options: {
-        temperature: 0.2,
-      },
-    }),
+    body: JSON.stringify(body),
   });
 
   if (!ollamaRes.ok) {
@@ -666,6 +671,26 @@ async function callOllama(userContent: string): Promise<{ content: string | null
   const err = new Error(`Ollama request failed (${modelErrors.join(", ")})`);
   (err as Error & { status?: number }).status = lastStatus;
   throw err;
+}
+
+async function enhanceExplanationWithLLM(explanation: string): Promise<string | null> {
+  if (!AI_ENHANCE_EXPLANATION || explanation.length > 100) return null;
+  try {
+    const content = await withTimeout(
+      callOllamaWithModel(
+        `Rewrite this in 1-2 plain user-friendly sentences. Same language.\n\n"${explanation}"`,
+        DEFAULT_OLLAMA_MODEL,
+        ENHANCE_EXPLANATION_PROMPT,
+        false
+      ),
+      AI_ENHANCE_TIMEOUT_MS,
+      "enhance"
+    );
+    const text = typeof content === "string" ? content.trim() : null;
+    return text && text.length > 0 && text.length < 500 ? text : null;
+  } catch {
+    return null;
+  }
 }
 
 function buildShiftWhatIfCandidates(result: AiIntentResult): number[] {
@@ -1021,6 +1046,12 @@ export async function POST(request: NextRequest) {
       ...(nextSteps.length > 0 ? { next_steps: nextSteps } : {}),
     };
     parsed.governance_checks = buildGovernanceChecks(parsed);
+
+    if (AI_ENHANCE_EXPLANATION && parsed.explanation && parsed.explanation.length <= 100) {
+      const plain = await enhanceExplanationWithLLM(parsed.explanation);
+      if (plain) parsed.plain_summary = plain;
+    }
+
     if (secondaryReviewNote) {
       parsed.governance_checks.push({
         code: "SECONDARY_REVIEW_NOTE",

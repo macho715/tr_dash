@@ -123,6 +123,28 @@ describe("AIExplainDialog", () => {
     expect(screen.getByText(/CONFIRM_REQUIRED/i)).toBeTruthy();
   });
 
+  it("shows plain_summary when present instead of explanation", () => {
+    const withPlain: AiIntentResult = {
+      ...baseResult,
+      explanation: "Shift all Voyage 3 activities forward by 5 days",
+      plain_summary: "Voyage 3 전체 활동을 5일 앞당깁니다.",
+    };
+
+    render(
+      <AIExplainDialog
+        open={true}
+        aiResult={withPlain}
+        canExecute={true}
+        actionSummary="Create bulk preset"
+        onConfirm={vi.fn()}
+        onCancel={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText("Voyage 3 전체 활동을 5일 앞당깁니다.")).toBeTruthy();
+    expect(screen.queryByText("Shift all Voyage 3 activities forward by 5 days")).toBeNull();
+  });
+
   it("renders 3-line briefing and impact preview chips", () => {
     const withBriefing: AiIntentResult = {
       ...baseResult,

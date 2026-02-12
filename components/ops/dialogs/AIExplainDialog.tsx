@@ -94,12 +94,15 @@ export function AIExplainDialog({
 
           <div className="mb-4 rounded-lg bg-slate-800/60 p-4 text-sm text-slate-200">
             <div className="mb-2 text-xs font-semibold text-purple-400">AI Understood</div>
-            <p className="leading-relaxed">{aiResult.explanation}</p>
+            <p className="leading-relaxed">{aiResult.plain_summary ?? aiResult.explanation}</p>
           </div>
 
           {aiResult.briefing ? (
             <div className="mb-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-100">
               <div className="text-xs font-semibold text-emerald-300">AI 요약 브리핑 (3줄)</div>
+              {aiResult.briefing.nl_summary ? (
+                <p className="mt-2 text-sm text-emerald-100/95">{aiResult.briefing.nl_summary}</p>
+              ) : null}
               <ul className="mt-2 space-y-1 text-xs text-emerald-100/95">
                 <li>어디: {aiResult.briefing.where}</li>
                 <li>무엇: {aiResult.briefing.when_what}</li>
@@ -110,6 +113,9 @@ export function AIExplainDialog({
 
           <div className="mb-4 rounded-lg border border-cyan-500/30 bg-cyan-500/10 p-3 text-sm text-cyan-100">
             <div className="text-xs font-semibold text-cyan-300">자동 영향 미리보기</div>
+            {impact.summary ? (
+              <p className="mt-2 text-sm text-cyan-100/95">{impact.summary}</p>
+            ) : null}
             <div className="mt-2 flex flex-wrap gap-2 text-xs">
               <span className="rounded bg-cyan-500/20 px-2 py-1">
                 영향 활동 수: {impact.impacted_activities}

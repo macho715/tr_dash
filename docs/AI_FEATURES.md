@@ -1,7 +1,7 @@
 # AI 기능 상세 문서
 
 **문서 목적**: TR Dashboard의 AI 기능만 별도로 정리한 운영/개발 기준 문서  
-**기준일**: 2026-02-10  
+**기준일**: 2026-02-12  
 **적용 범위**: Unified Command Palette + `/api/nl-command` + AI 리뷰/실행 흐름
 
 ---
@@ -60,11 +60,13 @@
 관련 환경 변수:
 
 - `AI_PROVIDER=ollama`
-- `OLLAMA_MODEL=exaone3.5:7.8b` (1차 파싱)
+- `OLLAMA_MODEL=exaone3.5:7.8b` 또는 `kwangsuklee/SEOKDONG-llama3.1_korean_Q5_K_M` (Llama 3.1 한국어, 1차 파싱)
 - `OLLAMA_REVIEW_MODEL` (2차 리뷰, Dual-pass 시)
 - `OLLAMA_BASE_URL=http://127.0.0.1:11434`
 - `AI_PROVIDER_TIMEOUT_MS` (기본 9000) — LLM 호출 타임아웃
 - `AI_MAX_ACTIVITY_CONTEXT` (기본 48) — 쿼리 관련 activity 최대 개수, 전송 컨텍스트 축소
+- `AI_ENHANCE_EXPLANATION` (기본 비활성) — `true`/`1` 시 explanation이 100자 이하일 때 2차 LLM으로 `plain_summary` 생성
+- `AI_ENHANCE_TIMEOUT_MS` (기본 4000) — 2차 enhance 호출 타임아웃
 - `OPENAI_API_KEY` (fallback용)
 - `OPENAI_MODEL` (선택)
 
@@ -220,7 +222,8 @@ UI 가드 (`getAiExecutionGuard`, `executeAiIntent`)에서 차단:
 명령:
 
 ```bash
-pnpm run smoke:nl-intent
+pnpm run smoke:nl-intent          # 전체 12케이스 (2~4분, Ollama 필요)
+pnpm run smoke:nl-intent:quick    # 빠른 검증 2케이스 (EN-02, EN-08, ~1분)
 ```
 
 현재 시나리오:

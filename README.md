@@ -7,7 +7,7 @@
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.1-38bdf8)](https://tailwindcss.com/)
 
 **최종 업데이트**: 2026-02-12  
-**최신 작업 반영**: **AI intent 확장 (2026-02-12)** — explain_why(Why 2-click 요약), navigate_query(Where/When/What→Map/Timeline 포커스). 8개 intent, selectedActivityId·onNavigateToMap 연동. 이전: Merge·Reflow·Typecheck/Lint·Tide Phase1·고급 (2026-02-11). [CHANGELOG.md](CHANGELOG.md), [docs/AI_FEATURES.md](docs/AI_FEATURES.md).
+**최신 작업 반영**: **성능 개선 (2026-02-12)** — 스크롤 RAF 스로틀·passive 리스너, Gantt range render tick 제거, 드래그 UX·Preview·DependencyArrows·WeatherOverlay 최적화. AI Llama 옵션 지원. 이전: AI intent 확장·explain_why·navigate_query (2026-02-12). [CHANGELOG.md](CHANGELOG.md), [docs/AI_FEATURES.md](docs/AI_FEATURES.md).
 
 ---
 
@@ -16,6 +16,37 @@
 HVDC TR Transport Dashboard는 **7개의 Transformer Unit**을 **LCT BUSHRA**로 운송하는 프로젝트의 실시간 물류 대시보드입니다.
 
 **운영 규모**: 1 Trip당 1 TR 운송, 총 7 Trip, SPMT 1기 운영
+
+### 시스템 개요
+
+```mermaid
+flowchart TB
+    subgraph Data["데이터 계층"]
+        SSOT[option_c.json<br/>139 activities]
+    end
+    
+    subgraph Logic["비즈니스 로직"]
+        Reflow["schedule-reflow-manager<br/>Preview & Apply"]
+        Mapper[schedule-mapper<br/>GanttRow 변환]
+        Collision[detect-resource-conflicts<br/>충돌 탐지]
+    end
+    
+    subgraph UI["프레젠테이션"]
+        Page[page.tsx<br/>조립자]
+        Gantt[GanttChart<br/>VisTimelineGantt]
+        Map[MapPanel]
+        Detail[DetailPanel<br/>WhyPanel]
+    end
+    
+    SSOT --> Mapper
+    Mapper --> Gantt
+    Gantt --> Reflow
+    Reflow --> Collision
+    Collision --> Detail
+    Page --> Gantt
+    Page --> Map
+    Page --> Detail
+```
 
 ### 주요 기능
 
@@ -71,7 +102,7 @@ npm install
 | `PORT=3001` | 개발 서버 포트 (기본 3000). |
 | `OPENAI_API_KEY` | AI Command Mode 자연어 파싱용 (`/api/nl-command`). 설정 시 OpenAI 사용. |
 | `AI_PROVIDER=ollama` | AI provider 우선순위 지정 (`ollama` 권장). |
-| `OLLAMA_MODEL=exaone3.5:7.8b` | Ollama 모델명 (로컬 EXAONE 권장값). |
+| `OLLAMA_MODEL=exaone3.5:7.8b` | Ollama 모델명. 대안: `kwangsuklee/SEOKDONG-llama3.1_korean_Q5_K_M` (Llama 3.1 한국어). |
 | `OLLAMA_BASE_URL=http://127.0.0.1:11434` | Ollama API 엔드포인트. |
 
 ```bash
@@ -200,26 +231,28 @@ tr_dashboard/
 ### AI 명령 실행 흐름 (요약)
 
 ```mermaid
-flowchart LR
-  subgraph UI
-    A[Ctrl+K] --> B[Command Palette]
-    B --> C[AI 모드 토글]
-    C --> D[자연어 입력]
-    D --> E[Enter]
+flowchart TD
+  subgraph UI ["UI"]
+    A["Ctrl+K"] --> B["Command Palette"]
+    B --> C["AI 모드 토글"]
+    C --> D["자연어 입력"]
+    D --> E["Enter"]
   end
-  E --> F[POST /api/nl-command]
-  F --> G{OPENAI_API_KEY}
-  G -->|유효| H[Intent 파싱]
-  G -->|없음/무효| I[401/500]
-  H --> J[AIExplainDialog]
-  J --> K{Confirm?}
-  K -->|Yes| L[실행]
-  K -->|No| M[취소]
-  L --> N[Preview / Apply]
+  E --> F["POST /api/nl-command"]
+  F --> G{"AI_PROVIDER"}
+  G -->|ollama| H["Ollama 우선, OpenAI fallback"]
+  G -->|default| I["OpenAI 우선, Ollama fallback"]
+  H --> L["Intent 파싱"]
+  I --> L
+  L --> M["AIExplainDialog"]
+  M --> N{"Confirm?"}
+  N -->|Yes| O["실행"]
+  N -->|No| P["취소"]
+  O --> Q["Preview & Apply"]
 ```
 
 1. Palette에서 AI 모드로 자연어 입력
-2. `POST /api/nl-command`로 intent 파싱
+2. `POST /api/nl-command`로 intent 파싱 — **Provider**: `AI_PROVIDER=ollama` 시 Ollama 우선, 실패 시 OpenAI fallback. 미설정 시 OpenAI 우선.
 3. `AIExplainDialog`에서 risk/confidence/action 검토
 4. 사용자 `Confirm & Continue` 시에만 실행
 5. ambiguity는 옵션 클릭으로 `clarification` 재질의 후 재판단
@@ -413,22 +446,18 @@ pnpm run smoke:nl-intent
 
 ### 스케줄 데이터 흐름
 
-```
-data/schedule/option_c.json (139개 활동)
-    ↓
-lib/ssot/utils/schedule-mapper.ts (TR Unit, Anchor 타입, 자원 태그 추출)
-    ↓
-lib/data/schedule-data.ts (scheduleActivities)
-    ↓
-scheduleActivitiesToGanttRows() (ScheduleActivity[] → GanttRow[] 변환)
-    ↓
-gantt-chart.tsx (currentActivities 상태 → 동적 렌더링)
-    ↓
-사용자 클릭 → Dialog → reflowSchedule()
-    ↓
-Preview 패널 (변경 사항 표시)
-    ↓
-적용 → setCurrentActivities() → Gantt 차트 자동 리렌더링
+```mermaid
+flowchart TD
+    A[option_c.json<br/>139 activities] --> B[schedule-mapper<br/>TR Unit, Anchor 타입]
+    B --> C[schedule-data.ts<br/>scheduleActivities]
+    C --> D["scheduleActivitiesToGanttRows<br/>GanttRow 배열 변환"]
+    D --> E[gantt-chart.tsx<br/>currentActivities]
+    E --> F[사용자 클릭]
+    F --> G[Dialog]
+    G --> H[previewScheduleReflow]
+    H --> I[Preview 패널]
+    I --> J[Apply]
+    J --> E
 ```
 
 ---
@@ -470,7 +499,7 @@ Preview 패널 (변경 사항 표시)
 
 ## 🧪 테스트
 
-- **Vitest**: 336 tests (state-machine, reflow, collision, baseline, evidence, ops 등). 61 test files.
+- **Vitest**: 395 tests (state-machine, reflow, collision, baseline, evidence, ops 등). 75 test files.
 - **검증**: `pnpm run typecheck` (0 errors), `pnpm run lint` (0 errors with `--quiet`), `pnpm test:run`.
 - **pipeline-check**: `lib/ops/agi-schedule/__tests__/pipeline-check.test.ts` — patchmain #14 (AGI 스케줄 파이프라인 검증, null/empty 안전).
 - **실행**: `pnpm test -- --run` 또는 `pnpm test:run`
@@ -501,7 +530,7 @@ Private project - Samsung C&T × Mammoet. 자세한 내용은 [LICENSE](LICENSE)
 
 ---
 
-**Last Updated**: 2026-02-11
+**Last Updated**: 2026-02-12
 
 ---
 

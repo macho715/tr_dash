@@ -10,7 +10,7 @@
 
 Natural language command flow is now standardized around:
 
-- Provider-first policy: `ollama` (local EXAONE) as primary, OpenAI as fallback
+- Provider-first policy: `ollama` (local EXAONE/Llama) as primary, OpenAI as fallback
 - Intent contract expansion to 6 intents:
   - `shift_activities`
   - `prepare_bulk`
@@ -162,7 +162,7 @@ Latest result:
 
 - Recommended local env for current setup:
   - `AI_PROVIDER=ollama`
-  - `OLLAMA_MODEL=exaone3.5:7.8b`
+  - `OLLAMA_MODEL=exaone3.5:7.8b` (또는 `kwangsuklee/SEOKDONG-llama3.1_korean_Q5_K_M`)
   - `OLLAMA_BASE_URL=http://127.0.0.1:11434`
 - OpenAI remains fallback-only path when valid key is present.
 

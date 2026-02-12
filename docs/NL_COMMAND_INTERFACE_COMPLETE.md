@@ -1,7 +1,7 @@
 # NL Command Interface Status (Current)
 
-**Updated:** 2026-02-10  
-**State:** Active, confirm-first execution, Ollama(EXAONE) primary
+**Updated:** 2026-02-12  
+**State:** Active, confirm-first execution, Ollama(EXAONE/Llama) primary
 
 ---
 
@@ -63,6 +63,7 @@
 ```bash
 AI_PROVIDER=ollama
 OLLAMA_MODEL=exaone3.5:7.8b
+# 또는 Llama 3.1 한국어: OLLAMA_MODEL=kwangsuklee/SEOKDONG-llama3.1_korean_Q5_K_M
 OLLAMA_BASE_URL=http://127.0.0.1:11434
 ```
 

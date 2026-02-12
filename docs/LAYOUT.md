@@ -8,7 +8,7 @@ updated: 2026-02-12
 
 > **버전**: 1.10.0  
 > **최종 업데이트**: 2026-02-12  
-> **최신 작업 반영**: 2026-02-12 — AI intent 확장(explain_why, navigate_query). 8개 intent, Where/When/What 질의→Map/Timeline 포커스. 이전: Merge 정리·충돌 UX 통일, Typecheck/Lint 0 errors. Reflow: dependency cascade. TideOverlayGantt: 가이던스 자동/View guidance 수동. Voyage Map View: 카드·맵·Drift·active만 경로. 즉시 조치 3항목 체크리스트. [CHANGELOG.md](../CHANGELOG.md), [AI_FEATURES.md](AI_FEATURES.md).  
+> **최신 작업 반영**: 2026-02-12 — 스크롤 RAF 스로틀·passive 리스너·동일 섹션 setState 스킵; Gantt range render tick 제거·드래그 UX·Preview·DependencyArrows·WeatherOverlay 최적화. AI Llama 옵션 지원. 이전: AI intent explain_why·navigate_query, Merge·Reflow. [CHANGELOG.md](../CHANGELOG.md), [AI_FEATURES.md](AI_FEATURES.md).  
 > **프로젝트**: HVDC TR Transport Dashboard - AGI Site  
 > **SSOT**: patch.md, option_c.json (AGENTS.md)
 
@@ -42,7 +42,7 @@ HVDC TR Transport Dashboard는 **Al Ghallan Island (AGI) Site**의 7개 Transfor
 - **Sticky Navigation**: 섹션 간 빠른 이동
 - **Dark Mode**: Deep Ocean 테마 적용
 - **AGI Operations**: 스케줄 업데이트 및 명령 처리
-- **AI Command Palette (Phase 1 · 2026-02-12 확장)**: 자연어 명령 입력 → intent 리뷰 → Confirm 후 실행. 8개 intent: shift, bulk, conflict, **explain_why**(Why 2-click 요약), **navigate_query**(Where/When/What→Map/Timeline 포커스), mode, apply, unclear. ambiguity는 옵션 버튼으로 재질의. `selectedActivityId` 전달 시 explain_why·navigate_query 컨텍스트 강화.
+- **AI Command Palette (Phase 1 · 2026-02-12 확장)**: 자연어 명령 입력 → intent 리뷰 → Confirm 후 실행. 8개 intent: shift, bulk, conflict, **explain_why**(Why 2-click 요약), **navigate_query**(Where/When/What→Map/Timeline 포커스), mode, apply, unclear. ambiguity는 옵션 버튼으로 재질의. `selectedActivityId` 전달 시 explain_why·navigate_query 컨텍스트 강화. **OLLAMA_MODEL**: exaone3.5:7.8b 또는 **kwangsuklee/SEOKDONG-llama3.1_korean_Q5_K_M** (Llama 3.1 한국어).
 
 ---
 
@@ -56,10 +56,10 @@ graph TB
     RootLayout --> Page[app/page.tsx<br/>DateProvider + DashboardLayout]
     
     Page --> Header[DashboardHeader]
-    Page --> StoryHeader[StoryHeader<br/>Location/Schedule/Verification]
+    Page --> StoryHeader["StoryHeader<br/>Location, Schedule, Verification"]
     Page --> Overview[OverviewSection]
     Page --> SectionNav[SectionNav]
-    Page --> TrLayout[TrThreeColumnLayout<br/>Map | Timeline | Detail]
+    Page --> TrLayout["TrThreeColumnLayout<br/>Map, Timeline, Detail"]
     Page --> Footer[Footer]
     Page --> VoyageDrawer[VoyageFocusDrawer]
     
@@ -71,8 +71,8 @@ graph TB
     DetailSlot --> DetailPanel[DetailPanel<br/>ActivityHeader, State, PlanVsActual, Resources, Constraints, CollisionTray]
     DetailSlot --> WhyPanel[WhyPanel<br/>2-click: root cause + suggested_actions]
     DetailSlot --> ReflowPreview[ReflowPreviewPanel<br/>onApplyAction → previewScheduleReflow]
-    DetailSlot --> HistoryEvidence[HistoryEvidencePanel<br/>History | Evidence | Compare Diff | Trip Closeout]
-    DetailSlot --> ReadinessPanel[ReadinessPanel<br/>Ready/Not Ready, milestones, missing evidence]
+    DetailSlot --> HistoryEvidence["HistoryEvidencePanel<br/>History, Evidence, Compare Diff, Trip Closeout"]
+    DetailSlot --> ReadinessPanel["ReadinessPanel<br/>Ready or Not Ready, milestones, missing evidence"]
     DetailSlot --> NotesDecisions[NotesDecisions]
     
     style TrLayout fill:#06b6d4,color:#fff
@@ -85,34 +85,52 @@ graph TB
 
 ### 페이지 구조 (위에서 아래로)
 
+```mermaid
+flowchart TB
+    subgraph Page["page.tsx"]
+        H[DashboardHeader<br/>제목, DatePicker]
+        S["StoryHeader<br/>Location, Schedule, Verification"]
+        O[OverviewSection<br/>Ribbon, MilestoneTracker, AgiOpsDock]
+        N[SectionNav<br/>Overview, KPI, Alerts, Voyages, Schedule, Gantt]
+        K["KPISection, AlertsSection"]
+        
+        subgraph Layout["TrThreeColumnLayout 2열"]
+            subgraph Left["좌측 1fr"]
+                M[mapSlot: MapPanel<br/>VoyagesSection]
+                D[detailSlot: DetailPanel<br/>WhyPanel, ReflowPreview]
+            end
+            subgraph Right["우측 2fr"]
+                T[timelineSlot: ScheduleSection<br/>GanttSection]
+            end
+        end
+        
+        F["Footer, BackToTop"]
+    end
+    
+    H --> S --> O --> N --> K --> Layout --> F
 ```
-┌─────────────────────────────────────────────────────────┐
-│ DashboardHeader (제목, DatePicker)                        │
-├─────────────────────────────────────────────────────────┤
-│ StoryHeader (Location / Schedule / Verification)          │
-├─────────────────────────────────────────────────────────┤
-│ OverviewSection (OperationOverviewRibbon, MilestoneTracker, AgiOpsDock*, AgiScheduleUpdaterBar) │
-│ *AgiOpsDock: BulkAnchors 기본 숨김 (showBulkAnchors=false)                                      │
-├─────────────────────────────────────────────────────────┤
-│ SectionNav (Overview, KPI, Alerts, Voyages, Schedule, Gantt) │
-├─────────────────────────────────────────────────────────┤
-│ KPISection | AlertsSection                               │
-├─────────────────────────────────────────────────────────┤
-│ TrThreeColumnLayout (현재 2열: 1fr | 2fr)               │
-│ ┌─────────────────────────┬──────────────────────────┐ │
-│ │ 좌측 (Map + Detail)      │ 우측 (Timeline)          │ │
-│ │ mapSlot: MapPanel,      │ timelineSlot:            │ │
-│ │   VoyagesSection        │   ScheduleSection,       │ │
-│ │ detailSlot: DetailPanel,│   GanttSection           │ │
-│ │   WhyPanel,             │   (compareDelta→ghost)   │ │
-│ │   ReflowPreviewPanel,   │                          │ │
-│ │   (HistoryEvidencePanel은 하단 #evidence 섹션)     │ │
-│ │   ReadinessPanel,       │                          │ │
-│ │   NotesDecisions        │                          │ │
-│ └─────────────────────────┴──────────────────────────┘ │
-├─────────────────────────────────────────────────────────┤
-│ Footer | BackToTop                                       │
-└─────────────────────────────────────────────────────────┘
+
+```mermaid
+flowchart LR
+    subgraph Nav["SectionNav 링크"]
+        OV[Overview]
+        KP[KPI]
+        AL[Alerts]
+        VO[Voyages]
+        SC[Schedule]
+        GA[Gantt]
+        WT[Water Tide]
+    end
+    
+    subgraph Section["섹션 ID"]
+        OV --> |scrollIntoView| id1["#overview"]
+        KP --> id2["#kpi"]
+        AL --> id3["#alerts"]
+        VO --> id4["#voyages"]
+        SC --> id5["#schedule"]
+        GA --> id6["#gantt"]
+        WT --> id7["#water-tide"]
+    end
 ```
 
 ---
@@ -165,7 +183,7 @@ graph TB
 - `selectedVoyage`: 선택된 항차 정보
 - `selectedActivityId`: 선택된 활동 ID (DetailPanel 표시)
 - `selectedCollision`: 선택된 충돌 (WhyPanel 표시)
-- `reflowPreview`: Why 패널 suggested_action → reflowSchedule 결과
+- `reflowPreview`: Why 패널 suggested_action → previewScheduleReflow 결과
 - `changeBatches`: 변경 이력 스택 (Undo 지원)
 - `ops`: AGI Operations 상태
 - `viewMode`: Live/History/Approval/Compare (ViewModeStore)
@@ -234,9 +252,10 @@ graph TB
 1. Overview
 2. KPI (count: 6)
 3. Alerts (count: conflicts.length)
-4. Voyages (count: 7)
-5. Schedule (count: 활동 수)
+4. Voyages (count: voyages.length)
+5. Schedule (count: activities.length)
 6. Gantt
+7. Water Tide (`#water-tide` — Detail 영역 내, 탭 전환 시 스크롤)
 
 ### 7. TrThreeColumnLayout (`components/dashboard/layouts/tr-three-column-layout.tsx`)
 
@@ -257,7 +276,7 @@ graph TB
 - **Detail | Tide 탭**: `activeDetailTab === "tide"` 시 WaterTidePanel, 아니면 DetailPanel·WhyPanel·ReflowPreviewPanel·Undo. `#water-tide` 앵커 유지. Gantt/Map/충돌 클릭 시 `handleCollisionCardOpen` → WhyPanel·DetailPanel 포커스(`detailPanelRef`).
 - DetailPanel (ActivityHeader, StateSection, PlanVsActualSection, ResourcesSection, ConstraintsSection, CollisionTray)
 - WhyPanel (2-click: root_cause_code, suggested_actions)
-- ReflowPreviewPanel (onApplyAction → reflowSchedule → Preview UI)
+- ReflowPreviewPanel (onApplyAction → previewScheduleReflow → Preview UI)
 
 **HistoryEvidencePanel**은 현재 **TrThreeColumnLayout 밖**의 `#evidence` 섹션에 렌더됨 (하단). 구성:
 - HistoryTab: Add event (note, delay, decision 등), append-only
@@ -371,6 +390,7 @@ const changeImpactItems = useMemo(() => {
 **섹션 목록·스크롤스파이 (patchmain #2, #4)**:
 - `sections`: `useMemo(deps: [conflicts.length, voyages.length, scheduleActivities.length, ...])` — 단일 소스.
 - `sectionIds = sections.map(s => s.id)` — ScrollSpy·SectionNav와 동일 집합·순서 (derived).
+- **2026-02-12 성능**: requestAnimationFrame 기반 스로틀링, passive scroll 리스너, 동일 섹션 시 setState 스킵. 전체 화면 이동 체감 성능 향상.
 
 **활성 섹션 감지** (`useEffect`, `sectionIds` 사용):
 ```tsx
@@ -555,13 +575,13 @@ body {
 
 2. **GanttChart**
    - 타임라인 차트. **조건부 엔진**: `NEXT_PUBLIC_GANTT_ENGINE=vis` 시 `VisTimelineGantt`(vis-timeline), 미설정 시 CSS/SVG 커스텀 Gantt. Vis 사용 시 Day/Week 뷰, Selected Date 커서(UTC), 6종 액티비티 모두 막대(bar) 표시(동일일 최소 1일 길이). 환경에 따른 엔진 선택 로직은 `components/dashboard/gantt-chart.tsx`의 `useVisEngine`(process.env).
-   - 활동 바 표시. **UX**: 액티비티 클릭 → 해당 항목으로 스크롤(`scrollToActivity`) + `#gantt` 섹션 `scrollIntoView`; 액티비티 **드래그로 일정 이동** 가능(editable, itemsAlwaysDraggable).
+   - 활동 바 표시. **UX**: 액티비티 클릭 → 해당 항목으로 스크롤(`scrollToActivity`) + `#gantt` 섹션 `scrollIntoView`; 액티비티 **드래그로 일정 이동** 가능(editable, itemsAlwaysDraggable). **2026-02-12**: Preview-only 드래그, `onPreviewGenerated`, activity별 800ms 디바운스, 상단 "Preview generated" 배지. rangechange 제거, rangechanged만 사용.
    - **Phase 6 Bug #1**: Selected Date는 UTC 기준(YYYY-MM-DD). `formatShortDateUtc`, `getDatePosition(toUtcNoon(date))` 사용. Gantt 날짜 축과 정렬.
    - **compareDelta** (Phase 10): Compare 모드 시 ghost bars (changed 활동 노란 점선)
    - **GanttLegendDrawer** (P1-4): 범례 태그 클릭 시 우측 Drawer에 정의·의사결정 영향 표시. `lib/gantt-legend-guide.ts`의 LegendDefinition(stage/constraint/collision/meta) 기반. 2-click 내 도달.
    - **A3 Mapper Caching (2026-02-04)**: Row-level 캐시 (LRU 200), `visTimelineMapper.ts`. 1개 row 변경 시 1개만 재계산, 재렌더링 30% 개선.
-   - **B5 Dependency Type (2026-02-04)**: FS/SS/FF/SF 타입별 시각화, `DependencyArrowsOverlay.tsx` (SVG overlay, z-10). Live DOM 좌표, 4가지 스타일 구분, Lag 라벨. ResizeObserver + RAF throttle. `VisTimelineGantt` rangechange/changed callbacks 동기화.
-   - **Weather Overlay (2026-02-04)**: ✅ **구현 완료** - Canvas 배경 레이어 (z-0), NO_GO/NEAR_LIMIT 시각화, Opacity 슬라이더 (5-40%), UI 토글 (🌦️/🌤️), Range culling, RAF throttle (10fps), DPI 2x. `WeatherOverlay.tsx`, `weather-overlay.ts`, `weather-overlay.test.ts` (테스트 2/2 passed).
+   - **B5 Dependency Type (2026-02-04) · 최적화 (2026-02-12)**: FS/SS/FF/SF 타입별 시각화, `DependencyArrowsOverlay.tsx` (SVG overlay, z-10). Live DOM 좌표, 4가지 스타일 구분, Lag 라벨. rect 캐시(Map), viewport 밖 early skip, edge>250 시 라벨 생략, 40ms 가드. **rangechanged만** 사용(rangechange 제거). ResizeObserver + RAF throttle.
+   - **Weather Overlay (2026-02-04) · 최적화 (2026-02-12)**: ✅ **구현 완료** - Canvas 배경 레이어 (z-0), NO_GO/NEAR_LIMIT 시각화, Opacity 슬라이더 (5-40%), UI 토글 (🌦️/🌤️), Range culling, RAF throttle (10fps), DPI 2x. 동일 range/metrics/signature 시 redraw skip, 숨김 시 signature reset. `WeatherOverlay.tsx`, `weather-overlay.ts`, `weather-overlay.test.ts` (테스트 2/2 passed).
    - **Event Overlays (Phase 12, 2026-02-05)**: ✅ **구현 완료**
      - **Actual Bar**: START/END 이벤트 기반, variance class (On Time/Early/Delayed)
      - **HOLD Period**: HOLD/RESUME 페어링, reason_tag 구분 (Weather/PTW/Berth/MWS)
@@ -772,8 +792,23 @@ files/
 
 ### 1. 섹션 네비게이션
 
+```mermaid
+flowchart LR
+    subgraph Click["SectionNav 클릭"]
+        A[Overview] --> B["#overview scrollIntoView"]
+        C[Gantt] --> D["#gantt scrollIntoView"]
+    end
+    
+    subgraph Scroll["스크롤 시"]
+        E[Scroll Event] --> F[RAF throttle]
+        F --> G[섹션별 offsetTop 비교]
+        G --> H[activeSection setState]
+        H --> I[SectionNav 하이라이트]
+    end
+```
+
 - **SectionNav 클릭** → 해당 섹션으로 스크롤
-- **스크롤** → 활성 섹션 자동 감지 및 하이라이트
+- **스크롤** → 활성 섹션 자동 감지 및 하이라이트 (2026-02-12: RAF 스로틀, passive 리스너, 동일 섹션 setState 스킵)
 
 ### 2. 항차 선택
 
@@ -794,7 +829,7 @@ files/
 
 **2클릭: Suggested Action**
 - WhyPanel에서 suggested_action 클릭
-- `onApplyAction` 핸들러 실행 → reflowSchedule 호출
+- `onApplyAction` 핸들러 실행 → previewScheduleReflow 호출
 - ReflowPreviewPanel 표시 (변경 사항 + 새로운 충돌)
 
 ### 5. Gantt 범례 2-Click (P1-4)
@@ -807,8 +842,8 @@ files/
 ```mermaid
 sequenceDiagram
     User->>WhyPanel: suggested_action 클릭
-    WhyPanel->>reflowSchedule: shift_date 또는 lock_activity
-    reflowSchedule->>ReflowPreviewPanel: ReflowResult 반환
+    WhyPanel->>PreviewReflow: shift_date 또는 lock_activity
+    PreviewReflow->>ReflowPreviewPanel: ReflowPreviewDTO 반환
     ReflowPreviewPanel->>User: Preview (변경 사항 표시)
     User->>ReflowPreviewPanel: Apply 버튼 클릭
     ReflowPreviewPanel->>Activities: setActivities(newActivities)
@@ -873,7 +908,7 @@ sequenceDiagram
 
 ### 상태 업데이트
 
-- 스크롤 이벤트: 디바운싱/쓰로틀링 (필요 시)
+- 스크롤 이벤트: **requestAnimationFrame 기반 스로틀링**, passive 리스너, 동일 섹션 시 setState 스킵 (2026-02-12)
 
 ---
 
@@ -918,7 +953,7 @@ sequenceDiagram
 ---
 
 **문서 작성일**: 2025-01-31  
-**최종 업데이트**: 2026-02-11 (Merge 정리·충돌 UX 통일·Water Tide 탭 반영)  
+**최종 업데이트**: 2026-02-12 (스크롤·Gantt 성능 최적화, AI Llama 옵션)  
 **프로젝트**: HVDC TR Transport Dashboard  
 
 ## Refs
