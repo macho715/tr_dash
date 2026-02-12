@@ -17,12 +17,10 @@ import dynamic from "next/dynamic"
 import { TrThreeColumnLayout } from "@/components/dashboard/layouts/tr-three-column-layout"
 import { DashboardLayout } from "@/components/layout/DashboardLayout"
 import { NotesDecisions } from "@/components/dashboard/notes-decisions"
-
-// Leaflet uses window - load MapPanelWrapper only on client
-const MapPanelWrapper = dynamic(
-  () => import("@/components/map/MapPanelWrapper").then((m) => m.MapPanelWrapper),
-  { ssr: false }
-)
+import { MapPanelSkeleton } from "@/components/dashboard/skeletons/MapPanelSkeleton"
+import { MapListFallback } from "@/components/dashboard/fallbacks/MapListFallback"
+import { GanttListFallback } from "@/components/dashboard/fallbacks/GanttListFallback"
+import { useNearViewportPreload } from "@/lib/perf/use-near-viewport-preload"
 import { WhyPanel } from "@/components/dashboard/WhyPanel"
 import { ReflowPreviewPanel } from "@/components/dashboard/ReflowPreviewPanel"
 import { WhatIfPanel, type WhatIfScenario, type WhatIfMetrics } from "@/components/ops/WhatIfPanel"
@@ -40,7 +38,7 @@ import { VoyagesSection } from "@/components/dashboard/sections/voyages-section"
 import { ScheduleSection } from "@/components/dashboard/sections/schedule-section"
 import { GanttSection } from "@/components/dashboard/sections/gantt-section"
 import { WaterTidePanel } from "@/components/dashboard/sections/water-tide-section"
-import { WidgetErrorBoundary, WidgetErrorFallback } from "@/components/dashboard/WidgetErrorBoundary"
+import { WidgetErrorBoundary } from "@/components/dashboard/WidgetErrorBoundary"
 import { scheduleActivities } from "@/lib/data/schedule-data"
 import { voyages, PROJECT_END_DATE } from "@/lib/dashboard-data"
 import {
@@ -68,6 +66,16 @@ import type {
   ScheduleConflict,
   SuggestedAction,
 } from "@/lib/ssot/schedule"
+
+// Leaflet uses window - load MapPanelWrapper only on client
+const loadMapPanelWrapper = () => import("@/components/map/MapPanelWrapper")
+const MapPanelWrapper = dynamic(
+  () => loadMapPanelWrapper().then((m) => m.MapPanelWrapper),
+  { ssr: false, loading: () => <MapPanelSkeleton /> }
+)
+const preloadMapPanelAssets = () => loadMapPanelWrapper().then((m) => m.preloadMapPanel())
+const preloadGanttAssets = () =>
+  import("@/components/dashboard/gantt-chart").then((m) => m.preloadVisTimelineGantt())
 
 type SectionItem = {
   id: string
@@ -447,6 +455,15 @@ export default function Page() {
     return () => window.removeEventListener("scroll", handler)
   }, [sectionIds])
 
+  useNearViewportPreload({
+    targetId: "map",
+    preload: preloadMapPanelAssets,
+  })
+  useNearViewportPreload({
+    targetId: "gantt",
+    preload: preloadGanttAssets,
+  })
+
   const handleActivityClick = (activityId: string, start: string) => {
     setWhatIfMetrics(null)
     setReflowPreview(null)
@@ -801,6 +818,9 @@ export default function Page() {
     return () => window.removeEventListener("hashchange", syncWaterTideHash)
   }, [])
 
+  const mapSelectedActivityId =
+    selectedActivityId ?? selectedCollision?.activity_id ?? focusedActivityId ?? null
+
   return (
     <DateProvider>
       <div className="relative z-10 flex min-h-screen w-full max-w-[1920px] flex-col mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -882,15 +902,15 @@ export default function Page() {
                     <WidgetErrorBoundary
                       widgetName="Map"
                       fallback={
-                        <WidgetErrorFallback
-                          widgetName="Map"
-                          onRetry={() => window.location.reload()}
+                        <MapListFallback
+                          ssot={ssot}
+                          selectedActivityId={mapSelectedActivityId}
                         />
                       }
                     >
                       <MapPanelWrapper
                         ssot={ssot}
-                        selectedActivityId={selectedActivityId ?? selectedCollision?.activity_id ?? focusedActivityId ?? null}
+                        selectedActivityId={mapSelectedActivityId}
                         selectedVoyageNo={selectedVoyageNo}
                         hoveredVoyageNo={hoveredVoyageNo}
                         onTrClick={(trId) => setSelectedTrId(trId)}
@@ -920,9 +940,9 @@ export default function Page() {
                     <WidgetErrorBoundary
                       widgetName="Gantt"
                       fallback={
-                        <WidgetErrorFallback
-                          widgetName="Gantt"
-                          onRetry={() => window.location.reload()}
+                        <GanttListFallback
+                          activities={activities}
+                          selectedActivityId={selectedActivityId}
                         />
                       }
                     >

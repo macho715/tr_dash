@@ -32,6 +32,8 @@ HVDC TR Transport Dashboard는 **7개의 Transformer Unit**을 **LCT BUSHRA**로
 - **🆕 History/Evidence 관리 (2026-02-06)**: Manual history event 추가 (AddHistoryModal), Soft delete (Append-only 준수), Restore 기능, Deleted 이벤트 표시 (opacity-50, "Deleted" 배지), SSOT append-only 유지.
 - **Trip Report Export**: MD/JSON 보고서 다운로드
 - **Next Trip Readiness**: Ready/Not Ready 배지, 마일스톤/증빙/블로커 체크리스트
+- **🆕 Voyage Map View (2026-02-11)**: Voyage 카드 hover/select 시 맵과 연동. ETA Drift 배지, **active voyage만** 경로 overlay 표시(drift > 1.5일 점선). `lib/tr/voyage-map-view.ts`(RiskBand, computeVoyageEtaDriftDays, buildVoyageRoute). 헤더 **Open Tide Gantt** → `/tide-gantt`, 해당 페이지 **Back to Dashboard** → `/` 왕복 이동.
+- **🆕 즉시 조치 체크리스트 (2026-02-11)**: Alerts 영역 **OperationalNotice** — 3항목 고정(1차 항차 TR 1유닛 로드, SPMT 2세트·MOB 1/26, 잔여 일정 확정). 체크박스·완료율(n/3 done)·항목별 **Go** 버튼 → voyages/schedule/gantt 섹션 이동·필요 시 voyage 선택. 선택일(YYYY-MM-DD)별 localStorage 저장(`lib/alerts/immediate-actions.ts`).
 - **🆕 AI Command Interface (2026-02-10)**: **Ctrl+K**로 Command Palette 열기 → 맨 위 입력창에 명령/자연어 입력. **Standard Mode** 버튼 클릭 시 **AI Command Mode**로 전환 후 예: "Move all Voyage 3 forward 5 days" 입력 → Enter → `POST /api/nl-command`로 intent 파싱 → `AIExplainDialog`에서 확인 후 실행. 6개 intent, ambiguity 시 재질의. `OPENAI_API_KEY` 필요 시 설정.
 
 ---
@@ -138,6 +140,7 @@ tr_dashboard/
 │   ├── layout.tsx         # 루트 레이아웃 (메타데이터, 폰트)
 │   ├── page.tsx           # 홈 페이지 (조립자)
 │   ├── api/nl-command/    # AI 자연어 명령 파싱 API
+│   ├── tide-gantt/        # Tide 전용 Gantt 페이지 (/tide-gantt)
 │   └── globals.css        # Deep Ocean Theme 스타일
 ├── components/
 │   ├── layout/
@@ -176,6 +179,8 @@ tr_dashboard/
 │   │   └── ai-intent.ts   # AI intent/result 타입 SSOT
 │   ├── compare/           # compare-loader (Phase 10)
 │   ├── baseline/          # baseline-compare, freeze-policy
+│   ├── alerts/            # immediate-actions (즉시 조치 체크리스트, localStorage)
+│   ├── tr/                # voyage-map-view (RiskBand, ETA Drift, buildVoyageRoute)
 │   ├── store/             # trip-store (History/Evidence append-only)
 │   ├── reports/           # trip-report (MD/JSON Export)
 │   └── (state-machine: src/lib/state-machine/)  # 상태 전이, Evidence gates
@@ -455,6 +460,8 @@ Preview 패널 (변경 사항 표시)
 - [docs/WORK_LOG_20260202.md](docs/WORK_LOG_20260202.md) - **Phase 4~11 작업 이력 (2026-02-04 반영)**
 - [docs/BUGFIX_APPLIED_20260202.md](docs/BUGFIX_APPLIED_20260202.md) - **Phase 6 Bugfix 상세**
 - [docs/INDEX.md](docs/INDEX.md) - 문서 인덱스
+- [docs/WORK_LOG_20260211.md](docs/WORK_LOG_20260211.md) - 2026-02-11 작업 (Tide 연동, Reflow cascade, Voyage Map View, 즉시 조치)
+- [docs/innovation-scout-dashboard-upgrade-ideas-20260211.md](docs/innovation-scout-dashboard-upgrade-ideas-20260211.md) - 업그레이드 아이디어 (UX/기능/기술/운영)
 - [docs/VERCEL.md](docs/VERCEL.md) - Vercel 배포
 - [docs/plan/map-integration-ideas.md](docs/plan/map-integration-ideas.md) - 지도 번들·히트맵·지오펜스 통합
 - [.cursor/rules/](.cursor/rules/) - Cursor IDE 규칙
@@ -715,8 +722,10 @@ Private project - Samsung C&T × Mammoet. 자세한 내용은 [LICENSE](LICENSE)
 - [docs/manual/User_Guide.md](docs/manual/User_Guide.md) — 사용자 매뉴얼
 - [docs/plan/plan_patchmain_14.md](docs/plan/plan_patchmain_14.md) — patchmain 14-item (2026-02-04)
 - [docs/WORK_LOG_20260202.md](docs/WORK_LOG_20260202.md) — Phase 4~11 작업 이력
+- [docs/WORK_LOG_20260211.md](docs/WORK_LOG_20260211.md) — 2026-02-11 작업 (Tide, Reflow cascade, Voyage Map View, 즉시 조치)
 - [docs/WORK_LOG_20260210_AI_UPGRADE.md](docs/WORK_LOG_20260210_AI_UPGRADE.md) — AI Phase 1 작업 이력
 - [docs/BUGFIX_APPLIED_20260202.md](docs/BUGFIX_APPLIED_20260202.md) — Phase 6 Bugfix
+- [docs/innovation-scout-dashboard-upgrade-ideas-20260211.md](docs/innovation-scout-dashboard-upgrade-ideas-20260211.md) — 업그레이드 아이디어
 - [docs/NL_COMMAND_INTERFACE_IMPLEMENTATION_REPORT.md](docs/NL_COMMAND_INTERFACE_IMPLEMENTATION_REPORT.md) — NL Command 구현 리포트
 - [docs/NL_COMMAND_INTERFACE_COMPLETE.md](docs/NL_COMMAND_INTERFACE_COMPLETE.md) — NL Command 현재 상태
 - [docs/INDEX.md](docs/INDEX.md) — 문서 인덱스

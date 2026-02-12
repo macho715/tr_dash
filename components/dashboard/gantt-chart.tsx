@@ -23,21 +23,21 @@ import { loadEventLog } from "@/lib/data/event-log-loader"
 import type { VisTimelineGanttHandle, DragMovePayload } from "@/components/gantt/VisTimelineGantt"
 import { DependencyArrowsOverlay } from "@/components/gantt/DependencyArrowsOverlay"
 import { WeatherOverlay } from "@/components/gantt/WeatherOverlay"
+import { GanttSkeleton } from "@/components/dashboard/skeletons/GanttSkeleton"
 
-const VisTimelineGantt = dynamic(
-  () =>
-    import("@/components/gantt/VisTimelineGantt").then((m) => ({
-      default: m.VisTimelineGantt,
-    })),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="flex min-h-[400px] items-center justify-center rounded-lg border border-dashed border-muted-foreground/30 bg-muted/20 text-sm text-muted-foreground">
-        Loading Gantt…
-      </div>
-    ),
-  }
-)
+const loadVisTimelineGantt = () =>
+  import("@/components/gantt/VisTimelineGantt").then((m) => ({
+    default: m.VisTimelineGantt,
+  }))
+
+export function preloadVisTimelineGantt(): Promise<unknown> {
+  return loadVisTimelineGantt()
+}
+
+const VisTimelineGantt = dynamic(loadVisTimelineGantt, {
+  ssr: false,
+  loading: () => <GanttSkeleton />,
+})
 import type { GanttEventBase } from "@/lib/gantt/gantt-contract"
 import type {
   DateChange,
