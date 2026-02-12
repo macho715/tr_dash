@@ -1,70 +1,15 @@
 "use client";
 
 import * as React from "react";
-import { reflowSchedule } from "@/lib/utils/schedule-reflow";
+import { previewScheduleReflow } from "@/src/lib/reflow/schedule-reflow-manager";
 import type { ImpactReport, ScheduleActivity } from "@/lib/ssot/schedule";
+import { normalizeActivityId } from "@/lib/ssot/schedule";
 import { useViewModeOptional } from "@/src/lib/stores/view-mode-store";
-
-type ChangeRow = {
-  id: string;
-  name: string;
-  beforeStart?: string;
-  afterStart?: string;
-  beforeEnd?: string;
-  afterEnd?: string;
-};
-
-function getId(a: ScheduleActivity): string {
-  return a.activity_id ?? "";
-}
-
-function getName(a: ScheduleActivity): string {
-  return a.activity_name ?? "";
-}
-
-function getStart(a: ScheduleActivity): string {
-  return a.planned_start;
-}
-
-function getEnd(a: ScheduleActivity): string {
-  return a.planned_finish;
-}
+import type { ChangeRow } from "@/lib/ops/agi/types";
+import { buildChanges } from "@/lib/ops/agi/adapters";
 
 function isIsoDate(d: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test(d);
-}
-
-function buildChanges(before: ScheduleActivity[], after: ScheduleActivity[]): ChangeRow[] {
-  const beforeMap = new Map<string, { start: string; end: string; name: string }>();
-  for (const a of before) {
-    const id = getId(a);
-    if (!id) continue;
-    beforeMap.set(id, { start: getStart(a), end: getEnd(a), name: getName(a) });
-  }
-
-  const changes: ChangeRow[] = [];
-  for (const a of after) {
-    const id = getId(a);
-    if (!id) continue;
-
-    const b = beforeMap.get(id);
-    if (!b) continue;
-
-    const afterStart = getStart(a);
-    const afterEnd = getEnd(a);
-
-    if (b.start !== afterStart || b.end !== afterEnd) {
-      changes.push({
-        id,
-        name: getName(a) || b.name,
-        beforeStart: b.start,
-        afterStart,
-        beforeEnd: b.end,
-        afterEnd,
-      });
-    }
-  }
-  return changes;
 }
 
 function downloadJson(filename: string, data: unknown) {
@@ -77,6 +22,22 @@ function downloadJson(filename: string, data: unknown) {
   a.download = filename;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+function getId(activity: ScheduleActivity): string {
+  return normalizeActivityId(activity);
+}
+
+function getName(activity: ScheduleActivity): string {
+  return activity.activity_name ?? "";
+}
+
+function getStart(activity: ScheduleActivity): string {
+  return activity.planned_start ?? "";
+}
+
+function getEnd(activity: ScheduleActivity): string {
+  return activity.planned_finish ?? "";
 }
 
 type PreviewState = {
@@ -184,11 +145,16 @@ export function AgiScheduleUpdaterBar({
   }
 
   function runReflow(base: ScheduleActivity[], anchorId: string, start: string) {
-    return reflowSchedule(base, anchorId, start, {
-      respectLocks: true,
-      respectConstraints: true,
-      checkResourceConflicts: true,
-      detectCycles: true,
+    return previewScheduleReflow({
+      activities: base,
+      anchors: [{ activityId: anchorId, newStart: start as `${number}-${number}-${number}` }],
+      options: {
+        respectLocks: true,
+        respectConstraints: true,
+        checkResourceConflicts: true,
+        detectCycles: true,
+      },
+      mode: "shift",
     });
   }
 
@@ -208,12 +174,10 @@ export function AgiScheduleUpdaterBar({
     setIsWorking(true);
     try {
       const result = runReflow(activities, selectedId, newStart);
-      const next = result.activities;
-      const changes = buildChanges(activities, next);
       setPreview({
-        next,
-        changes,
-        impactReport: result.impact_report ?? null,
+        next: result.nextActivities,
+        changes: result.changes,
+        impactReport: result.impact ?? null,
         raw: result,
         anchors: [{ activityId: selectedId, newStart }],
       });
@@ -237,24 +201,18 @@ export function AgiScheduleUpdaterBar({
       }
 
       let nextActivities = activities;
-      let lastRaw: unknown = null;
+      let lastRaw: ReturnType<typeof runReflow> | null = null;
 
       for (const a of anchors) {
         const result = runReflow(nextActivities, a.activityId, a.newStart);
-        nextActivities = result.activities;
+        nextActivities = result.nextActivities;
         lastRaw = result;
       }
 
-      const changes = buildChanges(activities, nextActivities);
       setPreview({
         next: nextActivities,
-        changes,
-        impactReport:
-          typeof lastRaw === "object" &&
-          lastRaw !== null &&
-          "impact_report" in lastRaw
-            ? (lastRaw as { impact_report: ImpactReport }).impact_report
-            : null,
+        changes: buildChanges(activities, nextActivities),
+        impactReport: lastRaw?.impact ?? null,
         raw: lastRaw,
         anchors,
       });
@@ -277,10 +235,10 @@ export function AgiScheduleUpdaterBar({
       generatedAt: new Date().toISOString(),
       anchors: preview.anchors,
       changes: preview.changes.map((c) => ({
-        id: c.id,
+        id: c.activityId,
         name: c.name,
         start: c.afterStart,
-        end: c.afterEnd,
+        end: c.afterFinish,
       })),
     };
 
@@ -509,16 +467,16 @@ ACT-023=2026-02-18`}
                 </thead>
                 <tbody>
                   {preview.changes.slice(0, 200).map((c) => (
-                    <tr key={c.id} className="border-t border-accent/5">
-                      <td className="py-2 pr-2 font-mono">{c.id}</td>
+                    <tr key={c.activityId} className="border-t border-accent/5">
+                      <td className="py-2 pr-2 font-mono">{c.activityId}</td>
                       <td className="py-2 pr-2">{c.name}</td>
                       <td className="py-2 pr-2">
                         <span className="text-muted-foreground">{c.beforeStart ?? "-"}</span>{" "}
                         <span className="text-cyan-200">{c.afterStart ?? "-"}</span>
                       </td>
                       <td className="py-2 pr-2">
-                        <span className="text-muted-foreground">{c.beforeEnd ?? "-"}</span>{" "}
-                        <span className="text-cyan-200">{c.afterEnd ?? "-"}</span>
+                        <span className="text-muted-foreground">{c.beforeFinish ?? "-"}</span>{" "}
+                        <span className="text-cyan-200">{c.afterFinish ?? "-"}</span>
                       </td>
                     </tr>
                   ))}

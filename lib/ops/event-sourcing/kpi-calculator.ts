@@ -5,7 +5,20 @@ import type {
   ShiftRule,
   CalendarTrackKPI,
   WorkdayTrackKPI,
+  ReasonTag,
 } from "./types"
+
+const ZERO_DELAY_BREAKDOWN: Record<ReasonTag | "OTHER", number> = {
+  WEATHER: 0,
+  TIDE: 0,
+  BERTH_OCCUPIED: 0,
+  PTW: 0,
+  HM: 0,
+  MWS: 0,
+  CERT: 0,
+  RESOURCE: 0,
+  OTHER: 0,
+}
 
 /**
  * Calendar Track KPI 계산
@@ -27,7 +40,7 @@ export function calcCalendarKPI(
       planned_duration_hr: plannedDurationHr,
       variance_hr: 0,
       delay_cal_hr: 0,
-      delay_breakdown_hr: {},
+      delay_breakdown_hr: { ...ZERO_DELAY_BREAKDOWN },
     }
   }
 
@@ -42,7 +55,9 @@ export function calcCalendarKPI(
     0
   )
 
-  const delayBreakdown: Record<string, number> = {}
+  const delayBreakdown: Record<ReasonTag | "OTHER", number> = {
+    ...ZERO_DELAY_BREAKDOWN,
+  }
   for (const pair of holdPairs) {
     const tag = pair.hold.reason_tag || "OTHER"
     delayBreakdown[tag] = (delayBreakdown[tag] ?? 0) +

@@ -2,7 +2,7 @@
  * Tests for geofenceUtils
  * Phase 1: Geofence Implementation
  */
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import {
   createGeofenceGeojson,
   isPointInGeofence,

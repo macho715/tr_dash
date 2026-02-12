@@ -1,14 +1,16 @@
 # Vercel 배포 설정
 
-**최종 검토/업데이트**: 2026-02-04
+**최종 검토/업데이트**: 2026-02-11
 
 **운영 규모**: 1 Trip당 1 TR 운송, 총 7 Trip, SPMT 1기 운영
 
-**최신 반영**: SyncInitialDate(P1-1), GanttLegendDrawer(P1-4), MapLegend — 배포 영향 없음 (클라이언트 컴포넌트)
+**최신 반영 (2026-02-11)**: Release Split — `pnpm release:general`, `pnpm release:mobile` 사용. develop→main 직접 push 차단. [ops/release-split.md](ops/release-split.md)
 
-**프로덕션 URL**: https://trdash.vercel.app
+**프로덕션 URL**: https://trdash.vercel.app (일반) / https://trdash-mobile.vercel.app (모바일)
 
-**GitHub 저장소**: https://github.com/macho715/tr_dash.git
+**GitHub 저장소**: https://github.com/macho715/tr_dash.git (일반) / https://github.com/macho715/tr_dash_mobile.git (모바일)
+
+**운영 절차**: 일반/모바일 배포 분리 — [ops/release-split.md](ops/release-split.md)
 
 Next.js 앱이 **루트**에 있습니다. Root Directory를 **반드시 비워야** 합니다.
 

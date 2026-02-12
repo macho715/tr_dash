@@ -1,14 +1,14 @@
 ---
 doc_id: layout
 refs: [../patch.md, ../AGENTS.md, SYSTEM_ARCHITECTURE.md, plan/plan_patchmain_14.md]
-updated: 2026-02-10
+updated: 2026-02-12
 ---
 
 # HVDC TR Transport Dashboard - Layout 문서
 
-> **버전**: 1.9.0  
-> **최종 업데이트**: 2026-02-10  
-> **최신 작업 반영**: 2026-02-10 — AI Command Phase 1 업그레이드. Unified Command Palette AI 모드, confirm-first 실행(`AIExplainDialog`), ambiguity 옵션 기반 재질의(`clarification`) 반영. [WORK_LOG_20260210_AI_UPGRADE.md](WORK_LOG_20260210_AI_UPGRADE.md), [NL_COMMAND_INTERFACE_COMPLETE.md](NL_COMMAND_INTERFACE_COMPLETE.md)  
+> **버전**: 1.10.0  
+> **최종 업데이트**: 2026-02-12  
+> **최신 작업 반영**: 2026-02-12 — AI intent 확장(explain_why, navigate_query). 8개 intent, Where/When/What 질의→Map/Timeline 포커스. 이전: Merge 정리·충돌 UX 통일, Typecheck/Lint 0 errors. Reflow: dependency cascade. TideOverlayGantt: 가이던스 자동/View guidance 수동. Voyage Map View: 카드·맵·Drift·active만 경로. 즉시 조치 3항목 체크리스트. [CHANGELOG.md](../CHANGELOG.md), [AI_FEATURES.md](AI_FEATURES.md).  
 > **프로젝트**: HVDC TR Transport Dashboard - AGI Site  
 > **SSOT**: patch.md, option_c.json (AGENTS.md)
 
@@ -42,7 +42,7 @@ HVDC TR Transport Dashboard는 **Al Ghallan Island (AGI) Site**의 7개 Transfor
 - **Sticky Navigation**: 섹션 간 빠른 이동
 - **Dark Mode**: Deep Ocean 테마 적용
 - **AGI Operations**: 스케줄 업데이트 및 명령 처리
-- **AI Command Palette (Phase 1)**: 자연어 명령 입력 -> intent 리뷰 -> Confirm 후 실행. ambiguity는 옵션 버튼으로 재질의.
+- **AI Command Palette (Phase 1 · 2026-02-12 확장)**: 자연어 명령 입력 → intent 리뷰 → Confirm 후 실행. 8개 intent: shift, bulk, conflict, **explain_why**(Why 2-click 요약), **navigate_query**(Where/When/What→Map/Timeline 포커스), mode, apply, unclear. ambiguity는 옵션 버튼으로 재질의. `selectedActivityId` 전달 시 explain_why·navigate_query 컨텍스트 강화.
 
 ---
 
@@ -70,7 +70,7 @@ graph TB
     
     DetailSlot --> DetailPanel[DetailPanel<br/>ActivityHeader, State, PlanVsActual, Resources, Constraints, CollisionTray]
     DetailSlot --> WhyPanel[WhyPanel<br/>2-click: root cause + suggested_actions]
-    DetailSlot --> ReflowPreview[ReflowPreviewPanel<br/>onApplyAction → reflowSchedule]
+    DetailSlot --> ReflowPreview[ReflowPreviewPanel<br/>onApplyAction → previewScheduleReflow]
     DetailSlot --> HistoryEvidence[HistoryEvidencePanel<br/>History | Evidence | Compare Diff | Trip Closeout]
     DetailSlot --> ReadinessPanel[ReadinessPanel<br/>Ready/Not Ready, milestones, missing evidence]
     DetailSlot --> NotesDecisions[NotesDecisions]
@@ -80,6 +80,8 @@ graph TB
 ```
 
 > **참고**: 실제 DOM에서는 HistoryEvidencePanel, ReadinessPanel, NotesDecisions는 TrThreeColumnLayout 밖, 페이지 하단(#evidence 다음)에 렌더됨.
+
+**detailSlot 구성** (page.tsx 기준): **Detail | Tide** 탭으로 전환 가능. 기본은 Tide; Gantt/Map/충돌에서 활동 선택 시 Detail 탭으로 전환. `#water-tide` 해시는 Tide 탭으로 스크롤·포커스. Gantt·Map·Detail 충돌 클릭은 모두 `handleCollisionCardOpen`으로 통일되어 WhyPanel·DetailPanel로 연결됨.
 
 ### 페이지 구조 (위에서 아래로)
 
@@ -214,6 +216,7 @@ graph TB
 - 입력: Palette 상단 `Command.Input` (오픈 시 포커스 우선)
 - 리뷰: `AIExplainDialog` 모달에서 intent/risk/confidence 확인
 - 실행: `Confirm & Continue` 이후에만 의도별 다이얼로그(`BulkEditDialog`, `ConflictsDialog`) 또는 모드 전환 수행
+- intent별: shift_activities→BulkEdit, explain_conflict→ConflictsDialog, explain_why→toast 요약, navigate_query→Map/Timeline 포커스, set_mode→모드 전환, apply_preview→Apply
 
 ### 6. SectionNav (`components/dashboard/section-nav.tsx`)
 
@@ -251,6 +254,7 @@ graph TB
 ```
 
 **detailSlot 구성** (page.tsx 기준):
+- **Detail | Tide 탭**: `activeDetailTab === "tide"` 시 WaterTidePanel, 아니면 DetailPanel·WhyPanel·ReflowPreviewPanel·Undo. `#water-tide` 앵커 유지. Gantt/Map/충돌 클릭 시 `handleCollisionCardOpen` → WhyPanel·DetailPanel 포커스(`detailPanelRef`).
 - DetailPanel (ActivityHeader, StateSection, PlanVsActualSection, ResourcesSection, ConstraintsSection, CollisionTray)
 - WhyPanel (2-click: root_cause_code, suggested_actions)
 - ReflowPreviewPanel (onApplyAction → reflowSchedule → Preview UI)
@@ -688,7 +692,7 @@ components/
 │   └── CompareModeBanner.tsx
 ├── map/
 │   ├── MapPanelWrapper.tsx
-│   ├── MapPanel.tsx
+│   ├── MapPanel.tsx         # mapInstanceKey·mapContentVisible 안정화, onCollisionClick 공통 핸들러
 │   ├── MapContent.tsx
 │   └── MapLegend.tsx        # TR 상태·충돌 범례 (patch §4.1, 좌하단 오버레이)
 ├── approval/
@@ -785,8 +789,8 @@ files/
 ### 4. Collision 2-Click UX (Phase 7)
 
 **1클릭: Collision 배지**
-- **CollisionTray** 또는 **Timeline 배지** 클릭
-- WhyPanel 표시 (root_cause_code, description, suggested_actions)
+- **CollisionTray**, **Timeline(Gantt) 배지**, **Map 충돌** 클릭 시 공통 `handleCollisionCardOpen` 호출.
+- WhyPanel 표시 (root_cause_code, description, suggested_actions). `onJumpToHistory`, `onOpenWhyDetail`로 History/Detail로 점프.
 
 **2클릭: Suggested Action**
 - WhyPanel에서 suggested_action 클릭
@@ -914,11 +918,12 @@ sequenceDiagram
 ---
 
 **문서 작성일**: 2025-01-31  
-**최종 업데이트**: 2026-02-10 (AI Command Phase 1 반영)  
+**최종 업데이트**: 2026-02-11 (Merge 정리·충돌 UX 통일·Water Tide 탭 반영)  
 **프로젝트**: HVDC TR Transport Dashboard  
 
 ## Refs
 
+- [CHANGELOG.md](../CHANGELOG.md) — 2026-02-11 Merge·Reflow·Tombstone 반영
 - [patch.md](../patch.md) §2.1, §2.2, §4.2
 - [AGENTS.md](../AGENTS.md)
 - [README.md](../README.md) — 프로젝트 개요
@@ -928,3 +933,13 @@ sequenceDiagram
 - [NL_COMMAND_INTERFACE_COMPLETE.md](NL_COMMAND_INTERFACE_COMPLETE.md) — NL Command 현재 상태
 - [BUGFIX_APPLIED_20260202.md](BUGFIX_APPLIED_20260202.md) — Bug #1~5,#7 적용
 - [map-integration-ideas.md](plan/map-integration-ideas.md) — 지도 번들·히트맵·지오펜스 통합 아이디어
+
+## Water Tide Placement Update (2026-02-11)
+
+- Water Tide is no longer rendered as a standalone section above the main layout.
+- Water Tide now lives inside the Detail area as a `Detail | Tide` tab.
+- `#water-tide` anchor is preserved and opens the Tide tab in the Detail panel.
+- Default tab behavior:
+  - No selected activity -> `Tide`
+  - Activity selected from Gantt/Map/collision -> auto switch to `Detail`
+- SectionNav still includes `Water Tide` and routes to the preserved anchor.

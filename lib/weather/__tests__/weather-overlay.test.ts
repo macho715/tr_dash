@@ -4,6 +4,7 @@ import {
   drawWeatherOverlay,
 } from "@/lib/weather/weather-overlay"
 import type { WeatherForecastData, WeatherLimits } from "@/lib/weather/weather-service"
+import type { WeatherGateStatus } from "@/lib/weather/weather-validator"
 
 describe("weather-overlay", () => {
   const limits: WeatherLimits = {
@@ -42,7 +43,7 @@ describe("weather-overlay", () => {
       }),
     } as unknown as HTMLCanvasElement
 
-    const dayStatusMap = new Map([
+    const dayStatusMap = new Map<string, WeatherGateStatus>([
       ["2026-02-05", "NO_GO"],
       ["2026-02-06", "SAFE"],
       ["2026-02-07", "NEAR_LIMIT"],

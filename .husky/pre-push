@@ -1,0 +1,18 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+remote_name="$1"
+remote_url="$2"
+
+if command -v powershell >/dev/null 2>&1; then
+  powershell -NoProfile -ExecutionPolicy Bypass -File "scripts/release/pre-push-guard.ps1" "$remote_name" "$remote_url"
+  exit $?
+fi
+
+if command -v pwsh >/dev/null 2>&1; then
+  pwsh -NoProfile -ExecutionPolicy Bypass -File "scripts/release/pre-push-guard.ps1" "$remote_name" "$remote_url"
+  exit $?
+fi
+
+echo "ERROR: PowerShell (powershell or pwsh) is required for release pre-push guard."
+exit 1

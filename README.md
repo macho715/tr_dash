@@ -6,8 +6,8 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue)](https://www.typescriptlang.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.1-38bdf8)](https://tailwindcss.com/)
 
-**최종 업데이트**: 2026-02-11  
-**최신 작업 반영**: **AI Command Phase 1** — NL command API (`POST /api/nl-command`), Unified Command Palette(**Ctrl+K** → 입력창 상단·자동 포커스, **Standard Mode** 클릭 시 **AI Command Mode**), `AIExplainDialog` confirm-first, intent 파싱·ambiguity 재질의. [docs/WORK_LOG_20260210_AI_UPGRADE.md](docs/WORK_LOG_20260210_AI_UPGRADE.md), [docs/NL_COMMAND_INTERFACE_COMPLETE.md](docs/NL_COMMAND_INTERFACE_COMPLETE.md), [docs/AI_FEATURES.md](docs/AI_FEATURES.md).
+**최종 업데이트**: 2026-02-12  
+**최신 작업 반영**: **AI intent 확장 (2026-02-12)** — explain_why(Why 2-click 요약), navigate_query(Where/When/What→Map/Timeline 포커스). 8개 intent, selectedActivityId·onNavigateToMap 연동. 이전: Merge·Reflow·Typecheck/Lint·Tide Phase1·고급 (2026-02-11). [CHANGELOG.md](CHANGELOG.md), [docs/AI_FEATURES.md](docs/AI_FEATURES.md).
 
 ---
 
@@ -32,7 +32,9 @@ HVDC TR Transport Dashboard는 **7개의 Transformer Unit**을 **LCT BUSHRA**로
 - **🆕 History/Evidence 관리 (2026-02-06)**: Manual history event 추가 (AddHistoryModal), Soft delete (Append-only 준수), Restore 기능, Deleted 이벤트 표시 (opacity-50, "Deleted" 배지), SSOT append-only 유지.
 - **Trip Report Export**: MD/JSON 보고서 다운로드
 - **Next Trip Readiness**: Ready/Not Ready 배지, 마일스톤/증빙/블로커 체크리스트
-- **🆕 AI Command Interface (2026-02-10)**: **Ctrl+K**로 Command Palette 열기 → 맨 위 입력창에 명령/자연어 입력. **Standard Mode** 버튼 클릭 시 **AI Command Mode**로 전환 후 예: "Move all Voyage 3 forward 5 days" 입력 → Enter → `POST /api/nl-command`로 intent 파싱 → `AIExplainDialog`에서 확인 후 실행. 6개 intent, ambiguity 시 재질의. `OPENAI_API_KEY` 필요 시 설정.
+- **🆕 Voyage Map View (2026-02-11)**: Voyage 카드 hover/select 시 맵과 연동. ETA Drift 배지, **active voyage만** 경로 overlay 표시(drift > 1.5일 점선). `lib/tr/voyage-map-view.ts`(RiskBand, computeVoyageEtaDriftDays, buildVoyageRoute). 헤더 **Open Tide Gantt** → `/tide-gantt`, 해당 페이지 **Back to Dashboard** → `/` 왕복 이동.
+- **🆕 즉시 조치 체크리스트 (2026-02-11)**: Alerts 영역 **OperationalNotice** — 3항목 고정(1차 항차 TR 1유닛 로드, SPMT 2세트·MOB 1/26, 잔여 일정 확정). 체크박스·완료율(n/3 done)·항목별 **Go** 버튼 → voyages/schedule/gantt 섹션 이동·필요 시 voyage 선택. 선택일(YYYY-MM-DD)별 localStorage 저장(`lib/alerts/immediate-actions.ts`).
+- **🆕 AI Command Interface (2026-02-10, 2026-02-12 확장)**: **Ctrl+K**로 Command Palette 열기 → 맨 위 입력창에 명령/자연어 입력. **Standard Mode** 버튼 클릭 시 **AI Command Mode**로 전환 후 예: "Move all Voyage 3 forward 5 days" 입력 → Enter → `POST /api/nl-command`로 intent 파싱 → `AIExplainDialog`에서 확인 후 실행. **8개 intent**: shift_activities, prepare_bulk, explain_conflict, **explain_why**(Why 2-click 요약), **navigate_query**(Where/When/What 질의 → Map/Timeline 포커스), set_mode, apply_preview, unclear. ambiguity 시 재질의. `selectedActivityId` 전달 시 explain_why·navigate_query 컨텍스트 강화. `OPENAI_API_KEY` 필요 시 설정.
 
 ---
 
@@ -93,6 +95,9 @@ pnpm run dev -- -p 3001
 PORT=3001 pnpm run dev
 ```
 
+- `pnpm run dev:webpack` — Webpack 기반 Next dev (Turbo 비사용 시)
+- `pnpm run sync:wa-events` — WA 이벤트 → SSOT 동기화 스크립트
+
 브라우저에서 [http://localhost:3000](http://localhost:3000) 열기 (포트 변경 시 예: [http://localhost:3001](http://localhost:3001))
 
 ### 빌드
@@ -135,6 +140,7 @@ tr_dashboard/
 │   ├── layout.tsx         # 루트 레이아웃 (메타데이터, 폰트)
 │   ├── page.tsx           # 홈 페이지 (조립자)
 │   ├── api/nl-command/    # AI 자연어 명령 파싱 API
+│   ├── tide-gantt/        # Tide 전용 Gantt 페이지 (/tide-gantt)
 │   └── globals.css        # Deep Ocean Theme 스타일
 ├── components/
 │   ├── layout/
@@ -173,6 +179,8 @@ tr_dashboard/
 │   │   └── ai-intent.ts   # AI intent/result 타입 SSOT
 │   ├── compare/           # compare-loader (Phase 10)
 │   ├── baseline/          # baseline-compare, freeze-policy
+│   ├── alerts/            # immediate-actions (즉시 조치 체크리스트, localStorage)
+│   ├── tr/                # voyage-map-view (RiskBand, ETA Drift, buildVoyageRoute)
 │   ├── store/             # trip-store (History/Evidence append-only)
 │   ├── reports/           # trip-report (MD/JSON Export)
 │   └── (state-machine: src/lib/state-machine/)  # 상태 전이, Evidence gates
@@ -220,7 +228,7 @@ flowchart LR
 
 ## 🎯 주요 기능 상세
 
-### 1. 스케줄 재계산 엔진 (`lib/utils/schedule-reflow.ts`)
+### 1. 스케줄 재계산 권위 엔진 (`src/lib/reflow/schedule-reflow-manager.ts`)
 
 의존성 그래프 기반 자동 일정 조정:
 
@@ -233,22 +241,32 @@ flowchart LR
 **사용 예시:**
 
 ```typescript
-import { reflowSchedule } from "@/lib/utils/schedule-reflow"
+import { previewScheduleReflow } from "@/src/lib/reflow/schedule-reflow-manager"
 
-const result = reflowSchedule(
-  scheduleActivities,
-  "ACT-001",
-  "2026-02-15",
-  {
+const result = previewScheduleReflow({
+  activities: scheduleActivities,
+  anchors: [{ activityId: "ACT-001", newStart: "2026-02-15" }],
+  options: {
     respectLocks: true,
     respectConstraints: true,
     detectCycles: true,
-  }
-)
+  },
+  mode: "shift",
+})
 
-// result.activities: 재계산된 활동 목록
-// result.impact_report: 영향받은 작업 및 충돌 정보
+// result.nextActivities: 재계산된 활동 목록
+// result.impact: 영향받은 작업 및 collision 정보
+// result.collisions: collision DTO
 ```
+
+
+
+### Reflow 호출 정책 (중요)
+
+- **권위 엔진 진입점:** `src/lib/reflow/schedule-reflow-manager.ts`의 `previewScheduleReflow` / `applySchedulePreview`
+- **공통 Preview DTO:** `{ nextActivities, changes, collisions, impact, meta }`
+- **금지된 우회 경로:** UI(`components/ops/*`, `components/dashboard/*`, `lib/weather/*`)에서 `lib/utils/schedule-reflow.ts` 직접 호출 금지
+- `lib/utils/schedule-reflow.ts`는 **deprecated wrapper**로만 유지되며 신규 코드에서는 사용하지 않음
 
 ### 2. Gantt 차트 (`components/dashboard/gantt-chart.tsx`)
 
@@ -265,11 +283,11 @@ const result = reflowSchedule(
 - **Tooltip 버튼**: 활동 바 호버 → "날짜 변경" 버튼
 - **Dialog**: Calendar + 직접 입력 (YYYY-MM-DD)
 - **Phase 6 Bug #1**: Selected Date는 UTC(YYYY-MM-DD) 기준. `lib/ssot/schedule.ts`의 `dateToIsoUtc`, `toUtcNoon` 사용. Gantt 축과 정렬. DatePicker 라벨에 (YYYY-MM-DD), tooltip "Selected date: YYYY-MM-DD (UTC day index used for Gantt)" 표시.
-- **재계산 실행**: Dialog에서 직접 `reflowSchedule` 호출
+- **재계산 실행**: Dialog에서 `previewScheduleReflow` 단일 진입점 호출
 
 ### 4. Preview 패널 (`components/dashboard/ReflowPreviewPanel.tsx`)
 
-- **연결**: Why 패널 suggested_action 클릭 → `reflowSchedule` 호출 → ReflowPreviewPanel 표시
+- **연결**: Why 패널 suggested_action 클릭 → `previewScheduleReflow` 호출 → ReflowPreviewPanel 표시
 - **변경 사항 목록**: 영향받은 작업의 이전/이후 날짜
 - **충돌 경고**: 의존성 사이클, 잠금 위반, 제약 조건 위반
 - **적용/취소**: Apply 클릭 시 `setActivities` 상태 업데이트, Gantt 차트 자동 리렌더링
@@ -437,10 +455,13 @@ Preview 패널 (변경 사항 표시)
 - [AGENTS.md](AGENTS.md) - **에이전트 규칙·SSOT·워크플로우** (필수)
 - [docs/LAYOUT.md](docs/LAYOUT.md) - **레이아웃·컴포넌트** (2열: Map+Detail | Timeline)
 - [docs/SYSTEM_ARCHITECTURE.md](docs/SYSTEM_ARCHITECTURE.md) - **시스템 아키텍처** (레이어, 데이터 흐름)
+- [docs/TYPECHECK_AND_LINT_FAILURES.md](docs/TYPECHECK_AND_LINT_FAILURES.md) - **Typecheck/Lint** 실패 원인·해결 내역 (2026-02-11, 0 errors)
 - [docs/plan/plan_patchmain_14.md](docs/plan/plan_patchmain_14.md) - **patchmain 14-item (2026-02-04)**
 - [docs/WORK_LOG_20260202.md](docs/WORK_LOG_20260202.md) - **Phase 4~11 작업 이력 (2026-02-04 반영)**
 - [docs/BUGFIX_APPLIED_20260202.md](docs/BUGFIX_APPLIED_20260202.md) - **Phase 6 Bugfix 상세**
 - [docs/INDEX.md](docs/INDEX.md) - 문서 인덱스
+- [docs/WORK_LOG_20260211.md](docs/WORK_LOG_20260211.md) - 2026-02-11 작업 (Tide 연동, Reflow cascade, Voyage Map View, 즉시 조치)
+- [docs/innovation-scout-dashboard-upgrade-ideas-20260211.md](docs/innovation-scout-dashboard-upgrade-ideas-20260211.md) - 업그레이드 아이디어 (UX/기능/기술/운영)
 - [docs/VERCEL.md](docs/VERCEL.md) - Vercel 배포
 - [docs/plan/map-integration-ideas.md](docs/plan/map-integration-ideas.md) - 지도 번들·히트맵·지오펜스 통합
 - [.cursor/rules/](.cursor/rules/) - Cursor IDE 규칙
@@ -449,7 +470,8 @@ Preview 패널 (변경 사항 표시)
 
 ## 🧪 테스트
 
-- **Vitest**: 167 tests (state-machine, reflow, collision, baseline, evidence 등). 1 suite 실패 시: `src/lib/__tests__/history-evidence.test.ts` — `@/lib/state-machine/evidence-gate` import 경로 수정 필요 (실제: `@/src/lib/state-machine/evidence-gate`).
+- **Vitest**: 336 tests (state-machine, reflow, collision, baseline, evidence, ops 등). 61 test files.
+- **검증**: `pnpm run typecheck` (0 errors), `pnpm run lint` (0 errors with `--quiet`), `pnpm test:run`.
 - **pipeline-check**: `lib/ops/agi-schedule/__tests__/pipeline-check.test.ts` — patchmain #14 (AGI 스케줄 파이프라인 검증, null/empty 안전).
 - **실행**: `pnpm test -- --run` 또는 `pnpm test:run`
 - **계획**: [docs/test/Test_Plan.md](docs/test/Test_Plan.md)
@@ -479,7 +501,7 @@ Private project - Samsung C&T × Mammoet. 자세한 내용은 [LICENSE](LICENSE)
 
 ---
 
-**Last Updated**: 2026-02-04
+**Last Updated**: 2026-02-11
 
 ---
 
@@ -659,6 +681,7 @@ Private project - Samsung C&T × Mammoet. 자세한 내용은 [LICENSE](LICENSE)
 
 #### State Machine & Evidence (Phase 3)
 - ✅ **State Machine**: `src/lib/state-machine/` - Activity 상태 전이 (ALLOWED_TRANSITIONS, Evidence Gates)
+- ✅ **Activity State Contract**: `draft → planned → ready → in_progress → paused/blocked → completed → verified` (terminal: `verified`, `canceled/cancelled`, `aborted`; legacy alias: `done`)
 - ✅ **Evidence Gate**: before_start, after_end 증빙 검증
 - ✅ **테스트**: 124 tests passed (state-machine, evidence-gate, reflow, collision 등)
 
@@ -699,8 +722,10 @@ Private project - Samsung C&T × Mammoet. 자세한 내용은 [LICENSE](LICENSE)
 - [docs/manual/User_Guide.md](docs/manual/User_Guide.md) — 사용자 매뉴얼
 - [docs/plan/plan_patchmain_14.md](docs/plan/plan_patchmain_14.md) — patchmain 14-item (2026-02-04)
 - [docs/WORK_LOG_20260202.md](docs/WORK_LOG_20260202.md) — Phase 4~11 작업 이력
+- [docs/WORK_LOG_20260211.md](docs/WORK_LOG_20260211.md) — 2026-02-11 작업 (Tide, Reflow cascade, Voyage Map View, 즉시 조치)
 - [docs/WORK_LOG_20260210_AI_UPGRADE.md](docs/WORK_LOG_20260210_AI_UPGRADE.md) — AI Phase 1 작업 이력
 - [docs/BUGFIX_APPLIED_20260202.md](docs/BUGFIX_APPLIED_20260202.md) — Phase 6 Bugfix
+- [docs/innovation-scout-dashboard-upgrade-ideas-20260211.md](docs/innovation-scout-dashboard-upgrade-ideas-20260211.md) — 업그레이드 아이디어
 - [docs/NL_COMMAND_INTERFACE_IMPLEMENTATION_REPORT.md](docs/NL_COMMAND_INTERFACE_IMPLEMENTATION_REPORT.md) — NL Command 구현 리포트
 - [docs/NL_COMMAND_INTERFACE_COMPLETE.md](docs/NL_COMMAND_INTERFACE_COMPLETE.md) — NL Command 현재 상태
 - [docs/INDEX.md](docs/INDEX.md) — 문서 인덱스

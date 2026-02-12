@@ -9,9 +9,10 @@ type SectionItem = {
 type SectionNavProps = {
   activeSection: string
   sections: SectionItem[]
+  onSectionClick?: (sectionId: string) => void
 }
 
-export function SectionNav({ activeSection, sections }: SectionNavProps) {
+export function SectionNav({ activeSection, sections, onSectionClick }: SectionNavProps) {
   return (
     <nav
       className="sticky top-0 z-20 mb-4 min-h-[3.25rem] bg-glass backdrop-blur-xl rounded-2xl border border-accent/15 shadow-glow"
@@ -30,6 +31,7 @@ export function SectionNav({ activeSection, sections }: SectionNavProps) {
                   : "hover:bg-accent/20 text-slate-300 hover:text-foreground")
               }
               href={`#${section.id}`}
+              onClick={() => onSectionClick?.(section.id)}
               aria-label={`Go to ${section.label}`}
               aria-current={isActive ? "page" : undefined}
             >

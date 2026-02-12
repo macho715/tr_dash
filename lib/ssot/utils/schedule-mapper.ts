@@ -66,15 +66,25 @@ export function mapOptionCToScheduleActivity(
     actualFinish = typeof raw.actual_finish === "string" ? raw.actual_finish : undefined
   }
 
-  const status =
-    typeof raw.status === "string"
-      ? raw.status
-      : typeof raw.state === "string"
-        ? mapStateToStatus(raw.state)
-        : undefined
+  const status = normalizeStatus(raw.status) ?? (typeof raw.state === "string"
+    ? mapStateToStatus(raw.state)
+    : undefined)
+
+  const dependsOn = Array.isArray(raw.depends_on)
+    ? (raw.depends_on as ScheduleActivity["depends_on"])
+    : undefined
+  const constraint = typeof raw.constraint === "object" && raw.constraint !== null
+    ? (raw.constraint as ScheduleActivity["constraint"])
+    : undefined
+  const calendar = typeof raw.calendar === "object" && raw.calendar !== null
+    ? (raw.calendar as ScheduleActivity["calendar"])
+    : undefined
+  const lockLevel = typeof raw.lock_level === "string" ? raw.lock_level : undefined
+  const reflowPins = Array.isArray(raw.reflow_pins)
+    ? (raw.reflow_pins as ScheduleActivity["reflow_pins"])
+    : undefined
 
   return {
-    ...(raw as ScheduleActivity),
     activity_id: activityId,
     activity_name: activityName,
     level1: typeof raw.level1 === "string" ? raw.level1 : "",
@@ -85,11 +95,22 @@ export function mapOptionCToScheduleActivity(
     actual_start: actualStart,
     actual_finish: actualFinish,
     status,
+    depends_on: dependsOn,
+    constraint,
+    calendar,
+    voyage_id: typeof raw.voyage_id === "string" ? raw.voyage_id : voyageId,
+    milestone_id: typeof raw.milestone_id === "string" ? raw.milestone_id : undefined,
+    resource_tags: Array.isArray(raw.resource_tags)
+      ? (raw.resource_tags as string[])
+      : resourceTags.length > 0
+        ? resourceTags
+        : undefined,
+    is_locked: typeof raw.is_locked === "boolean" ? raw.is_locked : undefined,
+    lock_level: lockLevel,
+    reflow_pins: reflowPins,
     _is_summary: isSummary,
     tr_unit_id: trUnitId,
     anchor_type: anchorType,
-    resource_tags: resourceTags.length > 0 ? resourceTags : undefined,
-    voyage_id: voyageId,
   }
 }
 
@@ -104,6 +125,13 @@ function mapStateToStatus(state: string): ScheduleActivity["status"] | undefined
     default:
       return "planned"
   }
+}
+
+function normalizeStatus(value: unknown): ScheduleActivity["status"] | undefined {
+  if (value === "planned" || value === "in_progress" || value === "blocked" || value === "done") {
+    return value
+  }
+  return undefined
 }
 
 export function mapOptionCJsonToScheduleActivities(optionCData: {

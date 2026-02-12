@@ -15,8 +15,11 @@ export const ALLOWED_TRANSITIONS: Record<ActivityState, ActivityState[]> = {
   in_progress: ['paused', 'blocked', 'aborted', 'completed'],
   paused: ['in_progress', 'blocked', 'aborted'],
   blocked: ['ready', 'aborted'],
-  completed: [], // Terminal state
+  completed: ['verified'],
+  verified: [], // Terminal state (governance sign-off complete)
+  done: [], // Terminal state (legacy alias, no new transitions)
   canceled: [], // Terminal state
+  cancelled: [], // Terminal state (spelling)
   aborted: [] // Terminal state
 };
 
@@ -25,9 +28,17 @@ export const EVIDENCE_GATE_BY_TRANSITION: Record<string, string[]> = {
   'planned->ready': ['before_ready'],
   'ready->in_progress': ['before_start'],
   'blocked->ready': ['before_ready', 'before_start'], // Re-validate gates
-  'in_progress->completed': ['after_end'], // Mandatory evidence
-  'completed->verified': ['after_end'] // If VERIFIED exists
+  'in_progress->completed': ['after_end'],
+  'completed->verified': ['after_end'] // Governance verification gate
 };
+
+export const TERMINAL_STATES: readonly ActivityState[] = [
+  'verified',
+  'done',
+  'canceled',
+  'cancelled',
+  'aborted'
+] as const;
 
 /** Guard: actual.start_ts blocks cancel (use aborted instead) */
 export function canCancelFromState(state: ActivityState, hasActualStart: boolean): boolean {
@@ -60,14 +71,13 @@ export function isTransitionAllowed(
     blockerCode?: string | null;
   }
 ): { allowed: boolean; reason?: string } {
+  if (TERMINAL_STATES.includes(from)) {
+    return { allowed: false, reason: `${from} is terminal state` };
+  }
+
   const allowedTo = ALLOWED_TRANSITIONS[from];
   if (!allowedTo.includes(to)) {
     return { allowed: false, reason: `Transition ${from}->${to} not in allowed adjacency` };
-  }
-
-  // completed is terminal
-  if (from === 'completed') {
-    return { allowed: false, reason: 'completed is terminal state' };
   }
 
   // canceled: only from planned/ready, no actual.start_ts

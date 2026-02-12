@@ -5,6 +5,7 @@ import { Trash2, RotateCcw } from 'lucide-react'
 import type { OptionC, HistoryEvent } from '@/src/types/ssot'
 import { toast } from 'sonner'
 import { AddHistoryModal } from './AddHistoryModal'
+import { composeHistoryEventsWithDeletionState } from '@/lib/ssot/history-deletion'
 
 const EVENT_TYPE_LABELS: Record<string, string> = {
   plan_changed: 'Plan changed',
@@ -23,6 +24,8 @@ const EVENT_TYPE_LABELS: Record<string, string> = {
   risk: 'Risk',
   milestone: 'Milestone',
   issue: 'Issue',
+  history_soft_deleted: 'History soft deleted',
+  history_restored: 'History restored',
 }
 
 type HistoryTabProps = {
@@ -55,8 +58,8 @@ export function HistoryTab({
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const events = ssot?.history_events ?? []
   const filtered = useMemo(() => {
-    let list = [...events].sort(
-      (a, b) => new Date(b.ts || b.timestamp || 0).getTime() - new Date(a.ts || a.timestamp || 0).getTime()
+    let list = composeHistoryEventsWithDeletionState(events).sort(
+      (a, b) => new Date(b.ts || 0).getTime() - new Date(a.ts || 0).getTime()
     )
     if (filterEventType) {
       list = list.filter((e) => e.event_type === filterEventType)
@@ -72,7 +75,7 @@ export function HistoryTab({
   const groupedByDate = useMemo(() => {
     const groups: Record<string, HistoryEvent[]> = {}
     for (const e of filtered) {
-      const timestamp = e.ts || e.timestamp || new Date().toISOString()
+      const timestamp = e.ts || new Date().toISOString()
       const date = timestamp.slice(0, 10)
       if (!groups[date]) groups[date] = []
       groups[date].push(e)
@@ -173,7 +176,7 @@ export function HistoryTab({
                         <div className="flex flex-1 flex-col">
                           <div className="flex items-center gap-2">
                             <span className="font-mono text-muted-foreground">
-                              {(e.ts || e.timestamp || '').slice(11, 16)}
+                              {(e.ts || '').slice(11, 16)}
                             </span>
                             <span className="font-medium">
                               {EVENT_TYPE_LABELS[e.event_type] ?? e.event_type}

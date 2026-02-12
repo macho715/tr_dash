@@ -25,7 +25,7 @@ export function createHeatmapLayer(
     data: events,
     visible,
     pickable: false,
-    getPosition: (d) => [d.lon, d.lat],
+    getPosition: (d: Event) => [d.lon, d.lat],
     getWeight,
     radiusPixels,
     intensity: 1,

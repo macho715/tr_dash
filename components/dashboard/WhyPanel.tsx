@@ -3,6 +3,7 @@
 import { AlertTriangle, ExternalLink, X } from "lucide-react"
 import type { ScheduleConflict, SuggestedAction } from "@/lib/ssot/schedule"
 import { getCollisionHeadline } from "@/src/lib/collision-card"
+import { MOBILE_UX_FLAGS } from "@/lib/feature-flags"
 
 type WhyPanelProps = {
   collision: ScheduleConflict | null
@@ -26,6 +27,7 @@ export function WhyPanel({
   onOpenWhyDetail,
 }: WhyPanelProps) {
   if (!collision) return null
+  const mobileWhyEnabled = MOBILE_UX_FLAGS.M12_2CLICK_MOBILE
 
   const severityStyles: Record<ScheduleConflict["severity"], string> = {
     warn: "border-amber-400/60 bg-amber-500/15 text-amber-200",
@@ -51,20 +53,25 @@ export function WhyPanel({
 
   return (
     <div
-      className="rounded-xl border border-red-500/30 bg-red-900/20 p-3"
+      className={
+        mobileWhyEnabled
+          ? "fixed inset-0 z-50 overflow-y-auto bg-slate-950/95 p-4 md:static md:z-auto md:rounded-xl md:border md:border-red-500/30 md:bg-red-900/20 md:p-3"
+          : "rounded-xl border border-red-500/30 bg-red-900/20 p-3"
+      }
       data-testid="why-panel"
-      role="region"
-      aria-label="Why delayed"
+      role={mobileWhyEnabled ? "dialog" : "region"}
+      aria-label={mobileWhyEnabled ? "2 of 2 Why evidence panel" : "Why delayed"}
+      aria-modal={mobileWhyEnabled ? "true" : undefined}
     >
       <div className="mb-2 flex items-center justify-between">
         <span className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-red-300">
           <AlertTriangle className="h-4 w-4" />
-          Collision Card
+          {mobileWhyEnabled ? "2/2 Why & Evidence" : "Collision Card"}
         </span>
         <button
           type="button"
           onClick={onClose}
-          className="text-slate-400 hover:text-foreground"
+          className="touch-target rounded-md px-2 text-slate-400 hover:bg-accent/10 hover:text-foreground"
           aria-label="Close"
         >
           <X className="h-4 w-4" />
@@ -86,14 +93,14 @@ export function WhyPanel({
       <div className="mt-3 flex flex-wrap gap-2">
         <button
           type="button"
-          className="rounded bg-slate-800/70 px-3 py-1 text-xs font-semibold text-slate-100 hover:bg-slate-700/80"
+          className="touch-target rounded bg-slate-800/70 px-3 py-1 text-xs font-semibold text-slate-100 hover:bg-slate-700/80"
           onClick={() => onViewInTimeline?.(collision, collision.activity_id)}
         >
           View in Timeline
         </button>
         <button
           type="button"
-          className="rounded border border-cyan-600/60 px-3 py-1 text-xs font-semibold text-cyan-200 hover:border-cyan-400"
+          className="touch-target rounded border border-cyan-600/60 px-3 py-1 text-xs font-semibold text-cyan-200 hover:border-cyan-400"
           onClick={() => onOpenWhyDetail?.(collision)}
         >
           Why 상세 열기
@@ -108,7 +115,7 @@ export function WhyPanel({
               <li key={`${action.kind}-${idx}`}>
                 <button
                   type="button"
-                  className="rounded border border-emerald-500/40 bg-emerald-500/15 px-2.5 py-1 text-xs font-medium text-emerald-200 hover:bg-emerald-500/25"
+                  className="touch-target rounded border border-emerald-500/40 bg-emerald-500/15 px-2.5 py-1 text-xs font-medium text-emerald-200 hover:bg-emerald-500/25"
                   onClick={() => onApplyAction?.(collision, action)}
                 >
                   {action.label}
@@ -131,14 +138,14 @@ export function WhyPanel({
         <div className="mt-2 flex flex-wrap gap-3">
           <button
             type="button"
-            className="inline-flex items-center gap-1 text-cyan-300 hover:text-cyan-100"
+            className="touch-target inline-flex items-center gap-1 rounded-md px-2 text-cyan-300 hover:bg-accent/10 hover:text-cyan-100"
             onClick={() => onJumpToEvidence?.(collision)}
           >
             <ExternalLink className="h-3.5 w-3.5" /> Evidence
           </button>
           <button
             type="button"
-            className="inline-flex items-center gap-1 text-cyan-300 hover:text-cyan-100"
+            className="touch-target inline-flex items-center gap-1 rounded-md px-2 text-cyan-300 hover:bg-accent/10 hover:text-cyan-100"
             onClick={() => onJumpToHistory?.(collision)}
           >
             <ExternalLink className="h-3.5 w-3.5" /> History
@@ -154,7 +161,7 @@ export function WhyPanel({
               <li key={activityId}>
                 <button
                   type="button"
-                  className="text-xs font-medium text-cyan-200 hover:text-cyan-100"
+                  className="touch-target rounded-md px-2 text-xs font-medium text-cyan-200 hover:bg-accent/10 hover:text-cyan-100"
                   onClick={() => onRelatedActivityClick?.(activityId)}
                 >
                   {activityId}

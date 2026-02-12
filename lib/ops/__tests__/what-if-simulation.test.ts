@@ -11,6 +11,7 @@
 import { describe, it, expect } from "vitest"
 import type { ScheduleActivity } from "@/lib/ssot/schedule"
 import type { WhatIfScenario, WhatIfMetrics } from "@/components/ops/WhatIfPanel"
+import { previewScheduleReflow } from "@/src/lib/reflow/schedule-reflow-manager"
 
 // Mock activities (simplified)
 const mockActivities: ScheduleActivity[] = [
@@ -19,20 +20,26 @@ const mockActivities: ScheduleActivity[] = [
     activity_name: "Jack-down TR1",
     planned_start: "2026-02-10",
     planned_finish: "2026-02-12",
-    state: "planned",
-    dependencies: [],
+    duration: 2,
+    level1: "Trip 1",
+    level2: "Jack-down",
+    status: "planned",
+    depends_on: [],
   },
   {
     activity_id: "A1040",
     activity_name: "Transport TR1",
     planned_start: "2026-02-13",
     planned_finish: "2026-02-14",
-    state: "planned",
-    dependencies: [
+    duration: 1,
+    level1: "Trip 1",
+    level2: "Transport",
+    status: "planned",
+    depends_on: [
       {
-        predecessor_id: "A1030",
+        predecessorId: "A1030",
         type: "FS",
-        lag_days: 0,
+        lagDays: 0,
       },
     ],
   },
@@ -41,12 +48,15 @@ const mockActivities: ScheduleActivity[] = [
     activity_name: "Install TR1",
     planned_start: "2026-02-15",
     planned_finish: "2026-02-17",
-    state: "planned",
-    dependencies: [
+    duration: 2,
+    level1: "Trip 1",
+    level2: "Install",
+    status: "planned",
+    depends_on: [
       {
-        predecessor_id: "A1040",
+        predecessorId: "A1040",
         type: "FS",
-        lag_days: 0,
+        lagDays: 0,
       },
     ],
   },
@@ -169,7 +179,7 @@ describe("What-If Simulation - Browser Flow", () => {
 
       // When: Reflow 시뮬레이션 (간단한 로직)
       const affectedActivities = mockActivities.filter((a) =>
-        a.dependencies?.some((d) => d.predecessor_id === scenario.activity_id)
+        a.depends_on?.some((d) => d.predecessorId === scenario.activity_id)
       )
       
       // A1040는 A1030에 의존 → 영향받음
@@ -198,26 +208,27 @@ describe("What-If Simulation - Browser Flow", () => {
     })
 
     it("should detect cascading effects through dependencies", () => {
-      // Given: A1030 → A1040 → A1050 dependency chain
-      const targetActivityId = "A1030"
+      // Given/When: canonical preview path로 A1030을 +6일 이동
+      const preview = previewScheduleReflow({
+        activities: mockActivities,
+        anchors: [{ activityId: "A1030", newStart: "2026-02-16" }],
+        options: {
+          respectLocks: true,
+          checkResourceConflicts: false,
+        },
+        mode: "shift",
+      })
 
-      // When: A1030이 지연되면
-      const directDependents = mockActivities.filter((a) =>
-        a.dependencies?.some((d) => d.predecessor_id === targetActivityId)
+      // Then: A1030 → A1040 → A1050 연쇄 이동
+      const byId = new Map(
+        preview.nextActivities
+          .filter((activity) => activity.activity_id)
+          .map((activity) => [activity.activity_id as string, activity])
       )
-
-      const indirectDependents = mockActivities.filter((a) =>
-        a.dependencies?.some((d) => 
-          directDependents.some((dep) => dep.activity_id === d.predecessor_id)
-        )
-      )
-
-      // Then: 직접 + 간접 영향 모두 포함
-      expect(directDependents).toHaveLength(1) // A1040
-      expect(indirectDependents).toHaveLength(1) // A1050
-      
-      const totalAffected = directDependents.length + indirectDependents.length
-      expect(totalAffected).toBe(2)
+      expect(byId.get("A1030")?.planned_start).toBe("2026-02-16")
+      expect(byId.get("A1040")?.planned_start).toBe("2026-02-17")
+      expect(byId.get("A1050")?.planned_start).toBe("2026-02-17")
+      expect(preview.meta.cascade?.impacted_count).toBeGreaterThanOrEqual(3)
     })
   })
 

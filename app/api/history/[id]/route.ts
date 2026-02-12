@@ -5,11 +5,11 @@ import { setHistoryEventDeleted } from "@/lib/ssot/update-history"
 export const runtime = "nodejs"
 
 type RouteParams = {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }
 
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
-  const eventId = params?.id
+  const { id: eventId } = await params
   if (!eventId) {
     return NextResponse.json({ error: "Missing history event id" }, { status: 400 })
   }

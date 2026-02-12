@@ -57,7 +57,7 @@ export function calculateMissingEvidence(
   // Determine required evidence based on activity status
   let requirement: EvidenceRequirement | undefined
 
-  if (activity.status === "ready" || activity.status === "in_progress") {
+  if (activity.status === "planned" || activity.status === "in_progress") {
     requirement = EVIDENCE_GATES.READY_TO_IN_PROGRESS
   } else if (activity.status === "done") {
     requirement = EVIDENCE_GATES.COMPLETED_TO_VERIFIED

@@ -1,0 +1,28 @@
+name: release-policy
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  enforce-release-source:
+    name: enforce-release-source
+    runs-on: ubuntu-latest
+    env:
+      EXPECTED_SOURCE_BRANCH: ${{ github.repository == 'macho715/tr_dash_mobile' && 'release/mobile' || 'release/general' }}
+      CURRENT_SOURCE_BRANCH: ${{ github.head_ref }}
+      REPOSITORY_NAME: ${{ github.repository }}
+    steps:
+      - name: Validate PR source branch policy
+        run: |
+          echo "Repository: $REPOSITORY_NAME"
+          echo "Expected source branch: $EXPECTED_SOURCE_BRANCH"
+          echo "Current source branch: $CURRENT_SOURCE_BRANCH"
+
+          if [ "$CURRENT_SOURCE_BRANCH" != "$EXPECTED_SOURCE_BRANCH" ]; then
+            echo "ERROR: PR source branch policy violation."
+            echo "Expected '$EXPECTED_SOURCE_BRANCH' but got '$CURRENT_SOURCE_BRANCH'."
+            exit 1
+          fi
+
+          echo "Release source branch policy check passed."

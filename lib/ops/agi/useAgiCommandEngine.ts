@@ -1,8 +1,10 @@
 import { useCallback, useMemo, useState } from "react";
 import type { ScheduleActivity } from "@/lib/ssot/schedule";
-import { reflowSchedule } from "@/lib/utils/schedule-reflow";
-import { detectResourceConflicts } from "@/lib/utils/detect-resource-conflicts";
-import { buildChanges } from "@/lib/ops/agi/adapters";
+import {
+  previewScheduleReflow,
+  applySchedulePreview,
+  toReflowPreviewDTO,
+} from "@/src/lib/reflow/schedule-reflow-manager";
 import {
   applyBulkAnchors,
   computeDeltaByNewDate,
@@ -15,7 +17,7 @@ import {
   undo,
   type HistoryState,
 } from "@/lib/ops/agi/history";
-import type { AgiCommand, PreviewResult } from "@/lib/ops/agi/types";
+import type { AgiCommand, IsoDate, PreviewResult } from "@/lib/ops/agi/types";
 import { makeFullJSON, makePatchJSON, downloadJSON } from "@/lib/ops/agi/exporters";
 
 const DEFAULT_REFLOW_OPTIONS = {
@@ -45,20 +47,20 @@ type EngineArgs = {
 export function useAgiCommandEngine({ activities, setActivities, canApply = true }: EngineArgs) {
   const [history, setHistory] = useState<HistoryState>(() => initHistory());
 
-  const buildPreview = useCallback(
-    (before: ScheduleActivity[], next: ScheduleActivity[], meta: PreviewMeta): PreviewResult => {
-      const changes = buildChanges(before, next);
-      const conflicts = detectResourceConflicts(next);
-      return { nextActivities: next, changes, conflicts, meta };
-    },
-    []
-  );
+  const buildPreview = useCallback((
+    preview: Omit<PreviewResult, "meta">,
+    meta: PreviewMeta
+  ): PreviewResult => ({ ...preview, meta }), []);
 
   /** Preview a reflow for one selected activity start date change. */
   const previewShiftByActivity = useCallback(
-    (activityId: string, newStart: string): PreviewResult => {
-      const result = reflowSchedule(activities, activityId, newStart, DEFAULT_REFLOW_OPTIONS);
-      return buildPreview(activities, result.activities, {
+    (activityId: string, newStart: IsoDate): PreviewResult => {
+      const result = previewScheduleReflow({
+        activities,
+        anchors: [{ activityId, newStart }],
+        options: DEFAULT_REFLOW_OPTIONS,
+      });
+      return buildPreview(result, {
         mode: "shift",
         anchors: [{ activityId, newStart }],
       });
@@ -67,35 +69,49 @@ export function useAgiCommandEngine({ activities, setActivities, canApply = true
   );
 
   const previewShiftByPivot = useCallback(
-    (pivot: string, deltaDays?: number, newDate?: string, includeLocked?: boolean): PreviewResult => {
+    (pivot: IsoDate, deltaDays?: number, newDate?: IsoDate, includeLocked?: boolean): PreviewResult => {
       const computedDelta =
         typeof deltaDays === "number"
           ? deltaDays
           : newDate
-            ? computeDeltaByNewDate(pivot as any, newDate as any)
+            ? computeDeltaByNewDate(pivot, newDate)
             : 0;
       const next = shiftAfterPivot({
         activities,
-        pivot: pivot as any,
+        pivot,
         deltaDays: computedDelta,
         includeLocked: includeLocked ?? false,
       });
-      return buildPreview(activities, next, {
+      const result = toReflowPreviewDTO({
+        beforeActivities: activities,
+        nextActivities: next,
+        anchors: [{ activityId: "__pivot__", newStart: pivot }],
         mode: "shift",
-        anchors: [{ pivot: pivot as any, deltaDays: computedDelta }],
+        options: DEFAULT_REFLOW_OPTIONS,
+      });
+      return buildPreview(result, {
+        mode: "shift",
+        anchors: [{ pivot, deltaDays: computedDelta }],
       });
     },
     [activities, buildPreview]
   );
 
   const previewBulkAnchors = useCallback(
-    (anchors: Array<{ activityId: string; newStart: string }>, includeLocked?: boolean): PreviewResult => {
+    (anchors: Array<{ activityId: string; newStart: IsoDate }>, includeLocked?: boolean): PreviewResult => {
       const next = applyBulkAnchors({
         activities,
-        anchors: anchors as any,
+        anchors,
         includeLocked: includeLocked ?? false,
       });
-      return buildPreview(activities, next, {
+      const result = toReflowPreviewDTO({
+        beforeActivities: activities,
+        nextActivities: next,
+        anchors,
+        mode: "bulk",
+        options: DEFAULT_REFLOW_OPTIONS,
+      });
+      return buildPreview(result, {
         mode: "bulk",
         anchors: anchors.map((a) => ({ activityId: a.activityId, newStart: a.newStart })),
       });
@@ -109,9 +125,10 @@ export function useAgiCommandEngine({ activities, setActivities, canApply = true
    */
   const applyPreview = useCallback(
     (preview: PreviewResult | null) => {
-      if (!preview || !canApply) return false;
+      const next = applySchedulePreview(preview, { canApply });
+      if (!next) return false;
       setHistory((h) => pushPast(h, activities));
-      setActivities(preview.nextActivities);
+      setActivities(next);
       return true;
     },
     [activities, canApply, setActivities]

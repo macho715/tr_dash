@@ -17,12 +17,10 @@ import dynamic from "next/dynamic"
 import { TrThreeColumnLayout } from "@/components/dashboard/layouts/tr-three-column-layout"
 import { DashboardLayout } from "@/components/layout/DashboardLayout"
 import { NotesDecisions } from "@/components/dashboard/notes-decisions"
-
-// Leaflet uses window - load MapPanelWrapper only on client
-const MapPanelWrapper = dynamic(
-  () => import("@/components/map/MapPanelWrapper").then((m) => m.MapPanelWrapper),
-  { ssr: false }
-)
+import { MapPanelSkeleton } from "@/components/dashboard/skeletons/MapPanelSkeleton"
+import { MapListFallback } from "@/components/dashboard/fallbacks/MapListFallback"
+import { GanttListFallback } from "@/components/dashboard/fallbacks/GanttListFallback"
+import { useNearViewportPreload } from "@/lib/perf/use-near-viewport-preload"
 import { WhyPanel } from "@/components/dashboard/WhyPanel"
 import { ReflowPreviewPanel } from "@/components/dashboard/ReflowPreviewPanel"
 import { WhatIfPanel, type WhatIfScenario, type WhatIfMetrics } from "@/components/ops/WhatIfPanel"
@@ -39,8 +37,12 @@ import { AlertsSection } from "@/components/dashboard/sections/alerts-section"
 import { VoyagesSection } from "@/components/dashboard/sections/voyages-section"
 import { ScheduleSection } from "@/components/dashboard/sections/schedule-section"
 import { GanttSection } from "@/components/dashboard/sections/gantt-section"
-import { WidgetErrorBoundary, WidgetErrorFallback } from "@/components/dashboard/WidgetErrorBoundary"
+import { WaterTidePanel } from "@/components/dashboard/sections/water-tide-section"
+import { WidgetErrorBoundary } from "@/components/dashboard/WidgetErrorBoundary"
 import { scheduleActivities } from "@/lib/data/schedule-data"
+import { ProjectProgressRing } from "@/components/dashboard/ProjectProgressRing"
+import { ActivityStatusBoard } from "@/components/dashboard/ActivityStatusBoard"
+import { WeatherGoNoGo } from "@/components/dashboard/WeatherGoNoGo"
 import { voyages, PROJECT_END_DATE } from "@/lib/dashboard-data"
 import {
   runAgiOpsPipeline,
@@ -49,7 +51,8 @@ import {
 import { runPipelineCheck } from "@/lib/ops/agi-schedule/pipeline-check"
 import { detectResourceConflicts } from "@/lib/utils/detect-resource-conflicts"
 import { calculateDelta } from "@/lib/compare/compare-loader"
-import { reflowSchedule } from "@/lib/utils/schedule-reflow"
+import type { IsoDate } from "@/lib/ops/agi/types"
+import { previewScheduleReflow } from "@/src/lib/reflow/schedule-reflow-manager"
 import { addUTCDays, dateToIsoUtc, parseUTCDate } from "@/lib/ssot/schedule"
 import { appendHistoryEvent } from "@/lib/store/trip-store"
 import { useViewModeOptional } from "@/src/lib/stores/view-mode-store"
@@ -60,18 +63,29 @@ import type { Activity, ActivityState, OptionC } from "@/src/types/ssot"
 import { calculateCurrentActivityForTR, calculateCurrentLocationForTR } from "@/src/lib/derived-calc"
 import { checkEvidenceGate } from "@/src/lib/state-machine/evidence-gate"
 import type {
+  FreezeLockViolation,
   ImpactReport,
   ScheduleActivity,
   ScheduleConflict,
   SuggestedAction,
 } from "@/lib/ssot/schedule"
-import { mapSsotCollisionToScheduleConflict } from "@/src/lib/collision-card"
+
+// Leaflet uses window - load MapPanelWrapper only on client
+const loadMapPanelWrapper = () => import("@/components/map/MapPanelWrapper")
+const MapPanelWrapper = dynamic(
+  () => loadMapPanelWrapper().then((m) => m.MapPanelWrapper),
+  { ssr: false, loading: () => <MapPanelSkeleton /> }
+)
+const preloadMapPanelAssets = () => loadMapPanelWrapper().then((m) => m.preloadMapPanel())
+const preloadGanttAssets = () =>
+  import("@/components/dashboard/gantt-chart").then((m) => m.preloadVisTimelineGantt())
 
 type SectionItem = {
   id: string
   label: string
   count?: number
 }
+type DetailTab = "detail" | "tide"
 
 /** patchmain #11: ScrollSpy offset (header + summary bar height) */
 const SCROLL_SPY_OFFSET = 120
@@ -159,10 +173,12 @@ export default function Page() {
   })
   const [jumpDate, setJumpDate] = useState<string>("")
   const [jumpTrigger, setJumpTrigger] = useState(0)
-  const [selectedVoyage, setSelectedVoyage] = useState<(typeof voyages)[number] | null>(null)
+  const [selectedVoyageNo, setSelectedVoyageNo] = useState<number | null>(null)
+  const [hoveredVoyageNo, setHoveredVoyageNo] = useState<number | null>(null)
   const [selectedCollision, setSelectedCollision] = useState<ScheduleConflict | null>(null)
   const [selectedActivityId, setSelectedActivityId] = useState<string | null>(null)
   const [focusedActivityId, setFocusedActivityId] = useState<string | null>(null)
+  const [activeDetailTab, setActiveDetailTab] = useState<DetailTab>("tide")
   const [selectedTrId, setSelectedTrId] = useState<string | null>(null)
   const conflicts = useMemo(() => detectResourceConflicts(activities), [activities])
   const baselineConflicts = useMemo(
@@ -179,7 +195,6 @@ export default function Page() {
   )
   const ganttRef = useRef<GanttChartHandle>(null)
   const evidenceRef = useRef<HTMLElement>(null)
-  const detailPanelRef = useRef<HTMLDivElement>(null)
   const [evidenceTab, setEvidenceTab] = useState<HistoryEvidenceTab | null>(null)
   const [trips, setTrips] = useState<{ trip_id: string; name: string }[]>([])
   const [trs, setTrs] = useState<{ tr_id: string; name: string }[]>([])
@@ -192,9 +207,27 @@ export default function Page() {
     scenario?: WhatIfScenario
     affected_count?: number
     conflict_count?: number
+    freezeLockViolations?: FreezeLockViolation[]
   } | null>(null)
   const [whatIfMetrics, setWhatIfMetrics] = useState<WhatIfMetrics | null>(null)
   const [showWhatIfPanel, setShowWhatIfPanel] = useState(false)
+  const selectedVoyage = useMemo(
+    () => voyages.find((voyage) => voyage.voyage === selectedVoyageNo) ?? null,
+    [selectedVoyageNo]
+  )
+  const toIsoDate = (value: string): IsoDate => value.slice(0, 10) as IsoDate
+  const toPageReflowPreview = (
+    result: ReturnType<typeof previewScheduleReflow>,
+    scenario?: WhatIfScenario
+  ) => ({
+    changes: result.impact.changes,
+    conflicts: result.impact.conflicts,
+    nextActivities: result.nextActivities,
+    scenario,
+    affected_count: result.impact.affected_count,
+    conflict_count: result.impact.conflicts.length,
+    freezeLockViolations: result.impact.freeze_lock_violations ?? [],
+  })
 
   useEffect(() => {
     let cancelled = false
@@ -332,6 +365,7 @@ export default function Page() {
 
   const handleWhenWhatClick = () => {
     if (!selectedActivityId) return
+    setActiveDetailTab("detail")
     const detailSection = document.getElementById("detail")
     detailSection?.scrollIntoView({ behavior: "smooth", block: "start" })
     setFocusedActivityId(selectedActivityId)
@@ -349,6 +383,7 @@ export default function Page() {
     if (ssot) {
       const activityId = calculateCurrentActivityForTR(ssot, trId)
       if (activityId) {
+        setActiveDetailTab("detail")
         setSelectedActivityId(activityId)
         setFocusedActivityId(activityId)
         ganttRef.current?.scrollToActivity(activityId)
@@ -399,6 +434,7 @@ export default function Page() {
       { id: "voyages", label: "Voyages", count: voyages.length },
       { id: "schedule", label: "Schedule", count: activities.length },
       { id: "gantt", label: "Gantt" },
+      { id: "water-tide", label: "Water Tide" },
     ],
     [activities.length, conflicts.length]
   )
@@ -422,18 +458,40 @@ export default function Page() {
     return () => window.removeEventListener("scroll", handler)
   }, [sectionIds])
 
+  useNearViewportPreload({
+    targetId: "map",
+    preload: preloadMapPanelAssets,
+  })
+  useNearViewportPreload({
+    targetId: "gantt",
+    preload: preloadGanttAssets,
+  })
+
   const handleActivityClick = (activityId: string, start: string) => {
     setWhatIfMetrics(null)
     setReflowPreview(null)
+    setActiveDetailTab("detail")
     setSelectedActivityId(activityId)
     setFocusedActivityId(activityId)
     const trId = findTrIdForActivity(activityId)
     if (trId) setSelectedTrId(trId)
     const v = findVoyageByActivityDate(start, voyages)
-    if (v) setSelectedVoyage(v)
+    if (v) setSelectedVoyageNo(v.voyage)
     // Enable What-If panel when activity is selected
     const activity = activities.find(a => a.activity_id === activityId)
     setShowWhatIfPanel(Boolean(activity))
+  }
+
+  const handleNavigateSection = (
+    sectionId: "voyages" | "schedule" | "gantt" | "water-tide"
+  ) => {
+    if (sectionId === "water-tide") {
+      setActiveDetailTab("tide")
+    }
+    document.getElementById(sectionId)?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    })
   }
 
   const handleOpsCommand = (cmd: Parameters<typeof runAgiOpsPipeline>[0]["command"]) => {
@@ -448,6 +506,7 @@ export default function Page() {
   }
 
   const focusTimelineActivity = (activityId: string) => {
+    setActiveDetailTab("detail")
     setFocusedActivityId(activityId)
     setSelectedActivityId(activityId)
     const activity = activities.find((a) => a.activity_id === activityId)
@@ -463,49 +522,21 @@ export default function Page() {
     focusTimelineActivity(targetId)
   }
 
-  const handleJumpToEvidence = () => {
+  const handleJumpToEvidence = (collision: ScheduleConflict) => {
+    const resolvedActivityId =
+      (collision.activity_id && collision.activity_id.trim()) ||
+      collision.activity_ids?.[0] ||
+      null
+    if (resolvedActivityId) {
+      setSelectedActivityId(resolvedActivityId)
+      setFocusedActivityId(resolvedActivityId)
+    }
     setEvidenceTab("evidence")
     evidenceRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
   }
 
-  const handleJumpToHistory = () => {
-    setEvidenceTab("history")
-    evidenceRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
-  }
-
-  const handleCollisionCardOpen = (params: {
-    collisionId?: string
-    conflict?: ScheduleConflict
-    activityId?: string | null
-  }) => {
-    const mapped =
-      params.collisionId && ssot?.collisions?.[params.collisionId]
-        ? mapSsotCollisionToScheduleConflict(ssot.collisions[params.collisionId])
-        : params.conflict ?? null
-    if (!mapped) return
-
-    const resolvedActivityId = params.activityId ?? mapped.activity_id ?? mapped.activity_ids?.[0] ?? null
-    const normalized = resolvedActivityId ? { ...mapped, activity_id: resolvedActivityId } : mapped
-
-    setSelectedCollision(normalized)
-    if (resolvedActivityId) {
-      setSelectedActivityId(resolvedActivityId)
-      setFocusedActivityId(resolvedActivityId)
-      ganttRef.current?.scrollToActivity(resolvedActivityId)
-      setShowWhatIfPanel(true)
-    }
-  }
-
-  const handleOpenWhyDetail = (collision: ScheduleConflict) => {
-    if (collision.activity_id) {
-      setSelectedActivityId(collision.activity_id)
-      setFocusedActivityId(collision.activity_id)
-    }
-    detailPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
-    detailPanelRef.current?.focus()
-  }
-
   const openActivityFromGantt = (activityId: string) => {
+    setActiveDetailTab("detail")
     const activity = activities.find((a) => a.activity_id === activityId)
     if (activity) {
       handleActivityClick(activityId, activity.planned_start)
@@ -626,15 +657,16 @@ export default function Page() {
     if (!activityId || !newStart) return
 
     try {
-      const result = reflowSchedule(activities, activityId, newStart, {
-        respectLocks: true,
-        checkResourceConflicts: true,
+      const result = previewScheduleReflow({
+        activities,
+        anchors: [{ activityId, newStart: toIsoDate(newStart) }],
+        options: {
+          respectLocks: true,
+          checkResourceConflicts: true,
+        },
+        mode: "shift",
       })
-      setReflowPreview({
-        changes: result.impact_report.changes,
-        conflicts: result.impact_report.conflicts,
-        nextActivities: result.activities,
-      })
+      setReflowPreview(toPageReflowPreview(result))
     } catch {
       setReflowPreview(null)
     }
@@ -669,6 +701,53 @@ export default function Page() {
     }
   }
 
+  // Drag-to-Edit: user drags a Gantt bar → generate reflow preview
+  const handleDragMove = (activityId: string, newStart: string) => {
+    const activity = activities.find(a => a.activity_id === activityId)
+    if (!activity) return
+
+    // Select the activity being dragged
+    setActiveDetailTab("detail")
+    setSelectedActivityId(activityId)
+    setFocusedActivityId(activityId)
+    setShowWhatIfPanel(true)
+
+    try {
+      const result = previewScheduleReflow({
+        activities,
+        anchors: [{ activityId, newStart: toIsoDate(newStart) }],
+        options: {
+          respectLocks: true,
+          checkResourceConflicts: true,
+        },
+        mode: "shift",
+      })
+
+      const dragDays = Math.round(
+        (new Date(newStart).getTime() - new Date(activity.planned_start).getTime()) /
+          (1000 * 60 * 60 * 24)
+      )
+
+      setReflowPreview(toPageReflowPreview(result, {
+        activity_id: activityId,
+        delay_days: dragDays,
+        reason: "Drag-to-edit",
+        confidence: 1,
+        activity_name: activity.activity_name,
+      }))
+
+      setWhatIfMetrics({
+        affected_activities: result.impact.affected_count,
+        total_delay_days: dragDays,
+        new_conflicts: result.impact.conflicts.length,
+        project_eta_change: dragDays,
+      })
+    } catch {
+      setReflowPreview(null)
+      setWhatIfMetrics(null)
+    }
+  }
+
   // What-If Simulation handlers
   const handleWhatIfSimulate = (scenario: WhatIfScenario) => {
     const activity = activities.find(a => a.activity_id === scenario.activity_id)
@@ -679,22 +758,27 @@ export default function Page() {
     const newStart = dateToIsoUtc(newDate)
 
     try {
-      const result = reflowSchedule(activities, scenario.activity_id, newStart, {
-        respectLocks: true,
-        checkResourceConflicts: true,
+      const result = previewScheduleReflow({
+        activities,
+        anchors: [{ activityId: scenario.activity_id, newStart: toIsoDate(newStart) }],
+        options: {
+          respectLocks: true,
+          checkResourceConflicts: true,
+        },
+        mode: "shift",
       })
 
       // Calculate metrics
-      const affectedCount = result.impact_report.changes.length
+      const affectedCount = result.impact.affected_count
       const totalDelay = scenario.delay_days
-      const newConflicts = result.impact_report.conflicts.length
+      const newConflicts = result.impact.conflicts.length
       
       // Calculate project ETA change (simplified - comparing last activity finish)
       const currentLastFinish = Math.max(
         ...activities.map(a => new Date(a.planned_finish).getTime())
       )
       const newLastFinish = Math.max(
-        ...result.activities.map(a => new Date(a.planned_finish).getTime())
+        ...result.nextActivities.map(a => new Date(a.planned_finish).getTime())
       )
       const etaChangeDays = Math.round(
         (newLastFinish - currentLastFinish) / (1000 * 60 * 60 * 24)
@@ -707,14 +791,7 @@ export default function Page() {
         project_eta_change: etaChangeDays,
       })
 
-      setReflowPreview({
-        changes: result.impact_report.changes,
-        conflicts: result.impact_report.conflicts,
-        nextActivities: result.activities,
-        scenario,
-        affected_count: affectedCount,
-        conflict_count: newConflicts,
-      })
+      setReflowPreview(toPageReflowPreview(result, scenario))
     } catch (error) {
       console.error("What-If simulation failed:", error)
       setReflowPreview(null)
@@ -727,6 +804,25 @@ export default function Page() {
     setReflowPreview(null)
     setWhatIfMetrics(null)
   }
+
+  useEffect(() => {
+    const syncWaterTideHash = () => {
+      if (window.location.hash !== "#water-tide") return
+      setActiveDetailTab("tide")
+      requestAnimationFrame(() => {
+        document.getElementById("water-tide")?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        })
+      })
+    }
+    syncWaterTideHash()
+    window.addEventListener("hashchange", syncWaterTideHash)
+    return () => window.removeEventListener("hashchange", syncWaterTideHash)
+  }, [])
+
+  const mapSelectedActivityId =
+    selectedActivityId ?? selectedCollision?.activity_id ?? focusedActivityId ?? null
 
   return (
     <DateProvider>
@@ -745,6 +841,8 @@ export default function Page() {
             setActivities={setActivities}
             onFocusActivity={focusTimelineActivity}
             viewMode={viewMode?.state.mode}
+            selectedActivityId={selectedActivityId ?? selectedCollision?.activity_id ?? focusedActivityId ?? null}
+            onNavigateToMap={handleWhereClick}
           />
         ) : null}
         {ssotError && (
@@ -788,28 +886,41 @@ export default function Page() {
                   onSetActivities={setActivities}
                   onFocusActivity={(id) => ganttRef.current?.scrollToActivity(id)}
                 />
-            <SectionNav activeSection={activeSection} sections={sections} />
+            <SectionNav
+              activeSection={activeSection}
+              sections={sections}
+              onSectionClick={(sectionId) => {
+                if (sectionId === "water-tide") setActiveDetailTab("tide")
+              }}
+            />
 
             <div className="flex flex-1 flex-col min-h-0 space-y-6">
               <KPISection />
-              <AlertsSection activities={activities} />
+              <AlertsSection
+                activities={activities}
+                onSelectVoyageNo={setSelectedVoyageNo}
+                onNavigateSection={handleNavigateSection}
+              />
               <TrThreeColumnLayout
                 mapSlot={
                   <div className="space-y-3">
                     <WidgetErrorBoundary
                       widgetName="Map"
                       fallback={
-                        <WidgetErrorFallback
-                          widgetName="Map"
-                          onRetry={() => window.location.reload()}
+                        <MapListFallback
+                          ssot={ssot}
+                          selectedActivityId={mapSelectedActivityId}
                         />
                       }
                     >
                       <MapPanelWrapper
                         ssot={ssot}
-                        selectedActivityId={selectedActivityId ?? selectedCollision?.activity_id ?? focusedActivityId ?? null}
+                        selectedActivityId={mapSelectedActivityId}
+                        selectedVoyageNo={selectedVoyageNo}
+                        hoveredVoyageNo={hoveredVoyageNo}
                         onTrClick={(trId) => setSelectedTrId(trId)}
                         onActivitySelect={(activityId) => {
+                          setActiveDetailTab("detail")
                           setSelectedActivityId(activityId)
                           setFocusedActivityId(activityId)
                           const trId = findTrIdForActivity(activityId)
@@ -818,14 +929,13 @@ export default function Page() {
                           const ganttSection = document.getElementById("gantt")
                           ganttSection?.scrollIntoView({ behavior: "smooth", block: "start" })
                         }}
-                        onCollisionClick={(collisionId, activityId) =>
-                          handleCollisionCardOpen({ collisionId, activityId })
-                        }
                       />
                     </WidgetErrorBoundary>
                     <VoyagesSection
-                      onSelectVoyage={setSelectedVoyage}
+                      onSelectVoyage={(voyage) => setSelectedVoyageNo(voyage?.voyage ?? null)}
                       selectedVoyage={selectedVoyage}
+                      hoveredVoyageNo={hoveredVoyageNo}
+                      onHoverVoyage={setHoveredVoyageNo}
                     />
                   </div>
                 }
@@ -835,9 +945,9 @@ export default function Page() {
                     <WidgetErrorBoundary
                       widgetName="Gantt"
                       fallback={
-                        <WidgetErrorFallback
-                          widgetName="Gantt"
-                          onRetry={() => window.location.reload()}
+                        <GanttListFallback
+                          activities={activities}
+                          selectedActivityId={selectedActivityId}
                         />
                       }
                     >
@@ -861,10 +971,18 @@ export default function Page() {
                         setShowWhatIfPanel(false)
                         setWhatIfMetrics(null)
                         setReflowPreview(null)
+                        setActiveDetailTab("tide")
                       }}
                       conflicts={conflicts}
                       onCollisionClick={(col) => {
-                        handleCollisionCardOpen({ conflict: col, activityId: col.activity_id })
+                        setActiveDetailTab("detail")
+                        setSelectedCollision(col)
+                        if (col.activity_id) {
+                          setSelectedActivityId(col.activity_id)
+                          setFocusedActivityId(col.activity_id)
+                          ganttRef.current?.scrollToActivity(col.activity_id)
+                          setShowWhatIfPanel(true)
+                        }
                       }}
                       focusedActivityId={focusedActivityId}
                       projectEndDate={PROJECT_END_DATE}
@@ -906,77 +1024,122 @@ export default function Page() {
                       weatherOverlayOpacity={0.15}
                       onOpenEvidence={handleOpenEvidence}
                       onOpenHistory={handleOpenHistory}
+                      onDragMove={handleDragMove}
                     />
                     </WidgetErrorBoundary>
                   </div>
                 }
                 detailSlot={
                   <div className="space-y-3">
-                    {showWhatIfPanel && (
-                      <WhatIfPanel
-                        activity={
-                          selectedActivityId
-                            ? activities.find((a) => a.activity_id === selectedActivityId) ?? null
-                            : null
-                        }
-                        onSimulate={handleWhatIfSimulate}
-                        onCancel={handleWhatIfCancel}
-                        metrics={whatIfMetrics}
-                        isSimulating={false}
-                      />
-                    )}
-                    <div ref={detailPanelRef} tabIndex={-1} className="outline-none">
-                    <DetailPanel
-                      activity={
-                        selectedActivityId
-                          ? activities.find((a) => a.activity_id === selectedActivityId) ?? null
-                          : null
-                      }
-                      slackResult={
-                        selectedActivityId ? slackMap.get(selectedActivityId) ?? null : null
-                      }
-                      conflicts={conflicts}
-                      onClose={() => setSelectedActivityId(null)}
-                      onActualUpdate={handleActualUpdate}
-                      onCollisionClick={(col) => {
-                        handleCollisionCardOpen({ conflict: col, activityId: col.activity_id })
-                      }}
-                    />
-                    </div>
-                    <WhyPanel
-                      collision={selectedCollision}
-                      onClose={() => setSelectedCollision(null)}
-                      onViewInTimeline={handleViewInTimeline}
-                      onJumpToEvidence={handleJumpToEvidence}
-                      onJumpToHistory={handleJumpToHistory}
-                      onOpenWhyDetail={handleOpenWhyDetail}
-                      onRelatedActivityClick={focusTimelineActivity}
-                      onApplyAction={handleApplyAction}
-                    />
-                    {reflowPreview && (
-                      <ReflowPreviewPanel
-                        changes={reflowPreview.changes}
-                        conflicts={reflowPreview.conflicts.map((c) => ({
-                          message: c.message,
-                          severity: c.severity,
-                        }))}
-                        onApply={handleApplyPreviewFromWhy}
-                        onCancel={() => setReflowPreview(null)}
-                        canApply={canApplyReflow}
-                      />
-                    )}
-                    {undoCount > 0 && (
-                      <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200 flex items-center justify-between gap-2">
-                        <span>일정 적용됨.{undoCount > 1 ? ` 실행 취소 ${undoCount}회 가능.` : ""}</span>
-                        <button
-                          type="button"
-                          onClick={handleUndoLastApply}
-                          className="font-semibold text-cyan-300 hover:text-cyan-200 underline"
-                        >
-                          실행 취소{undoCount > 1 ? ` (${undoCount})` : ""}
-                        </button>
+                    <section id="water-tide" aria-label="Water Tide detail panel" className="space-y-3">
+                      <div className="rounded-xl border border-accent/20 bg-card/80 p-1">
+                        <div className="grid grid-cols-2 gap-1">
+                          <button
+                            type="button"
+                            onClick={() => setActiveDetailTab("detail")}
+                            className={
+                              "rounded-lg px-3 py-2 text-xs font-semibold transition-colors " +
+                              (activeDetailTab === "detail"
+                                ? "bg-cyan-500/20 text-foreground"
+                                : "text-muted-foreground hover:bg-accent/15 hover:text-foreground")
+                            }
+                          >
+                            Detail
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setActiveDetailTab("tide")}
+                            className={
+                              "rounded-lg px-3 py-2 text-xs font-semibold transition-colors " +
+                              (activeDetailTab === "tide"
+                                ? "bg-cyan-500/20 text-foreground"
+                                : "text-muted-foreground hover:bg-accent/15 hover:text-foreground")
+                            }
+                          >
+                            Tide
+                          </button>
+                        </div>
                       </div>
-                    )}
+
+                      {activeDetailTab === "tide" ? (
+                        <WaterTidePanel />
+                      ) : (
+                        <>
+                          {showWhatIfPanel && (
+                            <WhatIfPanel
+                              activity={
+                                selectedActivityId
+                                  ? activities.find((a) => a.activity_id === selectedActivityId) ?? null
+                                  : null
+                              }
+                              onSimulate={handleWhatIfSimulate}
+                              onCancel={handleWhatIfCancel}
+                              metrics={whatIfMetrics}
+                              isSimulating={false}
+                            />
+                          )}
+                          <DetailPanel
+                            activity={
+                              selectedActivityId
+                                ? activities.find((a) => a.activity_id === selectedActivityId) ?? null
+                                : null
+                            }
+                            slackResult={
+                              selectedActivityId ? slackMap.get(selectedActivityId) ?? null : null
+                            }
+                            conflicts={conflicts}
+                            onClose={() => {
+                              setSelectedActivityId(null)
+                              setActiveDetailTab("tide")
+                            }}
+                            onActualUpdate={handleActualUpdate}
+                            onCollisionClick={(col) => {
+                              setActiveDetailTab("detail")
+                              setSelectedCollision(col)
+                              if (col.activity_id) {
+                                setSelectedActivityId(col.activity_id)
+                                setFocusedActivityId(col.activity_id)
+                                ganttRef.current?.scrollToActivity(col.activity_id)
+                                setShowWhatIfPanel(true)
+                              }
+                            }}
+                          />
+                          <WhyPanel
+                            collision={selectedCollision}
+                            onClose={() => setSelectedCollision(null)}
+                            onViewInTimeline={handleViewInTimeline}
+                            onJumpToEvidence={handleJumpToEvidence}
+                            onRelatedActivityClick={focusTimelineActivity}
+                            onApplyAction={handleApplyAction}
+                          />
+                          {reflowPreview && (
+                            <ReflowPreviewPanel
+                              changes={reflowPreview.changes}
+                              conflicts={reflowPreview.conflicts.map((c) => ({
+                                message: c.message,
+                                severity: c.severity,
+                              }))}
+                              onApply={handleApplyPreviewFromWhy}
+                              onCancel={() => setReflowPreview(null)}
+                              canApply={canApplyReflow}
+                              freezeLockViolations={reflowPreview.freezeLockViolations ?? []}
+                            />
+                          )}
+                          {undoCount > 0 && (
+                            <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200 flex items-center justify-between gap-2">
+                              <span>Undo available{undoCount > 1 ? " (" + undoCount + ")" : ""}</span>
+                              <button
+                                type="button"
+                                onClick={handleUndoLastApply}
+                                className="font-semibold text-cyan-300 hover:text-cyan-200 underline"
+                              >
+                                Undo{undoCount > 1 ? " (" + undoCount + ")" : ""}
+                              </button>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </section>
                   </div>
                 }
               />
@@ -1004,7 +1167,7 @@ export default function Page() {
           {selectedVoyage && (
             <VoyageFocusDrawer
               voyage={selectedVoyage}
-              onClose={() => setSelectedVoyage(null)}
+              onClose={() => setSelectedVoyageNo(null)}
             />
           )}
         </main>

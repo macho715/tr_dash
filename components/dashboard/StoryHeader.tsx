@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { HelpCircle } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -11,6 +11,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { MobileKPICard } from "@/components/dashboard/MobileKPICard"
+import { MOBILE_UX_FLAGS } from "@/lib/feature-flags"
 
 /**
  * Story Header (patch.md §2.1, P1-2)
@@ -32,6 +34,37 @@ type StoryHeaderProps = {
   onEvidenceClick?: () => void
 }
 
+const badgeStyles = {
+  success: {
+    variant: "default" as const,
+    className: "bg-emerald-500/20 text-emerald-200 border border-emerald-500/40",
+    label: "✓",
+  },
+  warning: {
+    variant: "secondary" as const,
+    className: "bg-amber-500/20 text-amber-200 border border-amber-500/40",
+    label: "⚠",
+  },
+  destructive: {
+    variant: "destructive" as const,
+    className: "",
+    label: "!",
+  },
+  secondary: {
+    variant: "secondary" as const,
+    className: "",
+    label: "",
+  },
+}
+
+function parseMissingEvidenceCount(evidence: string | undefined): number | null {
+  if (!evidence) return null
+  const matched = evidence.match(/Missing:\s*(\d+)/i)
+  if (!matched) return null
+  const value = Number(matched[1])
+  return Number.isFinite(value) ? value : null
+}
+
 export function StoryHeader({ 
   trId, 
   where, 
@@ -45,6 +78,18 @@ export function StoryHeader({
   onEvidenceClick,
 }: StoryHeaderProps) {
   const [helpOpen, setHelpOpen] = useState(false)
+  const [mobileExpanded, setMobileExpanded] = useState(false)
+  const badgeStyle = badgeStyles[evidenceBadgeVariant]
+  const missingEvidenceCount = useMemo(() => parseMissingEvidenceCount(evidence), [evidence])
+  const mobileEvidenceText =
+    missingEvidenceCount !== null ? `Evidence: ${missingEvidenceCount} unmet` : (evidence ?? "—")
+  const mobileEvidenceStatus = missingEvidenceCount === null
+    ? "ok"
+    : missingEvidenceCount === 0
+      ? "ok"
+      : missingEvidenceCount <= 2
+        ? "warn"
+        : "critical"
 
   // TR이 없을 때 (빈 상태)
   if (!trId) {
@@ -77,7 +122,7 @@ export function StoryHeader({
           <button
             type="button"
             onClick={() => setHelpOpen((v) => !v)}
-            className="flex items-center gap-1 rounded px-2 py-1 text-xs text-muted-foreground hover:bg-accent/20 hover:text-foreground"
+            className="touch-target flex items-center gap-1 rounded px-2 py-1 text-xs text-muted-foreground hover:bg-accent/20 hover:text-foreground"
             aria-label={helpOpen ? "Collapse Help" : "Expand Help"}
             title={helpOpen ? "Collapse Guide" : "Expand Guide"}
           >
@@ -143,7 +188,49 @@ export function StoryHeader({
       )}
       
       {/* Where / When-What / Evidence 블록 */}
-      <div className="grid gap-2 sm:grid-cols-3 sm:gap-4">
+      {MOBILE_UX_FLAGS.M2_MOBILE_KPI_CARD && (
+        <div className="space-y-2 md:hidden">
+          <MobileKPICard
+            title="Location"
+            value={where ?? "—"}
+            onClick={onWhereClick}
+          />
+          <MobileKPICard
+            title="Schedule"
+            value={whenWhat ?? "—"}
+            onClick={onWhenWhatClick}
+            status="warn"
+          />
+          <MobileKPICard
+            title="Verification"
+            value={mobileEvidenceText}
+            onClick={onEvidenceClick}
+            status={mobileEvidenceStatus}
+          />
+          <button
+            type="button"
+            className="touch-target w-full rounded-lg border border-accent/20 bg-card/60 px-3 py-2 text-xs font-semibold text-muted-foreground hover:bg-accent/15"
+            onClick={() => setMobileExpanded((v) => !v)}
+          >
+            {mobileExpanded ? "Hide details" : "More details"}
+          </button>
+          {mobileExpanded && (
+            <div className="space-y-1 rounded-lg border border-accent/20 bg-slate-900/30 p-3 text-xs text-slate-300">
+              <p className="break-words"><strong>Location:</strong> {where ?? "—"}</p>
+              <p className="break-words"><strong>Schedule:</strong> {whenWhat ?? "—"}</p>
+              <p className="break-words"><strong>Verification:</strong> {evidence ?? "—"}</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      <div
+        className={
+          MOBILE_UX_FLAGS.M2_MOBILE_KPI_CARD
+            ? "hidden gap-2 md:grid md:grid-cols-3 md:gap-4"
+            : "grid gap-2 sm:grid-cols-3 sm:gap-4"
+        }
+      >
         {/* Where 블록 (클릭 가능) */}
         <div className="min-w-0">
           <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
@@ -154,7 +241,7 @@ export function StoryHeader({
             size="sm"
             onClick={onWhereClick}
             disabled={!onWhereClick}
-            className="h-auto w-full justify-start p-0 text-left font-medium hover:bg-accent/20 disabled:opacity-100"
+            className="touch-target h-auto w-full justify-start p-0 text-left font-medium hover:bg-accent/20 disabled:opacity-100"
           >
             <p className="truncate text-sm text-foreground" title={where}>
               {where ?? "—"}
@@ -172,7 +259,7 @@ export function StoryHeader({
             size="sm"
             onClick={onWhenWhatClick}
             disabled={!onWhenWhatClick}
-            className="h-auto w-full justify-start p-0 text-left font-medium hover:bg-accent/20 disabled:opacity-100"
+            className="touch-target h-auto w-full justify-start p-0 text-left font-medium hover:bg-accent/20 disabled:opacity-100"
           >
             <p className="truncate text-sm text-foreground" title={whenWhat}>
               {whenWhat ?? "—"}
@@ -190,15 +277,18 @@ export function StoryHeader({
             size="sm"
             onClick={onEvidenceClick}
             disabled={!onEvidenceClick}
-            className="h-auto w-full justify-start p-0 text-left font-medium hover:bg-accent/20 disabled:opacity-100"
+            className="touch-target h-auto w-full justify-start p-0 text-left font-medium hover:bg-accent/20 disabled:opacity-100"
           >
             <div className="flex items-center gap-2 truncate">
               <p className="truncate text-sm text-foreground" title={evidence}>
                 {evidence ?? "—"}
               </p>
               {evidenceBadgeVariant !== "secondary" && (
-                <Badge variant={evidenceBadgeVariant} className="shrink-0">
-                  {evidenceBadgeVariant === "destructive" ? "!" : "⚠"}
+                <Badge
+                  variant={badgeStyle.variant}
+                  className={`shrink-0 ${badgeStyle.className}`}
+                >
+                  {badgeStyle.label}
                 </Badge>
               )}
             </div>

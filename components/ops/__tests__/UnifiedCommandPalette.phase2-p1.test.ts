@@ -1,5 +1,19 @@
 import { describe, it, expect } from "vitest";
 
+function calculateDirectionalDelta(
+  direction: "forward" | "back",
+  num: number
+): number {
+  return direction === "forward" ? -num : num;
+}
+
+function calculateActionDelta(
+  action: "advance" | "delay",
+  num: number
+): number {
+  return action === "advance" ? -num : num;
+}
+
 describe("Phase 2 P1: Natural Language Extensions", () => {
   describe("Pattern: move loadout forward/back X days", () => {
     it("should parse 'move loadout forward 5 days'", () => {
@@ -23,17 +37,13 @@ describe("Phase 2 P1: Natural Language Extensions", () => {
     });
 
     it("should calculate correct delta (forward = negative)", () => {
-      const direction = "forward";
-      const num = 5;
-      const delta = direction === "forward" ? -num : num;
+      const delta = calculateDirectionalDelta("forward", 5);
       
       expect(delta).toBe(-5);
     });
 
     it("should calculate correct delta (back = positive)", () => {
-      const direction = "back";
-      const num = 3;
-      const delta = direction === "forward" ? -num : num;
+      const delta = calculateDirectionalDelta("back", 3);
       
       expect(delta).toBe(3);
     });
@@ -63,17 +73,13 @@ describe("Phase 2 P1: Natural Language Extensions", () => {
     });
 
     it("should calculate correct delta (advance = negative)", () => {
-      const action = "advance";
-      const num = 2;
-      const delta = action === "advance" ? -num : num;
+      const delta = calculateActionDelta("advance", 2);
       
       expect(delta).toBe(-2);
     });
 
     it("should calculate correct delta (delay = positive)", () => {
-      const action = "delay";
-      const num = 10;
-      const delta = action === "advance" ? -num : num;
+      const delta = calculateActionDelta("delay", 10);
       
       expect(delta).toBe(10);
     });

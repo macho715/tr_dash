@@ -1,14 +1,15 @@
 ---
 doc_id: system-architecture
 refs: [../patch.md, ../AGENTS.md, LAYOUT.md, plan/plan_patchmain_14.md]
-updated: 2026-02-10
+updated: 2026-02-12
 ---
 
 # HVDC TR Transport Dashboard - 시스템 아키텍처
 
-**버전**: 1.9  
-**최종 업데이트**: 2026-02-10  
-**최신 작업 반영**: 2026-02-10 — AI Command Phase 1 업그레이드. Ollama(EXAONE) 우선 provider + OpenAI fallback, confirm-first 실행(`AIExplainDialog`), ambiguity 재질의(`clarification`) 흐름, intent 스모크 12케이스 PASS. [WORK_LOG_20260210_AI_UPGRADE.md](WORK_LOG_20260210_AI_UPGRADE.md), [NL_COMMAND_INTERFACE_IMPLEMENTATION_REPORT.md](NL_COMMAND_INTERFACE_IMPLEMENTATION_REPORT.md)
+**버전**: 1.10  
+**최종 업데이트**: 2026-02-12  
+**최신 작업 반영**: 2026-02-12 — AI intent 확장(explain_why, navigate_query). 8개 intent, selectedActivityId·onNavigateToMap. 이전: Merge·Reflow·Typecheck/Lint 0 errors. Reflow: dependency cascade preview 경로 통일. TideOverlayGantt: 가이던스 자동/View guidance 수동. Voyage Map View: 카드/맵·Drift·active만 경로. 즉시 조치 3항목 체크리스트. [TYPECHECK_AND_LINT_FAILURES.md](TYPECHECK_AND_LINT_FAILURES.md).
+
 **프로젝트**: HVDC TR Transport - AGI Site Logistics Dashboard  
 **SSOT**: patch.md, option_c.json (AGENTS.md)
 
@@ -48,6 +49,7 @@ HVDC TR Transport Dashboard는 **7개의 Transformer Unit**을 **LCT BUSHRA**로
 
 | Phase | 반영 내용 (본문과 일치하도록 유지) |
 |-------|-----------------------------------|
+| **2026-02-11** | **Merge·Reflow**: page/MapPanel/schedule-reflow 충돌 해소. Reflow 단일 진입점(schedule-reflow-manager), **dependency cascade** preview 경로 통일(previewScheduleReflow). collectFreezeLockViolations·impact.freeze_lock_violations. History tombstone. **TideOverlayGantt**: DANGER 시 가이던스 자동, 비-DANGER 시 View guidance 버튼으로 수동 오픈. **Typecheck/Lint**: tsc·eslint 0 errors. 스크립트 dev:webpack, sync:wa-events. |
 | **Phase 13 (2026-02-05)** | **Gantt Reset 버튼 & Activity 디버깅**: Timeline controls에 Reset 버튼 추가 (⟲, 주황색 hover). handleResetGantt() — View/Filters/Highlights/Groups/Overlays/Heatmap 일괄 초기화. 디버그 로그: `[Gantt Debug]`, `[Grouping Debug]`, `[Reset]`. |
 | **Phase 12 (2026-02-05)** | **Event Sourcing Layer**: Event Log → Actual/Hold/Milestone → Gantt 오버레이. 3-PR Pipeline (ID Resolution/JSON Patch/KPI Calc). Plan 불변, actual만 갱신. lib/ops/event-sourcing/, lib/gantt/event-sourcing-mapper.ts. |
 | **Phase 12 (2026-02-05)** | Event Sourcing Overlay Pipeline: Event Log → Actual/Hold/Milestone → Gantt 오버레이. 3-PR (ID Resolution/JSON Patch/KPI Calc). Plan 불변, actual만 갱신. |
@@ -65,7 +67,7 @@ HVDC TR Transport Dashboard는 **7개의 Transformer Unit**을 **LCT BUSHRA**로
 | **P1-4 GanttLegendDrawer** | 범례 태그 클릭 → 우측 Drawer에 정의·의사결정 영향 표시. `lib/gantt-legend-guide.ts`(LegendDefinition: stage/constraint/collision/meta) 기반. 2-click 내 도달. |
 | **MapLegend** | `MapPanel` 좌하단 오버레이. TR 상태(Planned/Ready/In progress/Completed/Blocked/Delayed) 색상·충돌(Blocking/Warning) 배지. patch §4.1, `lib/ssot/map-status-colors.ts` 연동. |
 | **Vis Gantt 패치·UX** | [visganttpatch.md](../visganttpatch.md) 참조. `gantt-chart.tsx`의 `useVisEngine`(= `NEXT_PUBLIC_GANTT_ENGINE` trim/toLowerCase `"vis"`)으로 vis-timeline(VisTimelineGantt) vs 자체 렌더 전환. `.env.local` 예: `NEXT_PUBLIC_GANTT_ENGINE=vis`, `PORT=3001`. `lib/gantt/visTimelineMapper.ts`: GanttRow → Vis groups/items, 동일일 막대 보정(min 1-day). VisTimelineGantt: DataSet, customTime(Selected Date), editable/draggable. 액티비티 클릭 → scrollToActivity + #gantt scrollIntoView. |
-| **AI Phase 1 (2026-02-10)** | `app/api/nl-command/route.ts`: intent 파싱 API(6 intents), provider order(ollama 우선), 정책 가드(422), `clarification` 재질의 지원. `UnifiedCommandPalette`는 review-first(`pendingAiAction`→`AIExplainDialog`→Confirm)로 실행. ambiguity 옵션 클릭 시 재질의 재호출. |
+| **AI Phase 1 (2026-02-10) · 확장 (2026-02-12)** | `app/api/nl-command/route.ts`: intent 파싱 API(**8 intents**). Phase 1: shift_activities, prepare_bulk, explain_conflict, set_mode, apply_preview, unclear. **확장**: explain_why(해당 activity planned/actual/blocker 요약), navigate_query(Where/When/What → Map/Timeline 포커스). `selectedActivityId`·`onNavigateToMap` 콜백 지원. provider order(ollama 우선), 정책 가드(422), `clarification` 재질의. `UnifiedCommandPalette`는 review-first→Confirm 실행. |
 
 ---
 
@@ -185,7 +187,8 @@ function GanttChart() {
 #### 2. Business Logic Layer
 - **역할**: 비즈니스 로직 및 데이터 변환
 - **구성요소**:
-  - **재계산 공개 API**: `lib/utils/schedule-reflow.ts` — `reflowSchedule()` (applyBulkAnchors, buildChanges, detectResourceConflicts 조합 래퍼)
+  - **재계산 권위 진입점**: `src/lib/reflow/schedule-reflow-manager.ts` — `previewScheduleReflow`, `applySchedulePreview`. Preview DTO: nextActivities, changes, collisions, impact(freeze_lock_violations 포함), meta. UI(components/ops, dashboard, lib/weather)에서 `lib/utils/schedule-reflow.ts` 직접 호출 금지.
+  - **Deprecated 래퍼**: `lib/utils/schedule-reflow.ts` — `reflowSchedule()` 하위 호환용. 신규 코드는 schedule-reflow-manager만 사용.
   - **재계산 내부 구현**: `src/lib/reflow/` — forward-pass, backward-pass, reflow-manager, dag-cycle, collision-detect 등 (DFS/위상정렬/사이클 탐지)
   - **AGI 일정 연산**: `lib/ops/agi/`, `lib/ops/agi-schedule/` — applyShift, parseCommand, pipeline (reflowSchedule가 사용)
   - **AGI / pipeline**: `lib/ops/agi-schedule/pipeline-check.ts` — `runPipelineCheck` 입력 null/empty/partial 허용, 순수 함수.
@@ -367,20 +370,22 @@ Collision 배지 클릭
   → Activities 상태 업데이트
 ```
 
-### 6.1 NL Command Interface (Phase 1, 2026-02-10)
+### 6.1 NL Command Interface (Phase 1, 2026-02-10 · 확장 2026-02-12)
 
 **책임**: 자연어 명령을 SSOT 제약 하에서 안전하게 실행 가능한 intent로 변환하고, 사용자 확인 후에만 반영.
 
 **구성 요소**:
 - API: `app/api/nl-command/route.ts`
-  - 입력: `query`, `activities`, `clarification?`
-  - 출력: `intent`, `parameters`, `ambiguity`, `confidence`, `risk_level`, `requires_confirmation`
+  - 입력: `query`, `activities`, `clarification?`, `selectedActivityId?`
+  - 출력: `intent`, `parameters`, `ambiguity`, `confidence`, `risk_level`, `requires_confirmation`, `affected_activities`
+  - intent 8종: shift_activities, prepare_bulk, explain_conflict, **explain_why**, **navigate_query**, set_mode, apply_preview, unclear
   - 정책: `apply_preview.preview_ref === "current"`, `set_mode` enum 검증
   - provider: `AI_PROVIDER=ollama` 시 Ollama 우선, OpenAI fallback
 - UI: `components/ops/UnifiedCommandPalette.tsx`
-  - `runAiCommand(query, clarification?)`
+  - `runAiCommand(query, clarification?)` — `selectedActivityId`, `onNavigateToMap` prop 전달
   - confirm-first 흐름: 결과 즉시 실행 금지
   - `executeAiIntent`에서 모드/권한 가드 재확인
+  - navigate_query: target(where|when|what) → Map 스크롤 또는 Timeline/Detail 포커스
 - Review Dialog: `components/ops/dialogs/AIExplainDialog.tsx`
   - intent/risk/confidence/차단사유 표시
   - ambiguity 옵션 버튼 -> 재질의 콜백
@@ -405,6 +410,11 @@ Collision 배지 클릭
 - `before_ready`: PTW, Risk Assessment 필수
 - `before_start`: Start checklist 필수
 - `after_end`: Completion photos 필수
+
+**State Enum (code contract)**:
+- `draft | planned | ready | in_progress | paused | blocked | completed | verified | canceled | cancelled | aborted | done(legacy alias)`
+- 핵심 검증 전이: `ready→in_progress`(before_start), `completed→verified`(after_end mandatory)
+- terminal states: `verified`, `canceled/cancelled`, `aborted`, `done(legacy)`
 
 **테스트**: 22 tests passed (state transitions, evidence gates, blocker codes)
 
@@ -654,7 +664,7 @@ z-0:  WeatherOverlay (Canvas)
 
 ---
 
-**Last Updated**: 2026-02-10 (AI Command Phase 1 반영)
+**Last Updated**: 2026-02-11
 
 ## Refs
 

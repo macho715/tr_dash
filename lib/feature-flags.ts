@@ -1,0 +1,17 @@
+export const MOBILE_UX_FLAGS = {
+  M2_MOBILE_KPI_CARD: true,
+  M4_TOUCH_TARGETS: true,
+  M5_TYPOGRAPHY: true,
+  M9_FILTER_DRAWER: true,
+  M11_MINIMAL_TEXT: true,
+  M12_2CLICK_MOBILE: true,
+  M1_STORY_HEADER_1SCREEN: false,
+  M3_PRIORITY_BANNER: false,
+  M7_VERTICAL_STACK: false,
+  M10_CHART_SIMPLIFY: false,
+  M6_GLOVE_LOWLIGHT: false,
+  M8_MOBILE_VIEW: false,
+  M13_OFFLINE_CACHE: false,
+  M14_PUSH_NOTIFICATIONS: false,
+} as const
+

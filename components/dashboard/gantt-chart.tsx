@@ -20,24 +20,24 @@ import { scheduleActivitiesToGanttRows } from "@/lib/data/schedule-data"
 import { buildGroupedVisData, applyGanttFilters } from "@/lib/gantt/grouping"
 import { buildDensityBuckets } from "@/lib/gantt/density"
 import { loadEventLog } from "@/lib/data/event-log-loader"
-import type { VisTimelineGanttHandle } from "@/components/gantt/VisTimelineGantt"
+import type { VisTimelineGanttHandle, DragMovePayload } from "@/components/gantt/VisTimelineGantt"
 import { DependencyArrowsOverlay } from "@/components/gantt/DependencyArrowsOverlay"
 import { WeatherOverlay } from "@/components/gantt/WeatherOverlay"
+import { GanttSkeleton } from "@/components/dashboard/skeletons/GanttSkeleton"
 
-const VisTimelineGantt = dynamic(
-  () =>
-    import("@/components/gantt/VisTimelineGantt").then((m) => ({
-      default: m.VisTimelineGantt,
-    })),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="flex min-h-[400px] items-center justify-center rounded-lg border border-dashed border-muted-foreground/30 bg-muted/20 text-sm text-muted-foreground">
-        Loading Gantt…
-      </div>
-    ),
-  }
-)
+const loadVisTimelineGantt = () =>
+  import("@/components/gantt/VisTimelineGantt").then((m) => ({
+    default: m.VisTimelineGantt,
+  }))
+
+export function preloadVisTimelineGantt(): Promise<unknown> {
+  return loadVisTimelineGantt()
+}
+
+const VisTimelineGantt = dynamic(loadVisTimelineGantt, {
+  ssr: false,
+  loading: () => <GanttSkeleton />,
+})
 import type { GanttEventBase } from "@/lib/gantt/gantt-contract"
 import type {
   DateChange,
@@ -81,9 +81,25 @@ import { GanttMiniMap } from "@/components/gantt/GanttMiniMap"
 import { DensityHeatmapOverlay } from "@/components/gantt/DensityHeatmapOverlay"
 import type { EventLogItem } from "@/lib/ops/event-sourcing/types"
 import type { Activity as SsotActivity, ActivityState, OptionC } from "@/src/types/ssot"
+import { buildTideWindows, fetchTideData, type TideWindow } from "@/lib/services/tideService"
+import {
+  composeDragTideGuidance,
+  type DragTideGuidance,
+} from "@/components/dashboard/gantt-chart.tide-guidance"
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24
 const DAYS_PER_WEEK = 7
+const INITIAL_VIS_RANGE = {
+  start: PROJECT_START,
+  end: PROJECT_END,
+}
+
+const TIDE_RULE = {
+  workStartHour: 6,
+  workEndHour: 17,
+  safeHeightThreshold: 1.8,
+  minConsecutiveSafeHours: 2,
+}
 
 const activityColors: Record<ActivityType, string> = {
   mobilization: "bg-gradient-to-r from-violet-400 to-violet-500 shadow-violet-500/40",
@@ -164,6 +180,10 @@ function formatShortDateUtc(date: Date) {
   const month = String(date.getUTCMonth() + 1).padStart(2, "0")
   const day = String(date.getUTCDate()).padStart(2, "0")
   return `${month}-${day}`
+}
+
+function formatUtcDateTime(value: Date): string {
+  return value.toISOString().slice(0, 16).replace("T", " ") + "Z"
 }
 
 function getEvidenceTargetState(state: ActivityState): ActivityState {
@@ -248,6 +268,8 @@ interface GanttChartProps {
   onGanttEvent?: (event: GanttEventBase) => void
   onOpenEvidence?: (activityId: string) => void
   onOpenHistory?: (activityId: string) => void
+  /** Drag-to-Edit: called when user drags an activity bar to a new date */
+  onDragMove?: (activityId: string, newStart: string) => void
 }
 
 export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function GanttChart(
@@ -279,6 +301,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
     onGanttEvent,
     onOpenEvidence,
     onOpenHistory,
+    onDragMove,
   },
   ref
 ) {
@@ -307,11 +330,8 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
   const visRenderRaf = useRef<number | null>(null)
   const visRangeRaf = useRef<number | null>(null)
   const [visRenderTick, setVisRenderTick] = useState(0)
-  const visRangeRef = useRef<{ start: Date; end: Date }>({
-    start: PROJECT_START,
-    end: PROJECT_END,
-  })
-  const [visRange, setVisRange] = useState(visRangeRef.current)
+  const visRangeRef = useRef<{ start: Date; end: Date }>(INITIAL_VIS_RANGE)
+  const [visRange, setVisRange] = useState(INITIAL_VIS_RANGE)
   const [filters, setFilters] = useState<TimelineFilters>({
     criticalOnly: false,
     blockedOnly: false,
@@ -334,6 +354,9 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
   const [weatherOverlayOpacityValue, setWeatherOverlayOpacityValue] = useState(
     weatherOverlayOpacity
   )
+  const [tideWindows, setTideWindows] = useState<TideWindow[]>([])
+  const [tideGuidance, setTideGuidance] = useState<DragTideGuidance | null>(null)
+  const [tideGuidanceReady, setTideGuidanceReady] = useState(false)
   // AGENTS.md §5.1: VisTimelineGantt 필수 사용 (vis-timeline 기반)
   const raw = (process.env.NEXT_PUBLIC_GANTT_ENGINE || "vis").trim().toLowerCase()
   const useVisEngine = raw === "vis"
@@ -459,6 +482,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
         selectedDate,
         isHistoryMode,
       },
+      slackMap,
     })
     return result
   }, [
@@ -474,6 +498,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
     eventOverlays,
     selectedDate,
     isHistoryMode,
+    slackMap,
   ])
 
   const isGhostItemId = (id: string) =>
@@ -548,6 +573,26 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
   useEffect(() => {
     setWeatherOverlayOpacityValue(weatherOverlayOpacity)
   }, [weatherOverlayOpacity])
+
+  useEffect(() => {
+    let active = true
+    fetchTideData()
+      .then((response) => {
+        if (!active) return
+        setTideWindows(buildTideWindows(response.days, TIDE_RULE))
+      })
+      .catch(() => {
+        if (!active) return
+        // Fail-soft: tide guidance is optional for drag preview flow.
+        setTideWindows([])
+      })
+      .finally(() => {
+        if (active) setTideGuidanceReady(true)
+      })
+    return () => {
+      active = false
+    }
+  }, [])
 
   useEffect(() => {
     if (!eventOverlayEnabled) return
@@ -636,21 +681,17 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
     setTooltip({ visible: false, x: 0, y: 0, activity: null })
     setHoverCard(null)
     setLegendDrawerItem(null)
+    setTideGuidance(null)
 
     // 11. Reset event log state
     setEventLogByActivity(new Map())
     setEventLogLoading(false)
     setEventLogAttempted(false)
 
-    // 12. Fit timeline and show success feedback
-    if (visTimelineRef.current) {
-      setTimeout(() => {
-        visTimelineRef.current?.fit()
-        toast.success("Gantt view reset to initial state", {
-          duration: 2000,
-        })
-      }, 100)
-    }
+    // 12. Window is set by VisTimelineGantt useEffect(view, selectedDate) to Day view + 14d; do not call fit() or it would zoom out to full project and undo the reset.
+    toast.success("Gantt view reset to initial state", {
+      duration: 2000,
+    })
   }
 
   const handleGroupClick = (groupId: string) => {
@@ -762,7 +803,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
       return "ring-2 ring-sky-400/80 ring-offset-2 ring-offset-slate-900"
     }
     if (isCriticalPath) {
-      return "ring-2 ring-emerald-400/80 ring-offset-2 ring-offset-slate-900"
+      return "ring-2 ring-red-400/80 ring-offset-2 ring-offset-slate-900"
     }
     return ""
   }
@@ -829,6 +870,68 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
       })()
     : "Planned"
 
+  const applyGuidancePreview = (activityId: string, nextStart: Date) => {
+    const nextStartIso = dateToIsoUtc(toUtcNoon(nextStart))
+    onDragMove?.(activityId, nextStartIso)
+    setTideGuidance(null)
+    toast.info(`Tide guidance preview: ${activityId} → ${nextStartIso}`, { duration: 2200 })
+  }
+
+  const handleDragMove = (payload: DragMovePayload) => {
+    if (!canEdit) return
+    const activityId = normalizeItemId(payload.itemId)
+    const activity = activityMeta.get(activityId)
+    if (!activity) return
+    // Convert date to YYYY-MM-DD UTC noon string
+    const d = new Date(payload.newStart)
+    const year = d.getUTCFullYear()
+    const month = String(d.getUTCMonth() + 1).padStart(2, "0")
+    const day = String(d.getUTCDate()).padStart(2, "0")
+    const newStartIso = `${year}-${month}-${day}`
+    const taskStart = new Date(payload.newStart)
+    const taskEnd = new Date(payload.newEnd)
+    if (taskEnd.getTime() <= taskStart.getTime()) {
+      taskEnd.setUTCDate(taskEnd.getUTCDate() + 1)
+    }
+
+    let hasDangerGuidance = false
+    if (tideGuidanceReady && tideWindows.length > 0) {
+      const guidance = composeDragTideGuidance({
+        task: {
+          id: activityId,
+          name: activity.activity_name || activityId,
+          start: taskStart,
+          end: taskEnd,
+        },
+        windows: tideWindows,
+        config: TIDE_RULE,
+      })
+
+      if (guidance) {
+        hasDangerGuidance = true
+        setTideGuidance(guidance)
+        const nearestLabel = guidance.nearestSafe
+          ? `Nearest SAFE: ${formatUtcDateTime(guidance.nearestSafe.start)} (+${guidance.nearestSafe.shiftHours}h)`
+          : "Nearest SAFE: not found in 14d horizon"
+        const whatIfLabel = guidance.whatIf
+          .map((option) => `+${option.shiftDays}d ${option.safety.status}`)
+          .join(", ")
+        toast.warning(`${activityId}: unsafe tide window`, {
+          description: `${nearestLabel} | What-if: ${whatIfLabel}`,
+        })
+      } else {
+        setTideGuidance(null)
+      }
+    } else {
+      setTideGuidance(null)
+    }
+
+    onDragMove?.(activityId, newStartIso)
+    if (!hasDangerGuidance) {
+      toast.info(`Drag preview: ${activityId} → ${newStartIso}`, { duration: 2000 })
+    }
+  }
+
   const handleQuickEdit = (activityId: string) => {
     const meta = activityMeta.get(activityId)
     if (!meta || !onActivityClick) return
@@ -885,6 +988,66 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
             : undefined
         }
       />
+      {canEdit && useVisEngine && tideGuidance && (
+        <div
+          data-testid="vis-tide-guidance"
+          className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs"
+        >
+          <p className="font-semibold text-amber-200">
+            Tide warning: {tideGuidance.taskName} is in DANGER window.
+          </p>
+          {tideGuidance.nearestSafe ? (
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-amber-100">
+              <span>
+                Nearest SAFE: {formatUtcDateTime(tideGuidance.nearestSafe.start)} (
+                +{tideGuidance.nearestSafe.shiftHours}h)
+              </span>
+              <button
+                type="button"
+                data-testid="vis-apply-nearest-safe"
+                onClick={() => {
+                  const suggestion = tideGuidance.nearestSafe
+                  if (!suggestion) return
+                  applyGuidancePreview(tideGuidance.taskId, suggestion.start)
+                }}
+                className="rounded border border-emerald-400/40 bg-emerald-500/20 px-2 py-0.5 text-[11px] font-semibold text-emerald-100 hover:bg-emerald-500/30"
+              >
+                Preview nearest SAFE
+              </button>
+            </div>
+          ) : (
+            <p className="mt-2 text-amber-100">No SAFE slot found within next 14 days.</p>
+          )}
+          <div className="mt-2 flex flex-wrap gap-2">
+            {tideGuidance.whatIf.map((option) => (
+              <span
+                key={`${tideGuidance.taskId}-${option.shiftDays}`}
+                data-testid={`vis-whatif-${option.shiftDays}d`}
+                className={cn(
+                  "inline-flex items-center gap-2 rounded border px-2 py-1",
+                  option.safety.status === "SAFE"
+                    ? "border-emerald-400/40 bg-emerald-500/15 text-emerald-100"
+                    : option.safety.status === "DANGER"
+                      ? "border-red-400/40 bg-red-500/15 text-red-100"
+                      : "border-slate-400/30 bg-slate-500/15 text-slate-100"
+                )}
+              >
+                <span>
+                  +{option.shiftDays}d {option.safety.status}
+                </span>
+                <button
+                  type="button"
+                  data-testid={`vis-apply-whatif-${option.shiftDays}d`}
+                  onClick={() => applyGuidancePreview(tideGuidance.taskId, option.start)}
+                  className="rounded border border-current/40 px-1.5 py-0.5 text-[10px] font-semibold hover:bg-white/10"
+                >
+                  Preview
+                </button>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
       {!useVisEngine && (
         <div className="mb-4 rounded-lg border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-xs text-amber-200">
           Advanced grouping, mini-map, hover cards, and density heatmap are available in the vis-timeline engine.
@@ -953,7 +1116,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
           <button
             type="button"
             onClick={() => getLegendDefinition("CP") && setLegendDrawerItem(getLegendDefinition("CP")!)}
-            className="text-emerald-400 hover:text-emerald-300 hover:underline focus:outline-none focus:ring-2 focus:ring-cyan-500/50 rounded min-h-[24px] min-w-[24px]"
+            className="text-red-400 hover:text-red-300 hover:underline focus:outline-none focus:ring-2 focus:ring-cyan-500/50 rounded min-h-[24px] min-w-[24px]"
             title="클릭하면 설명 보기"
           >
             CP
@@ -1134,6 +1297,8 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
               ganttSection?.scrollIntoView({ behavior: "smooth", block: "start" })
             }}
             onDeselect={onActivityDeselect}
+            onItemMove={handleDragMove}
+            dragEnabled={canEdit}
             focusedActivityId={focusedActivityId}
           />
           {groupedVisData && (
@@ -1376,10 +1541,12 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
                             conflicts
                           )
                           return (
-                            <span
+                            <button
+                              type="button"
                               key={k}
                               className="shrink-0 cursor-pointer rounded bg-red-900/50 px-0.5 text-[8px] text-red-200 hover:bg-red-800/60"
-                              title="Click for summary, then Why for details"
+                              title="1/2 Open collision summary"
+                              aria-label="1 of 2: open collision summary"
                               onClick={(e) => {
                                 e.stopPropagation()
                                 if (actConflicts.length > 0) {
@@ -1393,7 +1560,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
                               }}
                             >
                               {COLLISION_BADGES[k]}
-                            </span>
+                            </button>
                           )
                         })}
                       </div>
@@ -1436,6 +1603,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
             transform: "translate(-50%, -100%)",
           }}
         >
+          <div className="mb-1 text-[11px] font-semibold text-amber-200">1/2 Collision summary</div>
           <div className="text-xs font-bold text-red-300 mb-1">
             Collision summary
           </div>
@@ -1445,17 +1613,17 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
           <div className="flex gap-1">
             <button
               type="button"
-              className="flex-1 rounded bg-red-900/50 px-2 py-1 text-xs font-medium text-red-200 hover:bg-red-800/60"
+              className="touch-target flex-1 rounded bg-red-900/50 px-2 py-1 text-xs font-medium text-red-200 hover:bg-red-800/60"
               onClick={() => {
                 onCollisionClick?.(collisionPopover.conflicts[0])
                 setCollisionPopover(null)
               }}
             >
-              Why
+              Open 2/2
             </button>
             <button
               type="button"
-              className="rounded px-2 py-1 text-xs text-slate-400 hover:text-foreground"
+              className="touch-target rounded px-2 py-1 text-xs text-slate-400 hover:text-foreground"
               onClick={() => setCollisionPopover(null)}
             >
               Close
@@ -1486,9 +1654,13 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
         </div>
       )}
 
-      {hoverCard && hoverActivity && (
+      {hoverCard && hoverActivity && (() => {
+        const hoverSlack = hoverCard ? slackMap.get(hoverCard.activityId) : null
+        const hoverConflicts = hoverCard ? getConflictsForActivity(hoverCard.activityId, conflicts) : []
+        const hoverDeps = hoverActivity.depends_on ?? []
+        return (
         <div
-          className="fixed z-50 w-72 rounded-xl border border-cyan-500/40 bg-slate-900/95 p-4 text-xs text-slate-200 shadow-2xl"
+          className="fixed z-50 w-80 rounded-xl border border-cyan-500/40 bg-slate-900/95 p-4 text-xs text-slate-200 shadow-2xl"
           style={{ left: hoverCard.x, top: hoverCard.y, transform: "translate(-40%, -110%)" }}
           onMouseEnter={clearHoverHideTimeout}
           onMouseLeave={() => setHoverCard(null)}
@@ -1497,18 +1669,59 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
             <div className="font-semibold text-sm text-foreground">
               {hoverActivity.activity_name || hoverActivity.activity_id}
             </div>
-            <span className="rounded bg-slate-800 px-2 py-0.5 text-[10px] uppercase text-slate-400">
-              {hoverActivity.status ?? "planned"}
-            </span>
+            <div className="flex items-center gap-1">
+              {hoverSlack?.isCriticalPath && (
+                <span className="rounded bg-red-900/50 px-1.5 py-0.5 text-[10px] font-bold text-red-300">
+                  CP
+                </span>
+              )}
+              <span className="rounded bg-slate-800 px-2 py-0.5 text-[10px] uppercase text-slate-400">
+                {hoverActivity.status ?? "planned"}
+              </span>
+            </div>
+          </div>
+          <div className="mt-1 text-[10px] font-mono text-slate-500">
+            {hoverActivity.planned_start} ~ {hoverActivity.planned_finish} ({Math.ceil(hoverActivity.duration)}d)
           </div>
           <div className="mt-2 space-y-1 text-[11px] text-slate-400">
             <div>
               <span className="text-slate-300">Progress:</span> {hoverProgressLabel}
             </div>
+            {hoverSlack && (
+              <div>
+                <span className="text-slate-300">Slack:</span>{" "}
+                {hoverSlack.slackDays > 0 ? (
+                  <span className="text-emerald-400">+{hoverSlack.slackDays}d</span>
+                ) : (
+                  <span className="text-red-400 font-semibold">0d (Critical Path)</span>
+                )}
+              </div>
+            )}
             <div>
-              <span className="text-slate-300">Owner/Resource:</span>{" "}
-              {hoverActivity.resource_tags?.[0] ?? "Unassigned"}
+              <span className="text-slate-300">Resource:</span>{" "}
+              {hoverActivity.resource_tags?.join(", ") || "Unassigned"}
             </div>
+            {hoverActivity.constraint && (
+              <div>
+                <span className="text-slate-300">Constraint:</span>{" "}
+                <span className="text-sky-400">{hoverActivity.constraint.type}</span>
+                {hoverActivity.constraint.date && (
+                  <span className="text-slate-500 ml-1">({hoverActivity.constraint.date})</span>
+                )}
+              </div>
+            )}
+            {hoverDeps.length > 0 && (
+              <div>
+                <span className="text-slate-300">Depends on:</span>{" "}
+                {hoverDeps.map(d => `${d.predecessorId} (${d.type}${d.lagDays ? ` +${d.lagDays}d` : ""})`).join(", ")}
+              </div>
+            )}
+            {hoverConflicts.length > 0 && (
+              <div className="text-red-400">
+                <span className="text-red-300 font-semibold">Conflicts:</span>{" "}
+                {hoverConflicts.length} ({hoverConflicts.map(c => c.resource || c.type).join(", ")})
+              </div>
+            )}
             {hoverEvidenceSummary && (
               <div>
                 <span className="text-slate-300">Evidence:</span>{" "}
@@ -1544,7 +1757,8 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
             </button>
           </div>
         </div>
-      )}
+        )
+      })()}
 
     </section>
   )

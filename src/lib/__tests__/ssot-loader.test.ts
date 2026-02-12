@@ -54,9 +54,8 @@ describe('SSOT Loader', () => {
         }
       };
       
-      // @ts-expect-error Testing invalid data structure
       expect(() => {
-        isValidSSOT(invalidData);
+        isValidSSOT(invalidData as unknown as OptionC);
       }).not.toThrow();
       
       expect(isValidSSOT(invalidData)).toBe(false);

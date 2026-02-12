@@ -10,6 +10,10 @@ function nowIso(): string {
   return new Date().toISOString();
 }
 
+function toIsoDate(date: Date): `${number}-${number}-${number}` {
+  return date.toISOString().slice(0, 10) as `${number}-${number}-${number}`;
+}
+
 export function runAgiOpsPipeline(params: {
   activities: ScheduleActivity[];
   ops: OpsState;
@@ -45,7 +49,7 @@ export function runAgiOpsPipeline(params: {
     });
   }
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = toIsoDate(new Date());
 
   if (params.command.kind === "NOTICE") {
     nextOps = {

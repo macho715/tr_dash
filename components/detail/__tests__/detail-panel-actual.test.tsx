@@ -21,7 +21,9 @@ const noConflicts: ScheduleConflict[] = []
 
 describe("DetailPanel actual update flow", () => {
   it("calls onActualUpdate and supports parent rerender with updated activity", async () => {
-    const onActualUpdate = vi.fn(async () => ({ transition: { success: true } }))
+    const onActualUpdate = vi.fn<
+      (activityId: string, payload: { actualStart: string | null; actualEnd: string | null }) => Promise<{ transition: { success: boolean } }>
+    >(async () => ({ transition: { success: true } }))
     const { rerender } = render(
       <DetailPanel
         activity={makeActivity()}

@@ -5,6 +5,53 @@
 
 import type { OptionC, TripReport, TripReportMilestone, TripCloseout } from '@/src/types/ssot'
 
+function buildCompareKpiSummary(
+  ssot: OptionC,
+  tripId: string,
+  delayMinutes: number,
+  requiredTotal: number,
+  providedTotal: number
+): TripReport['compare_kpi_summary'] {
+  const trip = ssot.entities?.trips?.[tripId]
+  const tripActivityIds = trip?.activity_ids ?? []
+  const activities = ssot.entities?.activities ?? {}
+
+  const collisionBySeverity = {
+    blocking: 0,
+    warning: 0,
+    info: 0,
+  }
+
+  for (const activityId of tripActivityIds) {
+    const severity = activities[activityId]?.calc?.collision_severity_max
+    if (severity === 'blocking') collisionBySeverity.blocking += 1
+    if (severity === 'warning') collisionBySeverity.warning += 1
+    if (severity === 'info') collisionBySeverity.info += 1
+  }
+
+  const baselineDelay = trip?.calc?.delay_minutes ?? 0
+  const compareMissing = Math.max(0, requiredTotal - providedTotal)
+
+  return {
+    total_delay_minutes: {
+      baseline: baselineDelay,
+      compare: delayMinutes,
+      delta: delayMinutes - baselineDelay,
+    },
+    collision_count_by_severity: {
+      blocking: { baseline: 0, compare: collisionBySeverity.blocking, delta: collisionBySeverity.blocking },
+      warning: { baseline: 0, compare: collisionBySeverity.warning, delta: collisionBySeverity.warning },
+      info: { baseline: 0, compare: collisionBySeverity.info, delta: collisionBySeverity.info },
+    },
+    evidence_risk_delta: {
+      baseline_missing: 0,
+      compare_missing: compareMissing,
+      delta: compareMissing,
+    },
+    as_of: new Date().toISOString(),
+  }
+}
+
 export function generateTripReport(
   tripId: string,
   closeout: TripCloseout | null,
@@ -63,6 +110,13 @@ export function generateTripReport(
       missing: requiredTotal > providedTotal ? [] : undefined,
     },
     narrative_closeout_id: closeout?.closeout_id,
+    compare_kpi_summary: buildCompareKpiSummary(
+      ssot,
+      tripId,
+      delayMinutes,
+      requiredTotal,
+      providedTotal
+    ),
   }
 }
 
@@ -85,6 +139,15 @@ export function tripReportToMarkdown(report: TripReport): string {
   lines.push('')
   if (report.evidence_completeness) {
     lines.push(`## Evidence: ${report.evidence_completeness.provided_total}/${report.evidence_completeness.required_total}`)
+  }
+  if (report.compare_kpi_summary) {
+    lines.push('')
+    lines.push('## Compare KPI Summary')
+    lines.push(`- Total Delay Δ: ${report.compare_kpi_summary.total_delay_minutes.delta}m (baseline ${report.compare_kpi_summary.total_delay_minutes.baseline}m → compare ${report.compare_kpi_summary.total_delay_minutes.compare}m)`)
+    lines.push(`- Blocking Collisions Δ: ${report.compare_kpi_summary.collision_count_by_severity.blocking.delta}`)
+    lines.push(`- Warning Collisions Δ: ${report.compare_kpi_summary.collision_count_by_severity.warning.delta}`)
+    lines.push(`- Evidence Risk Δ: ${report.compare_kpi_summary.evidence_risk_delta.delta}`)
+    lines.push(`- As-of: ${report.compare_kpi_summary.as_of}`)
   }
   lines.push('')
   return lines.join('\n')

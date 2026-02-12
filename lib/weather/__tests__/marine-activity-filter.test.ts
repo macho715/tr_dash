@@ -19,7 +19,7 @@ describe("marine-activity-filter", () => {
   })
 
   it("detects marine by anchor type", () => {
-    const activity = { ...base, anchor_type: "SAIL_AWAY" }
+    const activity = { ...base, anchor_type: "SAIL_AWAY" as const }
     expect(isMarineActivity(activity)).toBe(true)
   })
 

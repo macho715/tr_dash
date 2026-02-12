@@ -22,7 +22,13 @@ const activities: ScheduleActivity[] = [
 const previewResult: PreviewResult = {
   nextActivities: activities,
   changes: [],
-  conflicts: [],
+  collisions: [],
+  impact: {
+    affected_count: 0,
+    affected_ids: [],
+    changes: [],
+    conflicts: [],
+  },
   meta: {
     mode: "bulk",
     anchors: [],
@@ -78,4 +84,3 @@ describe("BulkEditDialog", () => {
     expect(setPreview).toHaveBeenCalledTimes(2);
   });
 });
-
