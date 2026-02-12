@@ -6,8 +6,8 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue)](https://www.typescriptlang.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.1-38bdf8)](https://tailwindcss.com/)
 
-**최종 업데이트**: 2026-02-11  
-**최신 작업 반영**: **Merge·Reflow·Typecheck/Lint·Tide Phase1·고급 (2026-02-11)** — Reflow: **dependency cascade** preview 경로 통일. **Tide 고급**: SAFE 추천, DANGER What-if, 가이던스·View guidance. **Voyage Map View**: 카드 hover/select·Drift 배지·active voyage만 경로 overlay. **즉시 조치**: 3항목 체크리스트(OperationalNotice)·Go→voyages/schedule/gantt·선택일별 localStorage. [CHANGELOG.md](CHANGELOG.md), [docs/TYPECHECK_AND_LINT_FAILURES.md](docs/TYPECHECK_AND_LINT_FAILURES.md).
+**최종 업데이트**: 2026-02-12  
+**최신 작업 반영**: **AI intent 확장 (2026-02-12)** — explain_why(Why 2-click 요약), navigate_query(Where/When/What→Map/Timeline 포커스). 8개 intent, selectedActivityId·onNavigateToMap 연동. 이전: Merge·Reflow·Typecheck/Lint·Tide Phase1·고급 (2026-02-11). [CHANGELOG.md](CHANGELOG.md), [docs/AI_FEATURES.md](docs/AI_FEATURES.md).
 
 ---
 
@@ -34,7 +34,7 @@ HVDC TR Transport Dashboard는 **7개의 Transformer Unit**을 **LCT BUSHRA**로
 - **Next Trip Readiness**: Ready/Not Ready 배지, 마일스톤/증빙/블로커 체크리스트
 - **🆕 Voyage Map View (2026-02-11)**: Voyage 카드 hover/select 시 맵과 연동. ETA Drift 배지, **active voyage만** 경로 overlay 표시(drift > 1.5일 점선). `lib/tr/voyage-map-view.ts`(RiskBand, computeVoyageEtaDriftDays, buildVoyageRoute). 헤더 **Open Tide Gantt** → `/tide-gantt`, 해당 페이지 **Back to Dashboard** → `/` 왕복 이동.
 - **🆕 즉시 조치 체크리스트 (2026-02-11)**: Alerts 영역 **OperationalNotice** — 3항목 고정(1차 항차 TR 1유닛 로드, SPMT 2세트·MOB 1/26, 잔여 일정 확정). 체크박스·완료율(n/3 done)·항목별 **Go** 버튼 → voyages/schedule/gantt 섹션 이동·필요 시 voyage 선택. 선택일(YYYY-MM-DD)별 localStorage 저장(`lib/alerts/immediate-actions.ts`).
-- **🆕 AI Command Interface (2026-02-10)**: **Ctrl+K**로 Command Palette 열기 → 맨 위 입력창에 명령/자연어 입력. **Standard Mode** 버튼 클릭 시 **AI Command Mode**로 전환 후 예: "Move all Voyage 3 forward 5 days" 입력 → Enter → `POST /api/nl-command`로 intent 파싱 → `AIExplainDialog`에서 확인 후 실행. 6개 intent, ambiguity 시 재질의. `OPENAI_API_KEY` 필요 시 설정.
+- **🆕 AI Command Interface (2026-02-10, 2026-02-12 확장)**: **Ctrl+K**로 Command Palette 열기 → 맨 위 입력창에 명령/자연어 입력. **Standard Mode** 버튼 클릭 시 **AI Command Mode**로 전환 후 예: "Move all Voyage 3 forward 5 days" 입력 → Enter → `POST /api/nl-command`로 intent 파싱 → `AIExplainDialog`에서 확인 후 실행. **8개 intent**: shift_activities, prepare_bulk, explain_conflict, **explain_why**(Why 2-click 요약), **navigate_query**(Where/When/What 질의 → Map/Timeline 포커스), set_mode, apply_preview, unclear. ambiguity 시 재질의. `selectedActivityId` 전달 시 explain_why·navigate_query 컨텍스트 강화. `OPENAI_API_KEY` 필요 시 설정.
 
 ---
 

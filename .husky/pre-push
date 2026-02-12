@@ -10,7 +10,7 @@ if command -v powershell >/dev/null 2>&1; then
 fi
 
 if command -v pwsh >/dev/null 2>&1; then
-  pwsh -NoProfile -File "scripts/release/pre-push-guard.ps1" "$remote_name" "$remote_url"
+  pwsh -NoProfile -ExecutionPolicy Bypass -File "scripts/release/pre-push-guard.ps1" "$remote_name" "$remote_url"
   exit $?
 fi
 

@@ -43,6 +43,9 @@ const COMMANDS = [
 type Anchor = { activityId: string; newStart: string };
 type AiDecision = "reviewing" | "approved" | "cancelled";
 
+const LOW_CONFIDENCE_THRESHOLD = 0.55;
+const TEMPLATE_VOYAGES = [1, 2, 3, 4, 5, 6, 7] as const;
+
 type QuickAction = {
   id: string;
   label: string;
@@ -185,14 +188,225 @@ function parseNaturalSuggestion(query: string, activities: ScheduleActivity[]): 
   return null;
 }
 
+function buildClarifyChoices(query: string, activities: ScheduleActivity[]): string[] {
+  const q = query.toLowerCase();
+  const choices: string[] = [];
+  const trMatch = q.match(/\btr[-\s]?([1-9])\b/i);
+  const voyageMatch = q.match(/\bvoyage\s*([1-9])\b/i) ?? q.match(/항차\s*([1-9])/);
+  const uniqueVoyages = Array.from(
+    new Set(
+      activities
+        .map((a) => a.voyage_id)
+        .filter((x): x is string => typeof x === "string" && /^V\d+$/i.test(x))
+        .slice(0, 3)
+    )
+  );
+
+  if (trMatch) {
+    const trNo = trMatch[1];
+    return [
+      `TR-${trNo} activities only`,
+      `Shift TR-${trNo} schedule`,
+      `TR-${trNo} status only`,
+    ];
+  }
+
+  if (voyageMatch) {
+    const voyageNo = voyageMatch[1];
+    return [
+      `Voyage ${voyageNo} activities only`,
+      `Shift Voyage ${voyageNo} schedule`,
+      `Voyage ${voyageNo} status only`,
+    ];
+  }
+
+  if (q.includes("voyage") || q.includes("항차")) {
+    for (const voyage of uniqueVoyages) {
+      choices.push(`Voyage ${voyage.replace(/^V/i, "")}`);
+    }
+  }
+
+  if (q.includes("load") || q.includes("load-out") || q.includes("loadout") || q.includes("로드아웃")) {
+    choices.push("Load-out only");
+  }
+
+  if (q.includes("apply") || q.includes("preview") || q.includes("적용")) {
+    choices.push("Apply current preview");
+  }
+
+  choices.push("Cancel and refine command");
+
+  const deduped = Array.from(new Set(choices.filter((x) => x.trim().length > 0)));
+  if (deduped.length < 2) {
+    return ["Voyage scope", "Load-out only", "Cancel and refine command"];
+  }
+  return deduped.slice(0, 3);
+}
+
+function humanizeClarifyOption(option: string, query: string): string {
+  const normalized = option.trim().toLowerCase().replace(/\s+/g, "_");
+  const trMatch = query.toLowerCase().match(/\btr[-\s]?([1-9])\b/i);
+  const target = trMatch ? `TR-${trMatch[1]}` : "target";
+
+  const map: Record<string, string> = {
+    check_activities: `${target} activities only`,
+    activities_only: `${target} activities only`,
+    shift_activities: `Shift ${target} schedule`,
+    move_activities: `Shift ${target} schedule`,
+    status_inquiry: `${target} status only`,
+    status_only: `${target} status only`,
+    proceed_with_current_intent: "Proceed with current intent",
+    cancel_and_refine_command: "Cancel and refine command",
+  };
+
+  const mapped = map[normalized];
+  if (mapped) return mapped;
+  return option
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (s) => s.toUpperCase())
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function enforceClarifyWizard(
+  result: AiIntentResult,
+  query: string,
+  activities: ScheduleActivity[]
+): AiIntentResult {
+  const providedOptions = Array.isArray(result.ambiguity?.options)
+    ? result.ambiguity?.options
+        .filter((x): x is string => typeof x === "string" && x.trim().length > 0)
+        .map((x) => humanizeClarifyOption(x, query))
+    : [];
+
+  const generated = buildClarifyChoices(query, activities);
+  const merged = Array.from(new Set([...(providedOptions ?? []), ...generated])).slice(0, 3);
+  const options = merged.length >= 2 ? merged : generated.slice(0, 2);
+
+  return {
+    ...result,
+    ambiguity: {
+      question:
+        result.ambiguity?.question ||
+        "Ambiguous command. Which target/action should be applied?",
+      options,
+    },
+  };
+}
+
+function filterActivitiesByShiftFilter(
+  activities: ScheduleActivity[],
+  filter: ShiftFilter | undefined
+): ScheduleActivity[] {
+  const safeFilter = filter || {};
+  return activities.filter((a) => {
+    const voyageId = a.voyage_id ?? "";
+    const trUnitId = a.tr_unit_id ?? "";
+    const matchVoyage = !safeFilter.voyage_ids || safeFilter.voyage_ids.includes(voyageId);
+    const matchTR = !safeFilter.tr_unit_ids || safeFilter.tr_unit_ids.includes(trUnitId);
+    const matchAnchor = !safeFilter.anchor_types || safeFilter.anchor_types.includes(a.anchor_type || "");
+    const matchId = !safeFilter.activity_ids || safeFilter.activity_ids.includes(a.activity_id || "");
+    return matchVoyage && matchTR && matchAnchor && matchId;
+  });
+}
+
+function hasHardLock(activity: ScheduleActivity): boolean {
+  if ((activity.lock_level ?? "").toUpperCase() === "HARD") return true;
+  return (activity.reflow_pins ?? []).some((pin) => {
+    const strength = String(pin.strength ?? pin.hardness ?? "").toUpperCase();
+    return strength === "HARD";
+  });
+}
+
+function parseIsoDate(date: string | undefined): Date | null {
+  if (!date) return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(date.trim());
+  if (!m) return null;
+  const y = Number(m[1]);
+  const mm = Number(m[2]);
+  const d = Number(m[3]);
+  const utc = new Date(Date.UTC(y, mm - 1, d));
+  if (Number.isNaN(utc.getTime())) return null;
+  return utc;
+}
+
+function findFocusActivity(
+  activities: ScheduleActivity[],
+  selectedActivityId?: string | null
+): ScheduleActivity | null {
+  if (selectedActivityId) {
+    const selected = activities.find((a) => a.activity_id === selectedActivityId);
+    if (selected) return selected;
+  }
+  const active = activities.find(
+    (a) => a.status === "in_progress" || a.status === "blocked"
+  );
+  if (active) return active;
+
+  const today = new Date();
+  const todayUtc = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
+  const sorted = [...activities]
+    .filter((a) => Boolean(a.activity_id))
+    .sort((a, b) => {
+      const ad = parseIsoDate(a.planned_start)?.getTime() ?? Number.MAX_SAFE_INTEGER;
+      const bd = parseIsoDate(b.planned_start)?.getTime() ?? Number.MAX_SAFE_INTEGER;
+      if (ad === bd) return (a.activity_id ?? "").localeCompare(b.activity_id ?? "");
+      return ad - bd;
+    });
+  const upcoming = sorted.find((a) => {
+    const d = parseIsoDate(a.planned_start);
+    return d ? d.getTime() >= todayUtc.getTime() : false;
+  });
+  return upcoming ?? sorted[0] ?? null;
+}
+
+function buildAiBriefing(
+  activities: ScheduleActivity[],
+  selectedActivityId?: string | null
+): NonNullable<AiIntentResult["briefing"]> {
+  const focus = findFocusActivity(activities, selectedActivityId);
+  const where = focus
+    ? [focus.tr_unit_id, focus.voyage_id, focus.anchor_type].filter(Boolean).join(" · ") ||
+      focus.level1 ||
+      focus.activity_name
+    : "활동 정보 없음";
+  const whenWhat = focus
+    ? `${focus.activity_name} (${focus.planned_start} -> ${focus.planned_finish})`
+    : "다음 활동 정보 없음";
+
+  const missingStart = activities.filter((a) => a.status === "in_progress" && !a.actual_start).length;
+  const missingFinish = activities.filter((a) => a.status === "done" && !a.actual_finish).length;
+  const missingBlocker = activities.filter((a) => a.status === "blocked" && !a.blocker_code).length;
+  const missingTotal = missingStart + missingFinish + missingBlocker;
+  const evidenceGap =
+    missingTotal > 0
+      ? `증빙 부족 ${missingTotal}건 (시작 ${missingStart}, 완료 ${missingFinish}, 차단사유 ${missingBlocker})`
+      : "증빙 부족 없음";
+
+  return {
+    where,
+    when_what: whenWhat,
+    evidence_gap: evidenceGap,
+  };
+}
+
 type Props = {
   activities: ScheduleActivity[];
   setActivities: (next: ScheduleActivity[]) => void;
   onFocusActivity?: (activityId: string) => void;
   viewMode?: ViewMode;
+  selectedActivityId?: string | null;
+  onNavigateToMap?: () => void;
 };
 
-export function UnifiedCommandPalette({ activities, setActivities, onFocusActivity, viewMode }: Props) {
+export function UnifiedCommandPalette({
+  activities,
+  setActivities,
+  onFocusActivity,
+  viewMode,
+  selectedActivityId,
+  onNavigateToMap,
+}: Props) {
   const viewModeContext = useViewModeOptional();
   const resolvedMode = viewMode ?? viewModeContext?.state.mode ?? "live";
   const canApply =
@@ -206,6 +420,7 @@ export function UnifiedCommandPalette({ activities, setActivities, onFocusActivi
   // AI Mode state (NEW for Idea 2)
   const [aiMode, setAiMode] = React.useState(false);
   const [aiLoading, setAiLoading] = React.useState(false);
+  const [templateVoyageNo, setTemplateVoyageNo] = React.useState<number>(3);
   const [pendingAiAction, setPendingAiAction] = React.useState<AiIntentResult | null>(null);
   const [aiDecision, setAiDecision] = React.useState<AiDecision>("cancelled");
   const inputRef = React.useRef<HTMLInputElement | null>(null);
@@ -246,6 +461,22 @@ export function UnifiedCommandPalette({ activities, setActivities, onFocusActivi
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  React.useEffect(() => {
+    const onOpenPalette = (event: Event) => {
+      const custom = event as CustomEvent<{ aiMode?: boolean; seedQuery?: string }>;
+      setOpen(true);
+      if (custom.detail?.aiMode) {
+        setAiMode(true);
+      }
+      if (typeof custom.detail?.seedQuery === "string") {
+        setQuery(custom.detail.seedQuery);
+      }
+    };
+    window.addEventListener("tr:open-command-palette", onOpenPalette as EventListener);
+    return () =>
+      window.removeEventListener("tr:open-command-palette", onOpenPalette as EventListener);
+  }, []);
+
   const fuse = React.useMemo(() => {
     return new Fuse(activities, {
       keys: ["activity_id", "activity_name", "anchor_type", "tr_unit_id", "voyage_id"],
@@ -271,18 +502,7 @@ export function UnifiedCommandPalette({ activities, setActivities, onFocusActivi
 
   const anchorsFromFilter = React.useCallback(
     (filter: ShiftFilter | undefined, deltaDays: number) => {
-      const safeFilter = filter || {};
-      const affected = activities.filter((a) => {
-        const voyageId = a.voyage_id ?? "";
-        const trUnitId = a.tr_unit_id ?? "";
-        const matchVoyage = !safeFilter.voyage_ids || safeFilter.voyage_ids.includes(voyageId);
-        const matchTR = !safeFilter.tr_unit_ids || safeFilter.tr_unit_ids.includes(trUnitId);
-        const matchAnchor =
-          !safeFilter.anchor_types || safeFilter.anchor_types.includes(a.anchor_type || "");
-        const matchId =
-          !safeFilter.activity_ids || safeFilter.activity_ids.includes(a.activity_id || "");
-        return matchVoyage && matchTR && matchAnchor && matchId;
-      });
+      const affected = filterActivitiesByShiftFilter(activities, filter);
       return affected.map((a) => ({
         activityId: a.activity_id as string,
         newStart: addDays(a.planned_start, deltaDays),
@@ -291,10 +511,63 @@ export function UnifiedCommandPalette({ activities, setActivities, onFocusActivi
     [activities]
   );
 
+  const withImpactPreview = React.useCallback(
+    (result: AiIntentResult): AiIntentResult => {
+      if (result.impact_preview) return result;
+
+      let impacted = result.affected_count ?? 0;
+      let estimatedConflicts = 0;
+
+      if (result.intent === "shift_activities") {
+        const matched = filterActivitiesByShiftFilter(activities, result.parameters?.filter);
+        impacted = matched.length;
+        const deltaDays = Math.abs(result.parameters?.action?.delta_days ?? 0);
+        const freezeOrLock = matched.filter(
+          (a) => Boolean(a.actual_start || a.actual_finish) || hasHardLock(a)
+        ).length;
+        const rangeConflict = Math.round(matched.length * Math.min(0.5, deltaDays * 0.08));
+        estimatedConflicts = freezeOrLock + rangeConflict;
+      } else if (result.intent === "prepare_bulk") {
+        const anchors = Array.isArray(result.parameters?.anchors) ? result.parameters.anchors : [];
+        impacted = anchors.length;
+        estimatedConflicts = Math.round(anchors.length * 0.15);
+      } else if (result.intent === "apply_preview" && preview) {
+        impacted = preview.impact?.affected_count ?? preview.changes.length;
+        estimatedConflicts = preview.collisions.length;
+      } else if (result.intent === "navigate_query") {
+        impacted = result.affected_activities?.length ?? result.affected_count ?? 0;
+      }
+
+      return {
+        ...result,
+        impact_preview: {
+          impacted_activities: impacted,
+          estimated_conflicts: Math.max(0, estimatedConflicts),
+          risk_level: result.risk_level,
+        },
+      };
+    },
+    [activities, preview]
+  );
+
   const getAiExecutionGuard = React.useCallback(
     (aiResult: AiIntentResult | null): { canExecute: boolean; blockReason?: string; actionSummary: string } => {
       if (!aiResult) {
         return { canExecute: false, blockReason: "No AI action to execute.", actionSummary: "No action" };
+      }
+      if (aiResult.ambiguity) {
+        return {
+          canExecute: false,
+          blockReason: "Clarification is required before execution.",
+          actionSummary: "Resolve ambiguity first",
+        };
+      }
+      if (aiResult.confidence < LOW_CONFIDENCE_THRESHOLD) {
+        return {
+          canExecute: false,
+          blockReason: "Low confidence result. Clarification is required.",
+          actionSummary: "Clarify command details",
+        };
       }
 
       if (aiResult.intent === "shift_activities") {
@@ -306,12 +579,32 @@ export function UnifiedCommandPalette({ activities, setActivities, onFocusActivi
       if (aiResult.intent === "explain_conflict") {
         return { canExecute: true, actionSummary: "Open conflicts dialog and show conflict analysis guidance." };
       }
+      if (aiResult.intent === "explain_why") {
+        return {
+          canExecute: true,
+          actionSummary: "Show Why summary (planned vs actual, blocker, evidence). Review and close.",
+        };
+      }
+      if (aiResult.intent === "navigate_query") {
+        const target = aiResult.parameters?.target ?? "what";
+        const label = target === "where" ? "Map" : target === "when" ? "Timeline" : "Detail";
+        return {
+          canExecute: true,
+          actionSummary: `Navigate to ${label} and focus matching activity.`,
+        };
+      }
       if (aiResult.intent === "set_mode") {
         const mode = aiResult.parameters?.mode;
         if (!mode) {
           return { canExecute: false, blockReason: "Missing target mode.", actionSummary: "Switch view mode" };
         }
         return { canExecute: true, actionSummary: `Switch view mode to ${mode} (read-only restrictions still apply).` };
+      }
+      if (aiResult.intent === "briefing") {
+        return {
+          canExecute: true,
+          actionSummary: "Dismiss briefing and close dialog.",
+        };
       }
       if (aiResult.intent === "apply_preview") {
         if (!canApply || resolvedMode !== "live") {
@@ -437,6 +730,32 @@ export function UnifiedCommandPalette({ activities, setActivities, onFocusActivi
         return;
       }
 
+      if (aiResult.intent === "explain_why") {
+        setDialog(null);
+        setOpen(false);
+        toast.info(aiResult.explanation, { duration: 8000 });
+        return;
+      }
+
+      if (aiResult.intent === "navigate_query") {
+        const activityIds = aiResult.affected_activities ?? [];
+        const firstId = activityIds[0];
+        if (aiResult.parameters?.target === "where" && onNavigateToMap) {
+          onNavigateToMap();
+        }
+        if (firstId && onFocusActivity) {
+          onFocusActivity(firstId);
+        }
+        setDialog(null);
+        setOpen(false);
+        if (firstId) {
+          toast.success(`Navigated to ${activityIds.length > 1 ? `first of ${activityIds.length} activities` : "activity"}.`);
+        } else {
+          toast.warning("No matching activity found.");
+        }
+        return;
+      }
+
       if (aiResult.intent === "set_mode") {
         const targetMode = aiResult.parameters?.mode;
         if (!targetMode) {
@@ -451,6 +770,13 @@ export function UnifiedCommandPalette({ activities, setActivities, onFocusActivi
         } else {
           toast.success(`Switched to ${targetMode} mode.`);
         }
+        return;
+      }
+
+      if (aiResult.intent === "briefing") {
+        setOpen(false);
+        setDialog(null);
+        toast.success("AI briefing updated.");
         return;
       }
 
@@ -477,7 +803,7 @@ export function UnifiedCommandPalette({ activities, setActivities, onFocusActivi
       setDialog(null);
       toast.info(aiResult.explanation);
     },
-    [anchorsFromFilter, canApply, engine, preview, resolvedMode, viewModeContext]
+    [anchorsFromFilter, canApply, engine, onFocusActivity, onNavigateToMap, preview, resolvedMode, viewModeContext]
   );
 
   const runAiCommand = React.useCallback(
@@ -489,7 +815,12 @@ export function UnifiedCommandPalette({ activities, setActivities, onFocusActivi
         const response = await fetch("/api/nl-command", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ query: queryText, activities, clarification }),
+          body: JSON.stringify({
+            query: queryText,
+            activities,
+            clarification,
+            selectedActivityId: selectedActivityId ?? undefined,
+          }),
         });
 
         if (!response.ok) {
@@ -499,7 +830,30 @@ export function UnifiedCommandPalette({ activities, setActivities, onFocusActivi
         }
 
         const result = (await response.json()) as AiIntentResult;
-        setPendingAiAction(result);
+        const needsClarify =
+          result.intent === "unclear" ||
+          !!result.ambiguity ||
+          result.confidence < LOW_CONFIDENCE_THRESHOLD;
+
+        const normalizedResult: AiIntentResult = needsClarify
+          ? enforceClarifyWizard(
+              {
+                ...result,
+                ambiguity:
+                  result.ambiguity ||
+                  (result.confidence < LOW_CONFIDENCE_THRESHOLD
+                    ? {
+                        question: "Confidence is low. Which target/action should be applied?",
+                        options: [],
+                      }
+                    : null),
+              },
+              queryText,
+              activities
+            )
+          : result;
+
+        setPendingAiAction(withImpactPreview(normalizedResult));
         setAiDecision("reviewing");
         setDialog("ai-explain");
         toast.info("AI command parsed. Review and confirm before execution.");
@@ -511,8 +865,86 @@ export function UnifiedCommandPalette({ activities, setActivities, onFocusActivi
         setAiLoading(false);
       }
     },
-    [activities, aiLoading]
+    [activities, aiLoading, selectedActivityId, withImpactPreview]
   );
+
+  const runTemplate = React.useCallback(
+    (template: "voyage_plus_2" | "loadout_only" | "apply_preview", voyageNo = templateVoyageNo) => {
+      const base: Pick<AiIntentResult, "confidence" | "risk_level" | "requires_confirmation"> = {
+        confidence: 0.9,
+        risk_level: "medium",
+        requires_confirmation: true,
+      };
+      const next: AiIntentResult =
+        template === "voyage_plus_2"
+          ? {
+              intent: "shift_activities",
+              explanation: `Shift Voyage ${voyageNo} by +2 days`,
+              parameters: {
+                filter: { voyage_ids: [`V${voyageNo}`] },
+                action: { type: "shift_days", delta_days: 2 },
+              },
+              ambiguity: null,
+              ...base,
+              recommendations: { what_if_shift_days: [1, 2, 3] },
+              model_trace: { provider: "ollama", primary_model: "template:voyage_plus_2" },
+            }
+          : template === "loadout_only"
+          ? {
+              intent: "shift_activities",
+              explanation: "Shift only Load-out activities by +1 day",
+              parameters: {
+                filter: { anchor_types: ["LOADOUT"] },
+                action: { type: "shift_days", delta_days: 1 },
+              },
+              ambiguity: null,
+              ...base,
+              recommendations: { what_if_shift_days: [0, 1, 2] },
+              model_trace: { provider: "ollama", primary_model: "template:loadout_only" },
+            }
+          : {
+              intent: "apply_preview",
+              explanation: "Apply current preview",
+              parameters: { preview_ref: "current" },
+              ambiguity: null,
+              confidence: 0.98,
+              risk_level: "high",
+              requires_confirmation: true,
+              model_trace: { provider: "ollama", primary_model: "template:apply_preview" },
+            };
+
+      setPendingAiAction(withImpactPreview(next));
+      setAiDecision("reviewing");
+      setDialog("ai-explain");
+      setOpen(false);
+      toast.info("Template loaded. Review and confirm.");
+    },
+    [templateVoyageNo, withImpactPreview]
+  );
+
+  const runBriefing = React.useCallback(() => {
+    const briefingResult: AiIntentResult = {
+      intent: "briefing",
+      explanation: "현재 상태 3줄 요약입니다.",
+      confidence: 0.97,
+      risk_level: "low",
+      requires_confirmation: true,
+      ambiguity: null,
+      briefing: buildAiBriefing(activities, selectedActivityId),
+      model_trace: { provider: "ollama", primary_model: "template:briefing" },
+      governance_checks: [
+        {
+          code: "READ_ONLY_BRIEFING",
+          status: "pass",
+          message: "Briefing does not mutate schedule or SSOT.",
+        },
+      ],
+    };
+    setPendingAiAction(withImpactPreview(briefingResult));
+    setAiDecision("reviewing");
+    setDialog("ai-explain");
+    setOpen(false);
+  }, [activities, selectedActivityId, withImpactPreview]);
 
   const onAICommand = React.useCallback(() => {
     void runAiCommand(query);
@@ -521,6 +953,12 @@ export function UnifiedCommandPalette({ activities, setActivities, onFocusActivi
   const onSelectAmbiguity = React.useCallback(
     (option: string) => {
       if (!query.trim()) return;
+      if (option.toLowerCase().includes("cancel")) {
+        setPendingAiAction(null);
+        setDialog(null);
+        toast.info("Clarification cancelled. Please refine your command.");
+        return;
+      }
       toast.info(`Clarification selected: ${option}`);
       void runAiCommand(query, option);
     },
@@ -620,10 +1058,84 @@ export function UnifiedCommandPalette({ activities, setActivities, onFocusActivi
           </button>
           {aiMode && (
             <span className="text-[10px] text-purple-400">
-              Powered by GPT-4 {aiLoading && "· Processing..."}
+              Powered by Ollama/OpenAI {aiLoading && "· Processing..."}
             </span>
           )}
         </div>
+        {aiMode ? (
+          <div className="mt-2 rounded-lg border border-purple-500/20 bg-purple-500/5 p-2">
+            <div className="mb-1 text-[11px] font-medium text-purple-300">Template Actions</div>
+            <div className="flex flex-wrap items-center gap-2">
+              <select
+                value={templateVoyageNo}
+                onChange={(e) => setTemplateVoyageNo(Number(e.target.value))}
+                className="h-9 rounded-md border border-slate-700 bg-slate-900 px-2 text-xs text-slate-200"
+                aria-label="Template voyage number"
+              >
+                {TEMPLATE_VOYAGES.map((v) => (
+                  <option key={v} value={v}>
+                    Voyage {v}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => runTemplate("voyage_plus_2")}
+                className="min-h-[40px] rounded-md border border-cyan-500/40 bg-cyan-500/15 px-3 text-xs font-semibold text-cyan-100 hover:bg-cyan-500/25"
+              >
+                Voyage N +2일
+              </button>
+              <button
+                type="button"
+                onClick={() => runTemplate("loadout_only")}
+                className="min-h-[40px] rounded-md border border-amber-500/40 bg-amber-500/15 px-3 text-xs font-semibold text-amber-100 hover:bg-amber-500/25"
+              >
+                Load-out만 이동
+              </button>
+              <button
+                type="button"
+                onClick={() => runTemplate("apply_preview")}
+                className="min-h-[40px] rounded-md border border-rose-500/40 bg-rose-500/15 px-3 text-xs font-semibold text-rose-100 hover:bg-rose-500/25"
+              >
+                현재 preview 적용
+              </button>
+            </div>
+            <div className="mt-2 text-[11px] font-medium text-purple-300">한글 명령 프리셋</div>
+            <div className="mt-1 flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setTemplateVoyageNo(3);
+                  runTemplate("voyage_plus_2", 3);
+                }}
+                className="min-h-[40px] rounded-md border border-cyan-500/40 bg-cyan-500/15 px-3 text-xs font-semibold text-cyan-100 hover:bg-cyan-500/25"
+              >
+                3항차 2일 지연
+              </button>
+              <button
+                type="button"
+                onClick={() => runTemplate("loadout_only")}
+                className="min-h-[40px] rounded-md border border-amber-500/40 bg-amber-500/15 px-3 text-xs font-semibold text-amber-100 hover:bg-amber-500/25"
+              >
+                로드아웃만 이동
+              </button>
+              <button
+                type="button"
+                onClick={() => runTemplate("apply_preview")}
+                className="min-h-[40px] rounded-md border border-rose-500/40 bg-rose-500/15 px-3 text-xs font-semibold text-rose-100 hover:bg-rose-500/25"
+              >
+                현재 preview 적용
+              </button>
+              <button
+                type="button"
+                onClick={runBriefing}
+                className="min-h-[40px] rounded-md border border-emerald-500/40 bg-emerald-500/15 px-3 text-xs font-semibold text-emerald-100 hover:bg-emerald-500/25"
+              >
+                AI 요약 브리핑
+              </button>
+            </div>
+          </div>
+        ) : null}
         <Command.List className="mt-3 max-h-[60vh] overflow-auto text-sm">
           {query === "" && recent.length > 0 ? (
             <Command.Group heading="Recent" className="mb-3 text-xs text-slate-400">

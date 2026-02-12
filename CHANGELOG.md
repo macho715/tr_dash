@@ -9,6 +9,26 @@
 
 ### Added
 
+- **AI explain_why · navigate_query 확장 (2026-02-12)**:
+  - **explain_why**: "Why is this delayed?" → 선택된 activity의 planned/actual/blocker/status 요약. `selectedActivityId` 전달 시 Evidence/History 맥락 강화. fallback 시 activity 데이터로 자동 요약 생성.
+  - **navigate_query**: "Where is TR-3 now?" / "When does V3 Load-out start?" → target(where|when|what)에 따라 Map 스크롤 또는 Timeline/Detail 포커스. `onNavigateToMap` 콜백으로 handleWhereClick 연동. filter → affected_activities 자동 해석.
+  - 파일: `lib/ops/ai-intent.ts`, `app/api/nl-command/route.ts`, `components/ops/UnifiedCommandPalette.tsx`, `app/page.tsx`, `scripts/smoke-nl-intent.ts`, `docs/AI_FEATURES.md`.
+- **2모델 AI Dual-pass Intent Guard (2026-02-11)**:
+  - 1차 모델(OLLAMA_MODEL) 파싱 후 2차 리뷰 모델(OLLAMA_REVIEW_MODEL) 검증. 엄격 intent(apply_preview, set_mode, high-risk)에서 모호 판정 시 `unclear` 전환.
+  - `recommendations.what_if_shift_days` 자동 생성. `governance_checks`(CONFIRM_REQUIRED, APPLY_PREVIEW_REF, MODE_ALLOWED 등) 반환.
+  - AIExplainDialog: 모델 trace, what-if 제안, governance 체크 UI 표시. route.ts, ai-intent.ts, AIExplainDialog.tsx.
+- **AI LLM 타임아웃·Fallback·컨텍스트 축소 (2026-02-11)**:
+  - `AI_PROVIDER_TIMEOUT_MS`(기본 9초) LLM 타임아웃.
+  - 응답 깨짐/타임아웃 시 자연어 규칙 파서로 즉시 intent 반환(fast fallback).
+  - `AI_MAX_ACTIVITY_CONTEXT`(기본 48) — 쿼리 관련 activity만 전송해 속도 개선.
+  - provider 실패 시 503 대신 fallback 결과 반환.
+- **FilterDrawer 모듈 (2026-02-11)**: `components/dashboard/FilterDrawer.tsx` — named/default export 둘 다 제공, 모바일 UX용 필터 드로어.
+- **Release Split Deployment (General vs Mobile) (2026-02-11)**:
+  - 단일 개발 저장소에서 일반/모바일 배포 경로 분리. `release/general→origin/main`, `release/mobile→mobile-origin/main` 가드레일.
+  - `.husky/pre-push` + `scripts/release/pre-push-guard.ps1`로 `develop→main` 직접 push 및 교차 레포 push 차단.
+  - `release:general`, `release:mobile`, `release:verify` (package.json). `AssertNoTrackedSecrets` 등 common.ps1 가드.
+  - 모바일 배포: `trdash-mobile` Vercel 프로젝트, `https://trdash-mobile.vercel.app`. `NEXT_PUBLIC_GANTT_ENGINE=vis` 3환경 반영.
+  - 문서: [docs/ops/release-split.md](docs/ops/release-split.md), [docs/ops/release-history-20260211.md](docs/ops/release-history-20260211.md).
 - **Merge 정리 및 Reflow 통합 (2026-02-11)**:
   - page.tsx: Gantt/Detail 충돌 클릭 → `handleCollisionCardOpen` 통일, `detailPanelRef`·WhyPanel(`onJumpToHistory`, `onOpenWhyDetail`) 유지, #water-tide 해시 동기화(775), Compare KPI 카드 드릴다운(790), 배너 연결(834).
   - MapPanel.tsx: 맵 안정화(`mapInstanceKey` + `mapContentVisible`), Map → `onCollisionClick` 공통 핸들러 전달.

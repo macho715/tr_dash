@@ -1,14 +1,14 @@
 ---
 doc_id: layout
 refs: [../patch.md, ../AGENTS.md, SYSTEM_ARCHITECTURE.md, plan/plan_patchmain_14.md]
-updated: 2026-02-11
+updated: 2026-02-12
 ---
 
 # HVDC TR Transport Dashboard - Layout 문서
 
 > **버전**: 1.10.0  
-> **최종 업데이트**: 2026-02-11  
-> **최신 작업 반영**: 2026-02-11 — Merge 정리·충돌 UX 통일, Typecheck/Lint 0 errors. Reflow: dependency cascade preview 경로 통일. TideOverlayGantt: 가이던스 자동/View guidance 수동. Voyage Map View: 카드·맵 hover/select·Drift·active만 경로. 즉시 조치 3항목 체크리스트(Go→voyages/schedule/gantt). Gantt/Map/Detail 충돌 클릭·#water-tide·Compare KPI 유지. [CHANGELOG.md](../CHANGELOG.md), [TYPECHECK_AND_LINT_FAILURES.md](TYPECHECK_AND_LINT_FAILURES.md).  
+> **최종 업데이트**: 2026-02-12  
+> **최신 작업 반영**: 2026-02-12 — AI intent 확장(explain_why, navigate_query). 8개 intent, Where/When/What 질의→Map/Timeline 포커스. 이전: Merge 정리·충돌 UX 통일, Typecheck/Lint 0 errors. Reflow: dependency cascade. TideOverlayGantt: 가이던스 자동/View guidance 수동. Voyage Map View: 카드·맵·Drift·active만 경로. 즉시 조치 3항목 체크리스트. [CHANGELOG.md](../CHANGELOG.md), [AI_FEATURES.md](AI_FEATURES.md).  
 > **프로젝트**: HVDC TR Transport Dashboard - AGI Site  
 > **SSOT**: patch.md, option_c.json (AGENTS.md)
 
@@ -42,7 +42,7 @@ HVDC TR Transport Dashboard는 **Al Ghallan Island (AGI) Site**의 7개 Transfor
 - **Sticky Navigation**: 섹션 간 빠른 이동
 - **Dark Mode**: Deep Ocean 테마 적용
 - **AGI Operations**: 스케줄 업데이트 및 명령 처리
-- **AI Command Palette (Phase 1)**: 자연어 명령 입력 -> intent 리뷰 -> Confirm 후 실행. ambiguity는 옵션 버튼으로 재질의.
+- **AI Command Palette (Phase 1 · 2026-02-12 확장)**: 자연어 명령 입력 → intent 리뷰 → Confirm 후 실행. 8개 intent: shift, bulk, conflict, **explain_why**(Why 2-click 요약), **navigate_query**(Where/When/What→Map/Timeline 포커스), mode, apply, unclear. ambiguity는 옵션 버튼으로 재질의. `selectedActivityId` 전달 시 explain_why·navigate_query 컨텍스트 강화.
 
 ---
 
@@ -216,6 +216,7 @@ graph TB
 - 입력: Palette 상단 `Command.Input` (오픈 시 포커스 우선)
 - 리뷰: `AIExplainDialog` 모달에서 intent/risk/confidence 확인
 - 실행: `Confirm & Continue` 이후에만 의도별 다이얼로그(`BulkEditDialog`, `ConflictsDialog`) 또는 모드 전환 수행
+- intent별: shift_activities→BulkEdit, explain_conflict→ConflictsDialog, explain_why→toast 요약, navigate_query→Map/Timeline 포커스, set_mode→모드 전환, apply_preview→Apply
 
 ### 6. SectionNav (`components/dashboard/section-nav.tsx`)
 

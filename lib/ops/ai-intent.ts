@@ -4,8 +4,11 @@ export type AiIntent =
   | "shift_activities"
   | "prepare_bulk"
   | "explain_conflict"
+  | "explain_why"
+  | "navigate_query"
   | "set_mode"
   | "apply_preview"
+  | "briefing"
   | "unclear";
 
 export type ShiftFilter = {
@@ -37,6 +40,16 @@ export type ExplainConflictParams = {
   };
 };
 
+export type ExplainWhyParams = {
+  target_activity_id?: string;
+  summary?: string;
+};
+
+export type NavigateQueryParams = {
+  target?: "where" | "when" | "what";
+  filter?: ShiftFilter;
+};
+
 export type SetModeParams = {
   mode: "live" | "history" | "approval" | "compare";
   reason?: string;
@@ -54,6 +67,8 @@ export type AiIntentResult = {
     action?: ShiftAction;
   } & Partial<PrepareBulkParams> &
     Partial<ExplainConflictParams> &
+    Partial<ExplainWhyParams> &
+    Partial<NavigateQueryParams> &
     Partial<SetModeParams> &
     Partial<ApplyPreviewParams>;
   ambiguity?: {
@@ -65,4 +80,30 @@ export type AiIntentResult = {
   confidence: number;
   risk_level: AiRiskLevel;
   requires_confirmation: true;
+  model_trace?: {
+    provider: "ollama" | "openai";
+    primary_model?: string;
+    review_model?: string;
+    review_verdict?: "approve" | "clarify";
+    review_reason?: string;
+  };
+  recommendations?: {
+    what_if_shift_days?: number[];
+    next_steps?: string[];
+  };
+  governance_checks?: Array<{
+    code: string;
+    status: "pass" | "warn" | "fail";
+    message: string;
+  }>;
+  briefing?: {
+    where: string;
+    when_what: string;
+    evidence_gap: string;
+  };
+  impact_preview?: {
+    impacted_activities: number;
+    estimated_conflicts: number;
+    risk_level: AiRiskLevel;
+  };
 };

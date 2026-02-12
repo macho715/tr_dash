@@ -30,6 +30,8 @@
 - `shift_activities`
 - `prepare_bulk`
 - `explain_conflict`
+- `explain_why` — Why 2-click 요약: "Why is this delayed?" → Evidence/History 요약
+- `navigate_query` — Where/When/What 질의: "Where is TR-3 now?" → Map/Detail 포커스
 - `set_mode`
 - `apply_preview`
 - `unclear`
@@ -58,8 +60,11 @@
 관련 환경 변수:
 
 - `AI_PROVIDER=ollama`
-- `OLLAMA_MODEL=exaone3.5:7.8b`
+- `OLLAMA_MODEL=exaone3.5:7.8b` (1차 파싱)
+- `OLLAMA_REVIEW_MODEL` (2차 리뷰, Dual-pass 시)
 - `OLLAMA_BASE_URL=http://127.0.0.1:11434`
+- `AI_PROVIDER_TIMEOUT_MS` (기본 9000) — LLM 호출 타임아웃
+- `AI_MAX_ACTIVITY_CONTEXT` (기본 48) — 쿼리 관련 activity 최대 개수, 전송 컨텍스트 축소
 - `OPENAI_API_KEY` (fallback용)
 - `OPENAI_MODEL` (선택)
 
@@ -67,6 +72,32 @@
 
 - OpenAI 키가 없거나 짧은 플레이스홀더 값이면 OpenAI 경로는 자동 제외
 - OpenAI가 실패해도 Ollama 경로가 살아 있으면 전체 기능은 계속 동작
+
+---
+
+## 3.1 Dual-pass Intent Guard (2026-02-11)
+
+2모델 기반 검증:
+
+1. **1차 파싱**: `OLLAMA_MODEL`로 intent 파싱
+2. **2차 리뷰**: `OLLAMA_REVIEW_MODEL`로 검증. 엄격 intent(apply_preview, set_mode, high-risk)에서 모호 판정 시 `unclear` 전환
+3. **일반 intent** (shift/prepare): 실행 의도 유지, `SECONDARY_REVIEW_NOTE` 경고만 추가 (fail-soft)
+
+---
+
+## 3.2 What-if 추천 · Governance 체크
+
+- **What-if**: `shift_activities` 결과에 `recommendations.what_if_shift_days` 자동 생성
+- **Governance 체크리스트**: `governance_checks` 필드 — CONFIRM_REQUIRED, APPLY_PREVIEW_REF, MODE_ALLOWED, HIGH_RISK_CONFIRM 등
+- **AIExplainDialog**: 모델 trace, what-if 제안, governance 체크 UI 표시
+
+---
+
+## 3.3 LLM 타임아웃 · Fallback · 컨텍스트 축소 (2026-02-11)
+
+- **타임아웃**: `AI_PROVIDER_TIMEOUT_MS`(기본 9초). LLM 응답 지연 시 자동 중단.
+- **빠른 fallback 파싱**: 모델 응답 깨짐/타임아웃 시 자연어 규칙 파서로 즉시 intent 반환. 503 대신 fallback 결과 반환.
+- **활동 컨텍스트 축소**: 쿼리 관련 activity만 최대 `AI_MAX_ACTIVITY_CONTEXT`(기본 48)개 전송. 속도 개선.
 
 ---
 
@@ -80,19 +111,21 @@
 {
   "query": "Move Voyage 3 by 2 days",
   "activities": [],
-  "clarification": "Voyage 3"
+  "clarification": "Voyage 3",
+  "selectedActivityId": "A-300-LOADOUT"
 }
 ```
 
 - `clarification`은 선택이며 ambiguity 재질의 시 사용
+- `selectedActivityId`는 선택이며, explain_why 시 현재 선택된 activity에 대한 요약 생성에 사용
 
 응답/오류 정책:
 
-- `200`: 정상 intent 파싱
+- `200`: 정상 intent 파싱 (provider 실패 시 fallback 규칙 파서 결과로 200 반환)
 - `400`: 필수 입력 누락 (`query`/`activities`)
 - `422`: 정책 위반 (`apply_preview.preview_ref`, `set_mode` 값)
 - `429`: provider rate limit
-- `503`: provider 전체 실패
+- `503`: provider 전체 실패 (fallback 사용 시 회피)
 - `500`: JSON 파싱 실패/응답 구조 오류
 
 정책 강제:
@@ -120,6 +153,8 @@ Intent별 실행 매핑:
 - `shift_activities`: filter/action 기반 anchor 생성 -> `BulkEditDialog`
 - `prepare_bulk`: anchors 검증 -> `BulkEditDialog`
 - `explain_conflict`: `ConflictsDialog` 열기
+- `explain_why`: AIExplainDialog에 요약 표시 후 Confirm 시 toast로 요약 재표시
+- `navigate_query`: target(where/when/what)에 따라 Map 스크롤 또는 Timeline/Detail 포커스
 - `set_mode`: 모드 전환 + read-only 안내 메시지
 - `apply_preview`: live 모드 + preview 존재 시에만 적용
 - `unclear`: 직접 실행 없음
@@ -206,6 +241,7 @@ pnpm run smoke:nl-intent
 
 ## 11. 관련 문서
 
+- `docs/WORK_LOG_20260211.md` (2모델 AI, FilterDrawer 포함)
 - `docs/WORK_LOG_20260210_AI_UPGRADE.md`
 - `docs/NL_COMMAND_INTERFACE_IMPLEMENTATION_REPORT.md`
 - `docs/NL_COMMAND_INTERFACE_COMPLETE.md`
