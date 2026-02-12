@@ -122,7 +122,7 @@ describe("/api/nl-command", () => {
 
   it("falls back to Ollama when OpenAI fails", async () => {
     process.env.AI_PROVIDER = "";
-    process.env.OPENAI_API_KEY = "sk-valid-key-long-enough-1234567890";
+    process.env.OPENAI_API_KEY = "test-openai-key-long-enough-1234567890";
     openaiCreateMock.mockRejectedValueOnce({ status: 429, message: "rate limited" });
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
