@@ -42,6 +42,9 @@ import { GanttSection } from "@/components/dashboard/sections/gantt-section"
 import { WaterTidePanel } from "@/components/dashboard/sections/water-tide-section"
 import { WidgetErrorBoundary, WidgetErrorFallback } from "@/components/dashboard/WidgetErrorBoundary"
 import { scheduleActivities } from "@/lib/data/schedule-data"
+import { ProjectProgressRing } from "@/components/dashboard/ProjectProgressRing"
+import { ActivityStatusBoard } from "@/components/dashboard/ActivityStatusBoard"
+import { WeatherGoNoGo } from "@/components/dashboard/WeatherGoNoGo"
 import { voyages, PROJECT_END_DATE } from "@/lib/dashboard-data"
 import {
   runAgiOpsPipeline,
@@ -832,6 +835,28 @@ export default function Page() {
 
             <div className="flex flex-1 flex-col min-h-0 space-y-6">
               <KPISection />
+
+              {/* Project Health + TR Status + Weather Go/No-Go */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <ProjectProgressRing
+                  activities={activities}
+                  slackMap={slackMap}
+                  conflicts={conflicts}
+                />
+                <ActivityStatusBoard
+                  activities={activities}
+                  onVoyageClick={(idx) => setSelectedVoyage(voyages[idx] ?? null)}
+                  onActivityClick={(id) => {
+                    const act = activities.find(a => a.activity_id === id)
+                    if (act) handleActivityClick(id, act.planned_start)
+                  }}
+                />
+                <WeatherGoNoGo
+                  forecast={weatherForecast}
+                  limits={weatherLimits}
+                />
+              </div>
+
               <AlertsSection activities={activities} />
               <TrThreeColumnLayout
                 mapSlot={
