@@ -4,8 +4,12 @@ import { Ship } from "lucide-react"
 import Link from "next/link"
 import { DatePicker } from "@/components/dashboard/date-picker"
 
+const UNIFIED_COMMAND_PALETTE_ENABLED =
+  process.env.NEXT_PUBLIC_UNIFIED_COMMAND_PALETTE === "true"
+
 export function DashboardHeader() {
   const openAiCommand = () => {
+    if (!UNIFIED_COMMAND_PALETTE_ENABLED) return
     if (typeof window === "undefined") return
     window.dispatchEvent(
       new CustomEvent("tr:open-command-palette", {
@@ -40,15 +44,17 @@ export function DashboardHeader() {
       <div className="pt-4 border-t border-accent/20 flex flex-wrap items-center justify-between gap-3">
         <DatePicker />
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={openAiCommand}
-            className="inline-flex min-h-[44px] items-center rounded-md border border-fuchsia-400/40 bg-fuchsia-500/15 px-3 py-2 text-xs font-semibold text-fuchsia-100 hover:bg-fuchsia-500/25"
-            aria-label="Open AI Command Palette"
-            title="Open AI Command Palette (Ctrl/⌘+K)"
-          >
-            AI Command
-          </button>
+          {UNIFIED_COMMAND_PALETTE_ENABLED ? (
+            <button
+              type="button"
+              onClick={openAiCommand}
+              className="inline-flex min-h-[44px] items-center rounded-md border border-fuchsia-400/40 bg-fuchsia-500/15 px-3 py-2 text-xs font-semibold text-fuchsia-100 hover:bg-fuchsia-500/25"
+              aria-label="Open AI Command Palette"
+              title="Open AI Command Palette (Ctrl/⌘+K)"
+            >
+              AI Command
+            </button>
+          ) : null}
           <Link
             href="/tide-gantt"
             className="inline-flex min-h-[44px] items-center rounded-md border border-cyan-400/40 bg-cyan-500/15 px-3 py-2 text-xs font-semibold text-cyan-100 hover:bg-cyan-500/25"
