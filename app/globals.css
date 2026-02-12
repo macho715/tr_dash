@@ -142,6 +142,26 @@ body::before {
 
 /* Custom utility classes */
 @layer utilities {
+  .touch-target {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .text-mobile-heading {
+    font-size: 1.125rem;
+    line-height: 1.3;
+  }
+
+  .text-mobile-body {
+    font-size: 0.875rem;
+    line-height: 1.45;
+  }
+
+  .text-mobile-caption {
+    font-size: 0.75rem;
+    line-height: 1.35;
+  }
+
   .bg-glass {
     background: rgba(30, 41, 59, 0.6);
     backdrop-filter: blur(20px);
@@ -157,6 +177,19 @@ body::before {
   
   .shadow-voyage {
     box-shadow: 0 12px 40px rgba(6, 182, 212, 0.2);
+  }
+}
+
+@media (max-width: 768px) {
+  body {
+    font-size: 14px;
+    line-height: 1.45;
+  }
+
+  .mobile-truncate-1 {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 }
 

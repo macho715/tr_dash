@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 import { Ship, Sailboat } from "lucide-react"
 import { voyages } from "@/lib/dashboard-data"
 import { getTideForVoyage } from "@/lib/data/tide-data"
@@ -15,6 +15,7 @@ import {
   riskColor,
   toRiskBand,
 } from "@/lib/tr/voyage-map-view"
+import { MOBILE_UX_FLAGS } from "@/lib/feature-flags"
 
 type Voyage = (typeof voyages)[number]
 
@@ -43,6 +44,7 @@ export function VoyageCards({
   onHoverVoyage,
 }: VoyageCardsProps) {
   const { selectedDate } = useDate()
+  const [expandedMobileVoyage, setExpandedMobileVoyage] = useState<number | null>(null)
 
   // Show all voyages always (removed filtering)
   const displayVoyages = voyages
@@ -117,7 +119,12 @@ export function VoyageCards({
                 <div className="text-foreground text-sm font-bold mb-3 tracking-tight">
                   {v.trUnit}
                 </div>
-                <div className="font-mono text-xs text-slate-500 leading-relaxed space-y-0.5">
+                <div
+                  className={
+                    "font-mono text-xs text-slate-500 leading-relaxed space-y-0.5 " +
+                    (MOBILE_UX_FLAGS.M11_MINIMAL_TEXT ? "hidden md:block" : "")
+                  }
+                >
                   <p>
                     <strong className="text-slate-400">Load-out:</strong> {v.loadOut}
                   </p>
@@ -132,11 +139,53 @@ export function VoyageCards({
                   <Sailboat className="w-3 h-3" />
                   {v.sailDate}
                 </div>
-                <TideTable
-                  voyageNum={v.voyage}
-                  rows={getTideForVoyage(v.voyage)}
-                  className="mt-3 rounded-md border border-accent/10 overflow-hidden"
-                />
+                {MOBILE_UX_FLAGS.M11_MINIMAL_TEXT && (
+                  <button
+                    type="button"
+                    className="touch-target mt-2 w-full rounded-md border border-accent/20 bg-card/40 px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:bg-accent/15 md:hidden"
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      setExpandedMobileVoyage((prev) => (prev === v.voyage ? null : v.voyage))
+                    }}
+                  >
+                    {expandedMobileVoyage === v.voyage ? "Hide details" : "More"}
+                  </button>
+                )}
+                {MOBILE_UX_FLAGS.M11_MINIMAL_TEXT ? (
+                  <>
+                    <TideTable
+                      voyageNum={v.voyage}
+                      rows={getTideForVoyage(v.voyage)}
+                      className="mt-3 hidden overflow-hidden rounded-md border border-accent/10 md:block"
+                    />
+                    {expandedMobileVoyage === v.voyage && (
+                      <div className="mt-2 space-y-2 md:hidden">
+                        <div className="font-mono text-xs text-slate-400 leading-relaxed space-y-0.5">
+                          <p>
+                            <strong className="text-slate-300">Load-out:</strong> {v.loadOut}
+                          </p>
+                          <p>
+                            <strong className="text-slate-300">Load-in:</strong> {v.loadIn}
+                          </p>
+                          <p>
+                            <strong className="text-slate-300">Jack-down:</strong> {v.jackDown}
+                          </p>
+                        </div>
+                        <TideTable
+                          voyageNum={v.voyage}
+                          rows={getTideForVoyage(v.voyage)}
+                          className="overflow-hidden rounded-md border border-accent/10"
+                        />
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <TideTable
+                    voyageNum={v.voyage}
+                    rows={getTideForVoyage(v.voyage)}
+                    className="mt-3 overflow-hidden rounded-md border border-accent/10"
+                  />
+                )}
               </button>
             )
           })()

@@ -25,6 +25,7 @@ export function TrThreeColumnLayout({
       {/* Variable height: grows with detail when activity selected */}
       <div className="flex min-h-[200px] flex-col gap-4 lg:min-h-0" aria-label="Location and Detail">
         <aside
+          id="map"
           className="min-h-[200px] flex-shrink-0 rounded-xl border border-accent/20 bg-card/60 p-4"
           aria-label="Location (Map)"
         >

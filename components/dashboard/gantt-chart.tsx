@@ -23,21 +23,21 @@ import { loadEventLog } from "@/lib/data/event-log-loader"
 import type { VisTimelineGanttHandle, DragMovePayload } from "@/components/gantt/VisTimelineGantt"
 import { DependencyArrowsOverlay } from "@/components/gantt/DependencyArrowsOverlay"
 import { WeatherOverlay } from "@/components/gantt/WeatherOverlay"
+import { GanttSkeleton } from "@/components/dashboard/skeletons/GanttSkeleton"
 
-const VisTimelineGantt = dynamic(
-  () =>
-    import("@/components/gantt/VisTimelineGantt").then((m) => ({
-      default: m.VisTimelineGantt,
-    })),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="flex min-h-[400px] items-center justify-center rounded-lg border border-dashed border-muted-foreground/30 bg-muted/20 text-sm text-muted-foreground">
-        Loading Gantt…
-      </div>
-    ),
-  }
-)
+const loadVisTimelineGantt = () =>
+  import("@/components/gantt/VisTimelineGantt").then((m) => ({
+    default: m.VisTimelineGantt,
+  }))
+
+export function preloadVisTimelineGantt(): Promise<unknown> {
+  return loadVisTimelineGantt()
+}
+
+const VisTimelineGantt = dynamic(loadVisTimelineGantt, {
+  ssr: false,
+  loading: () => <GanttSkeleton />,
+})
 import type { GanttEventBase } from "@/lib/gantt/gantt-contract"
 import type {
   DateChange,
@@ -1541,10 +1541,12 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
                             conflicts
                           )
                           return (
-                            <span
+                            <button
+                              type="button"
                               key={k}
                               className="shrink-0 cursor-pointer rounded bg-red-900/50 px-0.5 text-[8px] text-red-200 hover:bg-red-800/60"
-                              title="Click for summary, then Why for details"
+                              title="1/2 Open collision summary"
+                              aria-label="1 of 2: open collision summary"
                               onClick={(e) => {
                                 e.stopPropagation()
                                 if (actConflicts.length > 0) {
@@ -1558,7 +1560,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
                               }}
                             >
                               {COLLISION_BADGES[k]}
-                            </span>
+                            </button>
                           )
                         })}
                       </div>
@@ -1601,6 +1603,7 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
             transform: "translate(-50%, -100%)",
           }}
         >
+          <div className="mb-1 text-[11px] font-semibold text-amber-200">1/2 Collision summary</div>
           <div className="text-xs font-bold text-red-300 mb-1">
             Collision summary
           </div>
@@ -1610,17 +1613,17 @@ export const GanttChart = forwardRef<GanttChartHandle, GanttChartProps>(function
           <div className="flex gap-1">
             <button
               type="button"
-              className="flex-1 rounded bg-red-900/50 px-2 py-1 text-xs font-medium text-red-200 hover:bg-red-800/60"
+              className="touch-target flex-1 rounded bg-red-900/50 px-2 py-1 text-xs font-medium text-red-200 hover:bg-red-800/60"
               onClick={() => {
                 onCollisionClick?.(collisionPopover.conflicts[0])
                 setCollisionPopover(null)
               }}
             >
-              Why
+              Open 2/2
             </button>
             <button
               type="button"
-              className="rounded px-2 py-1 text-xs text-slate-400 hover:text-foreground"
+              className="touch-target rounded px-2 py-1 text-xs text-slate-400 hover:text-foreground"
               onClick={() => setCollisionPopover(null)}
             >
               Close

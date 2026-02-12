@@ -1,72 +1,69 @@
-"use client";
+"use client"
 
-import * as React from "react";
+import * as React from "react"
 
-export type FilterDrawerProps = {
-  open: boolean;
-  title?: string;
-  onOpenChange: (open: boolean) => void;
-  children?: React.ReactNode;
-  triggerLabel?: string;
-  className?: string;
-};
+type FilterDrawerProps = {
+  open: boolean
+  title?: string
+  onClose?: () => void
+  onOpenChange?: (open: boolean) => void
+  children: React.ReactNode
+  className?: string
+}
 
-/**
- * Mobile-friendly filter drawer.
- * Keeps implementation lightweight and dependency-free for fail-soft usage.
- */
 export function FilterDrawer({
   open,
   title = "Filters",
+  onClose,
   onOpenChange,
   children,
-  triggerLabel = "Filters",
   className = "",
 }: FilterDrawerProps) {
+  const close = React.useCallback(() => {
+    if (onOpenChange) {
+      onOpenChange(false)
+      return
+    }
+    onClose?.()
+  }, [onClose, onOpenChange])
+
+  React.useEffect(() => {
+    if (!open) return
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") close()
+    }
+    window.addEventListener("keydown", onKeyDown)
+    return () => window.removeEventListener("keydown", onKeyDown)
+  }, [open, close])
+
+  if (!open) return null
+
   return (
-    <>
+    <div className="fixed inset-0 z-[70] md:hidden" aria-label="Filter Drawer" role="dialog" aria-modal="true">
       <button
         type="button"
-        onClick={() => onOpenChange(true)}
-        className="min-h-[44px] min-w-[44px] rounded-md border border-input bg-background px-3 text-sm font-medium text-foreground hover:bg-accent/30"
-        aria-haspopup="dialog"
-        aria-expanded={open ? "true" : "false"}
-        aria-label={triggerLabel}
+        className="absolute inset-0 bg-black/50"
+        onClick={close}
+        aria-label="Close filters"
+      />
+      <div
+        className={`absolute inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto rounded-t-2xl border border-accent/20 bg-card/95 p-4 shadow-2xl backdrop-blur-xl ${className}`}
       >
-        {triggerLabel}
-      </button>
-
-      {open ? (
-        <div className="fixed inset-0 z-50" role="presentation">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-mobile-heading font-semibold">{title}</h2>
           <button
             type="button"
-            className="absolute inset-0 bg-black/50"
+            onClick={close}
+            className="touch-target rounded-lg border border-accent/20 bg-card/80 px-3 text-sm"
             aria-label="Close filters"
-            onClick={() => onOpenChange(false)}
-          />
-          <section
-            role="dialog"
-            aria-modal="true"
-            aria-label={title}
-            className={`absolute bottom-0 left-0 right-0 rounded-t-2xl border border-slate-700 bg-slate-950 p-4 shadow-2xl ${className}`}
           >
-            <header className="mb-3 flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-slate-100">{title}</h2>
-              <button
-                type="button"
-                onClick={() => onOpenChange(false)}
-                className="min-h-[44px] min-w-[44px] rounded-md border border-input px-3 text-sm text-slate-200 hover:bg-slate-800"
-                aria-label="Close"
-              >
-                Close
-              </button>
-            </header>
-            <div>{children}</div>
-          </section>
+            Close
+          </button>
         </div>
-      ) : null}
-    </>
-  );
+        <div className="space-y-3">{children}</div>
+      </div>
+    </div>
+  )
 }
 
-export default FilterDrawer;
+export default FilterDrawer

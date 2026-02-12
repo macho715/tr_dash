@@ -79,6 +79,12 @@
   - **OperationalNotice** (alerts.tsx): 체크박스·완료율(n/3 done)·Go 버튼. 항목1 Go → `onSelectVoyageNo(1)` + `onNavigateSection("voyages")`, 항목2 → `onNavigateSection("schedule")`, 항목3 → `onNavigateSection("gantt")`. 선택일 라벨 유지.
   - **AlertsSection** props: `onSelectVoyageNo?`, `onNavigateSection?`. **page.tsx**: `handleNavigateSection`(scrollIntoView), AlertsSection에 콜백 전달·voyage 선택 연동.
   - **테스트**: immediate-actions.test.ts(날짜 키·round-trip·invalid JSON), alerts.test.tsx(토글 완료율·날짜별 상태 분리·Go 콜백 payload). tsc 통과.
+- **T1: Gantt/Map 지연 로딩·스켈레톤·근접 선로딩·fail-soft (2026-02-11)**:
+  - **Map**: MapPanelWrapper — lazy 경계 단일화, 내부 dynamic 제거·MapPanel 정적 import. `preloadMapPanel()` export. 로딩 시 MapPanelSkeleton. ErrorBoundary fallback → MapListFallback. `id="map"` 보장(tr-three-column-layout).
+  - **Gantt**: gantt-chart — loader 분리(`loadVisTimelineGantt`), `preloadVisTimelineGantt()` export. 로딩 UI GanttSkeleton. ErrorBoundary fallback → GanttListFallback.
+  - **스켈레톤**: MapPanelSkeleton.tsx, GanttSkeleton.tsx. **fail-soft**: MapListFallback.tsx, GanttListFallback.tsx.
+  - **근접 선로딩**: `lib/perf/use-near-viewport-preload.ts` — viewport 근접 시 map/gantt preload. page.tsx에서 Map wrapper loader + preload, `useNearViewportPreload` 2회(map, gantt), ErrorBoundary fallback 연결.
+  - **테스트**: MapPanelWrapper.loading.test.tsx, gantt-loading.test.tsx, use-near-viewport-preload.test.ts, widget-failsoft-fallback.test.tsx. tsc·build 통과. (gantt-loading 시 act 경고 있으나 통과.)
 
 - **AI Command Phase 1 업그레이드 (2026-02-10)**: Unified Command Palette AI 실행 흐름 고도화.
   - `/api/nl-command` intent 계약 확장: `shift_activities|prepare_bulk|explain_conflict|set_mode|apply_preview|unclear`
