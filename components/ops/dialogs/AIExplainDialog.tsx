@@ -224,7 +224,7 @@ export function AIExplainDialog({
               disabled={!canExecute}
               className="rounded-lg bg-purple-600/80 px-4 py-2 text-sm font-medium text-white hover:bg-purple-500/80 disabled:cursor-not-allowed disabled:opacity-40"
             >
-              Confirm & Continue
+              {aiResult.intent === "briefing" ? "Got it" : "Confirm & Continue"}
             </button>
           </div>
         </Dialog.Content>
