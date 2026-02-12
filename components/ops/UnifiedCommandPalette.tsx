@@ -602,9 +602,8 @@ export function UnifiedCommandPalette({
       }
       if (aiResult.intent === "briefing") {
         return {
-          canExecute: false,
-          blockReason: "Briefing is read-only. No execution is needed.",
-          actionSummary: "Review 3-line briefing (Where / What / Evidence gap).",
+          canExecute: true,
+          actionSummary: "Dismiss briefing and close dialog.",
         };
       }
       if (aiResult.intent === "apply_preview") {

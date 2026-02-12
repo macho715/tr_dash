@@ -143,8 +143,8 @@ describe("AIExplainDialog", () => {
       <AIExplainDialog
         open={true}
         aiResult={withBriefing}
-        canExecute={false}
-        actionSummary="Review briefing only"
+        canExecute={true}
+        actionSummary="Dismiss briefing and close dialog."
         onConfirm={vi.fn()}
         onCancel={vi.fn()}
       />
