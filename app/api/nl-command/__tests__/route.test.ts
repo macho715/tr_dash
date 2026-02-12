@@ -40,11 +40,17 @@ const activities: MinimalActivity[] = [
   },
 ];
 
-function makeRequest(query: string, data = activities) {
+function makeRequest(
+  query: string,
+  data = activities,
+  selectedActivityId?: string | null
+) {
+  const body: Record<string, unknown> = { query, activities: data };
+  if (selectedActivityId != null) body.selectedActivityId = selectedActivityId;
   return new NextRequest("http://localhost:3000/api/nl-command", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ query, activities: data }),
+    body: JSON.stringify(body),
   });
 }
 
@@ -297,5 +303,45 @@ describe("/api/nl-command", () => {
       Array.isArray(body.governance_checks) &&
         body.governance_checks.some((c: { code?: string }) => c.code === "SECONDARY_REVIEW_NOTE")
     ).toBe(true);
+  });
+
+  it("parses explain_why from fallback when provider fails", async () => {
+    global.fetch = vi.fn().mockRejectedValue(new Error("Ollama unavailable"));
+
+    const activitiesWithActual = [
+      {
+        ...activities[0],
+        actual_start: "2026-02-15",
+        planned_start: "2026-02-12",
+        planned_finish: "2026-02-13",
+        blocker_code: "PTW",
+      },
+    ];
+
+    const { POST } = await loadRoute();
+    const res = await POST(makeRequest("Why is this delayed?", activitiesWithActual, "A300"));
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body.intent).toBe("explain_why");
+    expect(body.parameters?.target_activity_id).toBe("A300");
+    expect(body.explanation).toMatch(/Load-out|A300|2026-02-12|2026-02-15|PTW/);
+    expect(body.requires_confirmation).toBe(true);
+  });
+
+  it("parses navigate_query from fallback and resolves affected_activities", async () => {
+    global.fetch = vi.fn().mockRejectedValue(new Error("Ollama unavailable"));
+
+    const { POST } = await loadRoute();
+    const res = await POST(makeRequest("Where is TR-3 now?"));
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body.intent).toBe("navigate_query");
+    expect(body.parameters?.target).toBe("where");
+    expect(body.parameters?.filter?.tr_unit_ids).toContain("TR-3");
+    expect(Array.isArray(body.affected_activities)).toBe(true);
+    expect(body.affected_activities).toContain("A300");
+    expect(body.requires_confirmation).toBe(true);
   });
 });

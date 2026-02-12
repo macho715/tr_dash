@@ -13,6 +13,11 @@
   - 1차 모델(OLLAMA_MODEL) 파싱 후 2차 리뷰 모델(OLLAMA_REVIEW_MODEL) 검증. 엄격 intent(apply_preview, set_mode, high-risk)에서 모호 판정 시 `unclear` 전환.
   - `recommendations.what_if_shift_days` 자동 생성. `governance_checks`(CONFIRM_REQUIRED, APPLY_PREVIEW_REF, MODE_ALLOWED 등) 반환.
   - AIExplainDialog: 모델 trace, what-if 제안, governance 체크 UI 표시. route.ts, ai-intent.ts, AIExplainDialog.tsx.
+- **AI LLM 타임아웃·Fallback·컨텍스트 축소 (2026-02-11)**:
+  - `AI_PROVIDER_TIMEOUT_MS`(기본 9초) LLM 타임아웃.
+  - 응답 깨짐/타임아웃 시 자연어 규칙 파서로 즉시 intent 반환(fast fallback).
+  - `AI_MAX_ACTIVITY_CONTEXT`(기본 48) — 쿼리 관련 activity만 전송해 속도 개선.
+  - provider 실패 시 503 대신 fallback 결과 반환.
 - **FilterDrawer 모듈 (2026-02-11)**: `components/dashboard/FilterDrawer.tsx` — named/default export 둘 다 제공, 모바일 UX용 필터 드로어.
 - **Release Split Deployment (General vs Mobile) (2026-02-11)**:
   - 단일 개발 저장소에서 일반/모바일 배포 경로 분리. `release/general→origin/main`, `release/mobile→mobile-origin/main` 가드레일.

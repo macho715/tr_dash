@@ -33,7 +33,7 @@ describe("AIExplainDialog", () => {
     );
 
     expect(screen.getByText(/intent: prepare_bulk/i)).toBeTruthy();
-    expect(screen.getByText(/confidence: 85%/i)).toBeTruthy();
+    expect(screen.getByText(/confidence: high \(85%\)/i)).toBeTruthy();
     expect(screen.getByText(/risk: medium/i)).toBeTruthy();
     expect(screen.getByText(/confirm: required/i)).toBeTruthy();
     expect(screen.getByText(/Open Bulk Edit with AI anchors/i)).toBeTruthy();
@@ -121,5 +121,38 @@ describe("AIExplainDialog", () => {
     expect(screen.getByText(/shift \+1d/i)).toBeTruthy();
     expect(screen.getByText(/Governance Checks/i)).toBeTruthy();
     expect(screen.getByText(/CONFIRM_REQUIRED/i)).toBeTruthy();
+  });
+
+  it("renders 3-line briefing and impact preview chips", () => {
+    const withBriefing: AiIntentResult = {
+      ...baseResult,
+      intent: "briefing",
+      briefing: {
+        where: "TR-3 · V3 · LOADOUT",
+        when_what: "Load-out (2026-02-12 -> 2026-02-13)",
+        evidence_gap: "증빙 부족 2건",
+      },
+      impact_preview: {
+        impacted_activities: 4,
+        estimated_conflicts: 1,
+        risk_level: "low",
+      },
+    };
+
+    render(
+      <AIExplainDialog
+        open={true}
+        aiResult={withBriefing}
+        canExecute={false}
+        actionSummary="Review briefing only"
+        onConfirm={vi.fn()}
+        onCancel={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText(/AI 요약 브리핑 \(3줄\)/i)).toBeTruthy();
+    expect(screen.getByText(/어디: TR-3/i)).toBeTruthy();
+    expect(screen.getByText(/영향 활동 수: 4/i)).toBeTruthy();
+    expect(screen.getByText(/추정 충돌 수: 1/i)).toBeTruthy();
   });
 });

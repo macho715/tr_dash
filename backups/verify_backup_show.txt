@@ -1,0 +1,9 @@
+commit c6abe630ddd68c08a955a9e2fd9c90c51c97de0c
+Author: Cha <mscho715@gmail.com>
+Date:   Wed Feb 11 22:59:56 2026 +0400
+
+    backup: pre mobile ux implementation snapshot
+
+backups/pre_mobileux_head.txt
+backups/pre_mobileux_status.txt
+docs/plan/mobile-ux-implementation-plan-20260211.md

@@ -5,6 +5,15 @@ import Link from "next/link"
 import { DatePicker } from "@/components/dashboard/date-picker"
 
 export function DashboardHeader() {
+  const openAiCommand = () => {
+    if (typeof window === "undefined") return
+    window.dispatchEvent(
+      new CustomEvent("tr:open-command-palette", {
+        detail: { aiMode: true },
+      })
+    )
+  }
+
   return (
     <header className="bg-glass backdrop-blur-xl p-7 rounded-2xl mb-6 border border-accent/40 shadow-glow">
       <div className="flex justify-between items-center mb-4">
@@ -30,12 +39,23 @@ export function DashboardHeader() {
       </div>
       <div className="pt-4 border-t border-accent/20 flex flex-wrap items-center justify-between gap-3">
         <DatePicker />
-        <Link
-          href="/tide-gantt"
-          className="inline-flex items-center rounded-md border border-cyan-400/40 bg-cyan-500/15 px-3 py-2 text-xs font-semibold text-cyan-100 hover:bg-cyan-500/25"
-        >
-          Open Tide Gantt
-        </Link>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={openAiCommand}
+            className="inline-flex min-h-[44px] items-center rounded-md border border-fuchsia-400/40 bg-fuchsia-500/15 px-3 py-2 text-xs font-semibold text-fuchsia-100 hover:bg-fuchsia-500/25"
+            aria-label="Open AI Command Palette"
+            title="Open AI Command Palette (Ctrl/⌘+K)"
+          >
+            AI Command
+          </button>
+          <Link
+            href="/tide-gantt"
+            className="inline-flex min-h-[44px] items-center rounded-md border border-cyan-400/40 bg-cyan-500/15 px-3 py-2 text-xs font-semibold text-cyan-100 hover:bg-cyan-500/25"
+          >
+            Open Tide Gantt
+          </Link>
+        </div>
       </div>
     </header>
   )

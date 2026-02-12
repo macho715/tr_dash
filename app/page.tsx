@@ -818,6 +818,8 @@ export default function Page() {
             setActivities={setActivities}
             onFocusActivity={focusTimelineActivity}
             viewMode={viewMode?.state.mode}
+            selectedActivityId={selectedActivityId ?? selectedCollision?.activity_id ?? focusedActivityId ?? null}
+            onNavigateToMap={handleWhereClick}
           />
         ) : null}
         {ssotError && (
