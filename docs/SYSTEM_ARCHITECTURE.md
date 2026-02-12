@@ -1,14 +1,14 @@
 ---
 doc_id: system-architecture
 refs: [../patch.md, ../AGENTS.md, LAYOUT.md, plan/plan_patchmain_14.md]
-updated: 2026-02-11
+updated: 2026-02-12
 ---
 
 # HVDC TR Transport Dashboard - 시스템 아키텍처
 
 **버전**: 1.10  
-**최종 업데이트**: 2026-02-11  
-**최신 작업 반영**: 2026-02-11 — Merge·Reflow 통합, Typecheck/Lint 0 errors. Reflow: **dependency cascade**·canonical preview 경로 통일. TideOverlayGantt: 가이던스 자동/View guidance 수동. Voyage Map View: voyage-map-view.ts·카드/맵·Drift·active만 경로. 즉시 조치: 3항목 체크리스트(immediate-actions.ts)·AlertsSection onSelectVoyageNo/onNavigateSection·page handleNavigateSection. 권위 진입점 schedule-reflow-manager.ts, freeze_lock_violations, #water-tide·Compare KPI 유지. History append-only tombstone. [TYPECHECK_AND_LINT_FAILURES.md](TYPECHECK_AND_LINT_FAILURES.md).
+**최종 업데이트**: 2026-02-12  
+**최신 작업 반영**: 2026-02-12 — AI intent 확장(explain_why, navigate_query). 8개 intent, selectedActivityId·onNavigateToMap. 이전: Merge·Reflow·Typecheck/Lint 0 errors. Reflow: dependency cascade preview 경로 통일. TideOverlayGantt: 가이던스 자동/View guidance 수동. Voyage Map View: 카드/맵·Drift·active만 경로. 즉시 조치 3항목 체크리스트. [TYPECHECK_AND_LINT_FAILURES.md](TYPECHECK_AND_LINT_FAILURES.md).
 
 **프로젝트**: HVDC TR Transport - AGI Site Logistics Dashboard  
 **SSOT**: patch.md, option_c.json (AGENTS.md)
@@ -67,7 +67,7 @@ HVDC TR Transport Dashboard는 **7개의 Transformer Unit**을 **LCT BUSHRA**로
 | **P1-4 GanttLegendDrawer** | 범례 태그 클릭 → 우측 Drawer에 정의·의사결정 영향 표시. `lib/gantt-legend-guide.ts`(LegendDefinition: stage/constraint/collision/meta) 기반. 2-click 내 도달. |
 | **MapLegend** | `MapPanel` 좌하단 오버레이. TR 상태(Planned/Ready/In progress/Completed/Blocked/Delayed) 색상·충돌(Blocking/Warning) 배지. patch §4.1, `lib/ssot/map-status-colors.ts` 연동. |
 | **Vis Gantt 패치·UX** | [visganttpatch.md](../visganttpatch.md) 참조. `gantt-chart.tsx`의 `useVisEngine`(= `NEXT_PUBLIC_GANTT_ENGINE` trim/toLowerCase `"vis"`)으로 vis-timeline(VisTimelineGantt) vs 자체 렌더 전환. `.env.local` 예: `NEXT_PUBLIC_GANTT_ENGINE=vis`, `PORT=3001`. `lib/gantt/visTimelineMapper.ts`: GanttRow → Vis groups/items, 동일일 막대 보정(min 1-day). VisTimelineGantt: DataSet, customTime(Selected Date), editable/draggable. 액티비티 클릭 → scrollToActivity + #gantt scrollIntoView. |
-| **AI Phase 1 (2026-02-10)** | `app/api/nl-command/route.ts`: intent 파싱 API(6 intents), provider order(ollama 우선), 정책 가드(422), `clarification` 재질의 지원. `UnifiedCommandPalette`는 review-first(`pendingAiAction`→`AIExplainDialog`→Confirm)로 실행. ambiguity 옵션 클릭 시 재질의 재호출. |
+| **AI Phase 1 (2026-02-10) · 확장 (2026-02-12)** | `app/api/nl-command/route.ts`: intent 파싱 API(**8 intents**). Phase 1: shift_activities, prepare_bulk, explain_conflict, set_mode, apply_preview, unclear. **확장**: explain_why(해당 activity planned/actual/blocker 요약), navigate_query(Where/When/What → Map/Timeline 포커스). `selectedActivityId`·`onNavigateToMap` 콜백 지원. provider order(ollama 우선), 정책 가드(422), `clarification` 재질의. `UnifiedCommandPalette`는 review-first→Confirm 실행. |
 
 ---
 
@@ -370,20 +370,22 @@ Collision 배지 클릭
   → Activities 상태 업데이트
 ```
 
-### 6.1 NL Command Interface (Phase 1, 2026-02-10)
+### 6.1 NL Command Interface (Phase 1, 2026-02-10 · 확장 2026-02-12)
 
 **책임**: 자연어 명령을 SSOT 제약 하에서 안전하게 실행 가능한 intent로 변환하고, 사용자 확인 후에만 반영.
 
 **구성 요소**:
 - API: `app/api/nl-command/route.ts`
-  - 입력: `query`, `activities`, `clarification?`
-  - 출력: `intent`, `parameters`, `ambiguity`, `confidence`, `risk_level`, `requires_confirmation`
+  - 입력: `query`, `activities`, `clarification?`, `selectedActivityId?`
+  - 출력: `intent`, `parameters`, `ambiguity`, `confidence`, `risk_level`, `requires_confirmation`, `affected_activities`
+  - intent 8종: shift_activities, prepare_bulk, explain_conflict, **explain_why**, **navigate_query**, set_mode, apply_preview, unclear
   - 정책: `apply_preview.preview_ref === "current"`, `set_mode` enum 검증
   - provider: `AI_PROVIDER=ollama` 시 Ollama 우선, OpenAI fallback
 - UI: `components/ops/UnifiedCommandPalette.tsx`
-  - `runAiCommand(query, clarification?)`
+  - `runAiCommand(query, clarification?)` — `selectedActivityId`, `onNavigateToMap` prop 전달
   - confirm-first 흐름: 결과 즉시 실행 금지
   - `executeAiIntent`에서 모드/권한 가드 재확인
+  - navigate_query: target(where|when|what) → Map 스크롤 또는 Timeline/Detail 포커스
 - Review Dialog: `components/ops/dialogs/AIExplainDialog.tsx`
   - intent/risk/confidence/차단사유 표시
   - ambiguity 옵션 버튼 -> 재질의 콜백

@@ -21,6 +21,7 @@ dist
 .turbo
 .vercel
 .playwright-cli
+backups/
 
 # OS
 .DS_Store

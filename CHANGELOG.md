@@ -9,6 +9,10 @@
 
 ### Added
 
+- **AI explain_why · navigate_query 확장 (2026-02-12)**:
+  - **explain_why**: "Why is this delayed?" → 선택된 activity의 planned/actual/blocker/status 요약. `selectedActivityId` 전달 시 Evidence/History 맥락 강화. fallback 시 activity 데이터로 자동 요약 생성.
+  - **navigate_query**: "Where is TR-3 now?" / "When does V3 Load-out start?" → target(where|when|what)에 따라 Map 스크롤 또는 Timeline/Detail 포커스. `onNavigateToMap` 콜백으로 handleWhereClick 연동. filter → affected_activities 자동 해석.
+  - 파일: `lib/ops/ai-intent.ts`, `app/api/nl-command/route.ts`, `components/ops/UnifiedCommandPalette.tsx`, `app/page.tsx`, `scripts/smoke-nl-intent.ts`, `docs/AI_FEATURES.md`.
 - **2모델 AI Dual-pass Intent Guard (2026-02-11)**:
   - 1차 모델(OLLAMA_MODEL) 파싱 후 2차 리뷰 모델(OLLAMA_REVIEW_MODEL) 검증. 엄격 intent(apply_preview, set_mode, high-risk)에서 모호 판정 시 `unclear` 전환.
   - `recommendations.what_if_shift_days` 자동 생성. `governance_checks`(CONFIRM_REQUIRED, APPLY_PREVIEW_REF, MODE_ALLOWED 등) 반환.
