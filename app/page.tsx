@@ -40,6 +40,9 @@ import { GanttSection } from "@/components/dashboard/sections/gantt-section"
 import { WaterTidePanel } from "@/components/dashboard/sections/water-tide-section"
 import { WidgetErrorBoundary } from "@/components/dashboard/WidgetErrorBoundary"
 import { scheduleActivities } from "@/lib/data/schedule-data"
+import { ProjectProgressRing } from "@/components/dashboard/ProjectProgressRing"
+import { ActivityStatusBoard } from "@/components/dashboard/ActivityStatusBoard"
+import { WeatherGoNoGo } from "@/components/dashboard/WeatherGoNoGo"
 import { voyages, PROJECT_END_DATE } from "@/lib/dashboard-data"
 import {
   runAgiOpsPipeline,
