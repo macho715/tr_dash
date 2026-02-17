@@ -51,6 +51,20 @@
 
 ---
 
+## AGI TR Report (일정 최종보고서)
+
+| 에이전트 | 설명 | 모드 | 트리거 |
+|----------|------|------|--------|
+| [report-pipeline](./report-pipeline.md) | 보고서 E2E 오케스트레이션(웹근거→A~F→삽입→VERIFY→FINAL) | write | "보고서 완전 자동", "/report-pipeline" |
+| [excel-report-builder](./excel-report-builder.md) | 엑셀 v3.0 템플릿(8~18 시트)·웹근거·리프레시 E2E | write | "엑셀 보고서 자동 생성", "/excel-report-builder", "/agi-excel-report-v3" |
+| [report-weaver](./report-weaver.md) | 보고서에 스킬 산출물을 삽입 위치에 합성/반영 | write | "보고서에 삽입", "최종본 반영" |
+| [evidence-judge](./evidence-judge.md) | Evidence Scorecard·근거 충돌·VERIFY 회의적 검증 | readonly | "근거 점수", "VERIFY", "충돌" |
+| [schedule-forensics](./schedule-forensics.md) | Windows/But-For 계산 검토 + 가정/한계 강제 표기 | readonly | "Windows Analysis", "But-For" |
+
+연결 스킬: `agi-report-autopilot` (MD E2E 한 번 실행), `agi-excel-report-v3` (엑셀 템플릿), `agi-excel-evidence-websync`, `agi-excel-refresh-derived`, `agi-report-ssot-float`, `agi-delay-decomp`, `agi-rca-pack`, `agi-forensic-schedule`, `agi-weather-evidence`, `agi-montecarlo-buffer`, `agi-evidence-web-collector` (`.cursor/skills/`)
+
+---
+
 ## Research & Innovation
 
 | 에이전트 | 설명 | 모드 | 트리거 |
@@ -88,6 +102,8 @@
 /tr-planner "Trip-1 일정 계획"
 /tr-implementer "Timeline 컴포넌트 구현"
 /docops-autopilot
+/report-pipeline   # 또는 /agi-report-autopilot — MD 보고서 E2E 자동 생성
+/excel-report-builder   # 또는 /agi-excel-report-v3 — 엑셀 v3.0 템플릿 자동 생성
 ```
 
 ---
@@ -112,6 +128,18 @@ docops-scout → docops-autopilot → docops-verifier
 ### 혁신/개선 사이클
 ```
 innovation-scout → (APPLICABLE 시) tr-planner → tr-implementer → tr-verifier
+```
+
+### AGI TR 보고서 완전 자동 (MD)
+```
+/report-pipeline 또는 /agi-report-autopilot
+→ Evidence(선택) → A~F 생성 → report-weaver 삽입 → QA(evidence-judge, schedule-forensics) → FINAL.MD + ChangeLog + VERIFY 카드
+```
+
+### AGI 엑셀 보고서 (v3.0)
+```
+/excel-report-builder 또는 /agi-excel-report-v3
+→ Preflight → Template Build → (선택) Web Evidence Sync → Derived Refresh → xlsx + build_report + VERIFY
 ```
 
 ---
