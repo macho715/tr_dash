@@ -1,0 +1,11 @@
+{
+  "report_path": "docs/reports/AGI_TR_일정_최종보고서.MD",
+  "events_csv": "data/events.csv",
+  "metar_text": null,
+  "ncm_text": null,
+  "windows": {
+    "TR2": {"from": "2026-02-11", "to": "2026-02-12"},
+    "TR3": {"from": "2026-02-15", "to": "2026-02-17"}
+  },
+  "output_path": "docs/reports/AGI_TR_일정_최종보고서_FINAL.MD"
+}

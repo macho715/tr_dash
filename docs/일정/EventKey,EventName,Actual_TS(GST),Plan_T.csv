@@ -1,0 +1,10 @@
+EventKey,EventName,Actual_TS(GST),Plan_TS(GST),SRC_Actual,SRC_Plan,Location,Delta_Min,Delta_Reason,Notes
+MZP_BERTH5_ALL_FAST,MZP Berth 5 접안,2026-01-27 17:38,,ADNOC,,,0,,Chat도 동일 시각
+DECK_PREP_WELD,Grillage/스툴/용접,2026-01-28 17:00,,ADNOC,,,0,,Chat 요약과 일치
+HM_LOAD_PERMISSION,HM Loading Permission,2026-01-31 10:30,,ADNOC,,,0,,Chat에 시각 누락
+MZP_CAST_OFF,Bushra MZP 출항,2026-01-31 20:36,,ADNOC,,,0,,Chat도 동일
+AGI_BERTH3_ALL_FAST,AGI Berth 3 접안,2026-02-04 16:06,,ADNOC,,,0,,Chat도 동일
+J62_ARRIVAL_AGI,J62 arrived AGI,2026-02-04 20:30,,ADNOC,,,0,,Chat 요약 누락
+AGI_CAST_OFF,Bushra AGI 출항,2026-02-08 14:38,,ADNOC,,,0,,Chat도 동일
+MZP_ANCHORAGE_ARRIVAL,Bushra MZP anchorage 도착,2026-02-08 22:42,2026-02-09 01:00,ADNOC,CHAT,MZP Anchorage,-138,Actual earlier than ETA,ETA 대비 2h18m 조기
+PORTCALL_MUSAFFAH,Musaffah short stay,,2026-01-25 08:54,,CHAT,Musaffah,,Portcall vs transit,ADNOC의 04:30 sail-to-MZP와 병렬 기록
